@@ -59,6 +59,15 @@ export default function TabLayout() {
           title: "Analytics",
         }}
       />
+      <Tabs.Screen
+        name="storage"
+        options={{
+          title: "Storage",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="archivebox.fill" color={color} />
+          ),
+        }}
+      />
     </Tabs>
   );
 }

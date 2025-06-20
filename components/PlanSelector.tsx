@@ -21,6 +21,7 @@ export const PlanSelector: React.FC<PlanSelectorProps> = ({
   onClose,
   onSelect,
 }) => {
+  console.log("PlanSelector rendered, visible:", visible);
   const { plans, addPlan } = useStore();
   const [newPlanName, setNewPlanName] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);

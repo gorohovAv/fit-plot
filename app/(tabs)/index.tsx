@@ -11,6 +11,13 @@ import { useNavigation } from "@react-navigation/native";
 import { PlanSelector } from "../../components/PlanSelector";
 import useStore, { Plan } from "../../store/store";
 
+type Training = {
+  id: string;
+  name: string;
+  exercises: any[];
+  results: any[];
+};
+
 export default function WorkoutPlanScreen() {
   const navigation = useNavigation();
   const { plans, addPlan, addTraining } = useStore();
@@ -36,7 +43,10 @@ export default function WorkoutPlanScreen() {
     <View style={styles.container}>
       <TouchableOpacity
         style={styles.planButton}
-        onPress={() => setShowPlanSelector(true)}
+        onPress={() => {
+          console.log("Button pressed, showPlanSelector:", !showPlanSelector);
+          setShowPlanSelector(!showPlanSelector);
+        }}
       >
         <Text style={styles.planButtonText}>
           {selectedPlan?.planName || "Выберите план"}
@@ -50,7 +60,7 @@ export default function WorkoutPlanScreen() {
           <Workout
             title={item.name}
             onPress={() =>
-              navigation.navigate("workout", { workoutId: item.id } as never)
+              navigation.navigate("workout", { workoutId: item.id })
             }
           />
         )}
