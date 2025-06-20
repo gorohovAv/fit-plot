@@ -1,4 +1,4 @@
-import create from "zustand";
+import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -19,27 +19,105 @@ type Training = {
   }>;
 };
 
-type Plan = {
+// Добавим экспорт типа Plan
+export type Plan = {
   planName: string;
   trainings: Training[];
 };
 
 type State = {
-  plans: Plan[]; // Массив планов, как указано
-  addPlan: (newPlan: Plan) => void; // Пример действия для добавления плана
+  plans: Plan[];
+  addPlan: (newPlan: Plan) => void;
+  addTraining: (planName: string, training: Training) => void;
+  addExercise: (planName: string, trainingId: string, exercise: any) => void;
+  addResult: (
+    planName: string,
+    trainingId: string,
+    exerciseName: string,
+    result: Result
+  ) => void;
 };
 
 // Создание store с персистентностью
-const useStore = create(
+const useStore = create<State>()(
   persist(
     (set) => ({
-      plans: [], // Начальное состояние: пустой массив
+      plans: [
+        {
+          planName: "Сплит (верх/низ)",
+          trainings: [
+            {
+              id: "1",
+              name: "Тренировка верха",
+              exercises: [],
+              results: [],
+            },
+            {
+              id: "2",
+              name: "Тренировка низа",
+              exercises: [],
+              results: [],
+            },
+          ],
+        },
+      ],
       addPlan: (newPlan: Plan) =>
         set((state) => ({ plans: [...state.plans, newPlan] })),
+      addTraining: (planName, training) =>
+        set((state) => ({
+          plans: state.plans.map((plan) =>
+            plan.planName === planName
+              ? { ...plan, trainings: [...plan.trainings, training] }
+              : plan
+          ),
+        })),
+      addExercise: (planName, trainingId, exercise) =>
+        set((state) => ({
+          plans: state.plans.map((plan) =>
+            plan.planName === planName
+              ? {
+                  ...plan,
+                  trainings: plan.trainings.map((training) =>
+                    training.id === trainingId
+                      ? {
+                          ...training,
+                          exercises: [...training.exercises, exercise],
+                        }
+                      : training
+                  ),
+                }
+              : plan
+          ),
+        })),
+      addResult: (planName, trainingId, exerciseName, result) =>
+        set((state) => ({
+          plans: state.plans.map((plan) =>
+            plan.planName === planName
+              ? {
+                  ...plan,
+                  trainings: plan.trainings.map((training) =>
+                    training.id === trainingId
+                      ? {
+                          ...training,
+                          results: [
+                            ...training.results,
+                            {
+                              exerciseName,
+                              result,
+                              date: new Date().toISOString(),
+                            },
+                          ],
+                        }
+                      : training
+                  ),
+                }
+              : plan
+          ),
+        })),
     }),
     {
-      name: "fit-plot-storage", // Ключ для хранения в Async Storage
-      storage: AsyncStorage, // Используем Async Storage для персистентности
+      name: "fit-plot-storage",
+      getStorage: () => AsyncStorage,
     }
   )
 );

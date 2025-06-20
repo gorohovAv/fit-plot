@@ -1,36 +1,79 @@
-import React from "react";
-import { View, FlatList } from "react-native";
+import React, { useState } from "react";
+import {
+  View,
+  FlatList,
+  TouchableOpacity,
+  Text,
+  TextInput,
+  StyleSheet,
+} from "react-native";
 import { Exercise } from "../../components/Exercise";
 import { useRoute } from "@react-navigation/native";
 
-const exercisesByWorkout = {
-  "1": [
-    { name: "Жим лежа", reps: 10, sets: 4 },
-    { name: "Отжимания", reps: 15, sets: 3 },
-  ],
-  "2": [
-    { name: "Тяга штанги", reps: 8, sets: 4 },
-    { name: "Подтягивания", reps: 10, sets: 3 },
-  ],
-  "3": [
-    { name: "Приседания", reps: 12, sets: 4 },
-    { name: "Выпады", reps: 10, sets: 3 },
-  ],
-};
-
 export default function WorkoutScreen() {
   const route = useRoute();
-  const { workoutId } = route.params as { workoutId: "1" | "2" | "3" };
+  const { workoutId } = route.params as { workoutId: string };
+  const [exercises, setExercises] = useState([
+    { name: "Жим лежа", reps: 0, sets: 0, completed: false },
+  ]);
+  const [newExerciseName, setNewExerciseName] = useState("");
+
+  const addExercise = () => {
+    if (newExerciseName.trim()) {
+      setExercises([
+        ...exercises,
+        {
+          name: newExerciseName,
+          reps: 0,
+          sets: 0,
+          completed: false,
+        },
+      ]);
+      setNewExerciseName("");
+    }
+  };
+
+  const updateExercise = (index: number, updates: Partial<Exercise>) => {
+    setExercises(
+      exercises.map((ex, i) => (i === index ? { ...ex, ...updates } : ex))
+    );
+  };
 
   return (
     <View style={{ flex: 1, padding: 16 }}>
       <FlatList
-        data={exercisesByWorkout[workoutId] || []}
-        keyExtractor={(item) => item.name}
-        renderItem={({ item }) => (
-          <Exercise name={item.name} reps={item.reps} sets={item.sets} />
+        data={exercises}
+        keyExtractor={(item, index) => index.toString()}
+        renderItem={({ item, index }) => (
+          <Exercise
+            name={item.name}
+            reps={item.reps}
+            sets={item.sets}
+            completed={item.completed}
+            onRepsChange={(reps) => updateExercise(index, { reps })}
+            onSetsChange={(sets) => updateExercise(index, { sets })}
+            onComplete={() =>
+              updateExercise(index, { completed: !item.completed })
+            }
+          />
         )}
       />
+
+      <View style={styles.addExerciseContainer}>
+        <TextInput
+          style={styles.exerciseInput}
+          placeholder="Название упражнения"
+          value={newExerciseName}
+          onChangeText={setNewExerciseName}
+        />
+        <TouchableOpacity style={styles.addButton} onPress={addExercise}>
+          <Text>Добавить упражнение</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  // ... стили ...
+});
