@@ -1,37 +1,89 @@
-import { View, Text, ScrollView, StyleSheet } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  Pressable,
+  Alert,
+} from "react-native";
 import { useEffect, useState } from "react";
 import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import useStore from "@/store/store";
+import * as Clipboard from "expo-clipboard";
 
 export default function StorageScreen() {
-  const [storageData, setStorageData] = useState<[string, string | null][]>([]);
+  const [storageContent, setStorageContent] = useState<string>("");
+  const [copied, setCopied] = useState(false);
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
+  const store = useStore();
 
   useEffect(() => {
-    const loadStorage = async () => {
-      const keys = await AsyncStorage.getAllKeys();
-      const result = await AsyncStorage.multiGet(keys);
-      setStorageData(result);
-    };
-    loadStorage();
-  }, []);
+    updateStorageContent();
+  }, [store]);
+
+  const updateStorageContent = () => {
+    setStorageContent(JSON.stringify(store, null, 2));
+  };
+
+  const copyToClipboard = async () => {
+    await Clipboard.setStringAsync(storageContent);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const clearStorage = () => {
+    Alert.alert(
+      "Очистить хранилище",
+      "Вы уверены, что хотите полностью очистить хранилище?",
+      [
+        {
+          text: "Отмена",
+          style: "cancel",
+        },
+        {
+          text: "Очистить",
+          style: "destructive",
+          onPress: () => {
+            useStore.persist.clearStorage();
+            updateStorageContent();
+          },
+        },
+      ]
+    );
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Text style={[styles.title, { color: colors.text }]}>
-        AsyncStorage Dump
+        Zustand Store Debug
       </Text>
+
+      <View style={styles.buttonRow}>
+        <Pressable
+          onPress={copyToClipboard}
+          style={[styles.button, { backgroundColor: colors.tint }]}
+        >
+          <Text style={[styles.buttonText, { color: colors.text }]}>
+            {copied ? "Скопировано!" : "Копировать JSON"}
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={clearStorage}
+          style={[styles.button, { backgroundColor: colors.tabIconSelected }]}
+        >
+          <Text style={[styles.buttonText, { color: colors.text }]}>
+            Очистить хранилище
+          </Text>
+        </Pressable>
+      </View>
+
       <ScrollView>
-        {storageData.map(([key, value]) => (
-          <View key={key} style={styles.item}>
-            <Text style={[styles.key, { color: colors.tint }]}>{key}:</Text>
-            <Text style={[styles.value, { color: colors.text }]}>
-              {value ? JSON.stringify(JSON.parse(value), null, 2) : "null"}
-            </Text>
-          </View>
-        ))}
+        <Text style={[styles.content, { color: colors.text }]}>
+          {storageContent}
+        </Text>
       </ScrollView>
     </View>
   );
@@ -47,17 +99,21 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 16,
   },
-  item: {
-    marginBottom: 12,
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: "rgba(0,0,0,0.05)",
-  },
-  key: {
-    fontWeight: "bold",
-    marginBottom: 4,
-  },
-  value: {
+  content: {
     fontFamily: "SpaceMono",
+  },
+  buttonRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 16,
+  },
+  button: {
+    flex: 1,
+    padding: 10,
+    borderRadius: 5,
+    alignItems: "center",
+  },
+  buttonText: {
+    fontWeight: "bold",
   },
 });
