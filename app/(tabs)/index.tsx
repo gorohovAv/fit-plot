@@ -21,7 +21,7 @@ type Training = {
 
 export default function WorkoutPlanScreen() {
   const navigation = useNavigation();
-  const { plans, addPlan, addTraining } = useStore();
+  const { plans, addPlan, removeTraining, addTraining } = useStore();
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(
     plans[0] || null
   );
@@ -30,10 +30,15 @@ export default function WorkoutPlanScreen() {
   const [trainingName, setTrainingName] = useState("");
 
   useEffect(() => {
-    if (plans.length > 0 && !selectedPlan) {
-      setSelectedPlan(plans[0]);
+    if (selectedPlan) {
+      const updatedPlan = plans.find(
+        (plan) => plan.planName === selectedPlan.planName
+      );
+      if (updatedPlan) {
+        setSelectedPlan(updatedPlan);
+      }
     }
-  }, [plans, selectedPlan, showTrainingModal]);
+  }, [plans]);
 
   const handleAddTraining = () => {
     if (!selectedPlan || !trainingName.trim()) return;
@@ -48,6 +53,20 @@ export default function WorkoutPlanScreen() {
     addTraining(selectedPlan.planName, newTraining);
     setTrainingName("");
     setShowTrainingModal(false);
+
+    const updatedPlan = plans.find(
+      (plan) => plan.planName === selectedPlan.planName
+    );
+    setSelectedPlan(updatedPlan || null);
+  };
+
+  const handleDeleteTraining = (trainingId: string) => {
+    if (!selectedPlan) return;
+    removeTraining(selectedPlan.planName, trainingId);
+    const updatedPlan = plans.find(
+      (plan) => plan.planName === selectedPlan.planName
+    );
+    setSelectedPlan(updatedPlan || null);
   };
 
   const TrainingModal = () => (
@@ -101,6 +120,7 @@ export default function WorkoutPlanScreen() {
             onPress={() =>
               navigation.navigate("workout", { workoutId: item.id })
             }
+            onDelete={() => handleDeleteTraining(item.id)}
           />
         )}
         contentContainerStyle={{ flexGrow: 1 }}
