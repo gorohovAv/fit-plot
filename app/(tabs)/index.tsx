@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   FlatList,
   TouchableOpacity,
   Text,
   StyleSheet,
+  TextInput,
 } from "react-native";
 import { Workout } from "../../components/Workout";
 import { useNavigation } from "@react-navigation/native";
@@ -25,19 +26,57 @@ export default function WorkoutPlanScreen() {
     plans[0] || null
   );
   const [showPlanSelector, setShowPlanSelector] = useState(false);
+  const [showTrainingModal, setShowTrainingModal] = useState(false);
+  const [trainingName, setTrainingName] = useState("");
+
+  useEffect(() => {
+    if (plans.length > 0 && !selectedPlan) {
+      setSelectedPlan(plans[0]);
+    }
+  }, [plans, selectedPlan, showTrainingModal]);
 
   const handleAddTraining = () => {
-    if (!selectedPlan) return;
+    if (!selectedPlan || !trainingName.trim()) return;
 
     const newTraining: Training = {
       id: Date.now().toString(),
-      name: `Тренировка ${selectedPlan.trainings.length + 1}`,
+      name: trainingName,
       exercises: [],
       results: [],
     };
 
     addTraining(selectedPlan.planName, newTraining);
+    setTrainingName("");
+    setShowTrainingModal(false);
   };
+
+  const TrainingModal = () => (
+    <View style={modalStyles.container}>
+      <View style={modalStyles.modal}>
+        <Text style={modalStyles.title}>Название тренировки</Text>
+        <TextInput
+          style={modalStyles.input}
+          placeholder="Введите название"
+          value={trainingName}
+          onChangeText={setTrainingName}
+        />
+        <View style={modalStyles.buttons}>
+          <TouchableOpacity
+            style={[modalStyles.button, modalStyles.cancelButton]}
+            onPress={() => setShowTrainingModal(false)}
+          >
+            <Text style={modalStyles.buttonText}>Отмена</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[modalStyles.button, modalStyles.confirmButton]}
+            onPress={handleAddTraining}
+          >
+            <Text style={modalStyles.buttonText}>Добавить</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
 
   return (
     <View style={styles.container}>
@@ -75,11 +114,15 @@ export default function WorkoutPlanScreen() {
       />
 
       {selectedPlan && (
-        <TouchableOpacity style={styles.addButton} onPress={handleAddTraining}>
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => setShowTrainingModal(true)}
+        >
           <Text style={styles.addButtonText}>+ Добавить тренировку</Text>
         </TouchableOpacity>
       )}
 
+      {showTrainingModal && <TrainingModal />}
       <PlanSelector
         visible={showPlanSelector}
         onClose={() => setShowPlanSelector(false)}
@@ -124,6 +167,59 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   addButtonText: {
+    color: "white",
+    fontWeight: "bold",
+  },
+});
+
+const modalStyles = StyleSheet.create({
+  container: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modal: {
+    width: "80%",
+    backgroundColor: "white",
+    borderRadius: 8,
+    padding: 16,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 16,
+    textAlign: "center",
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 4,
+    padding: 8,
+    marginBottom: 16,
+  },
+  buttons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  button: {
+    padding: 12,
+    borderRadius: 4,
+    alignItems: "center",
+    flex: 1,
+    marginHorizontal: 4,
+  },
+  cancelButton: {
+    backgroundColor: "#f0f0f0",
+  },
+  confirmButton: {
+    backgroundColor: "#2196F3",
+  },
+  buttonText: {
     color: "white",
     fontWeight: "bold",
   },
