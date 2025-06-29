@@ -38,7 +38,7 @@ export default function WorkoutPlanScreen() {
         setSelectedPlan(updatedPlan);
       }
     }
-  }, [plans]);
+  }, [plans]); // для нормального ререндера
 
   const handleAddTraining = () => {
     if (!selectedPlan || !trainingName.trim()) return;

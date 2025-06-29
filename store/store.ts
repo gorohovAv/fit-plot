@@ -2,21 +2,39 @@ import { create } from "zustand";
 import { persist, PersistStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// Определение типов
+// Определение новых типов
+type MuscleGroup =
+  | "chest"
+  | "triceps"
+  | "biceps"
+  | "forearms"
+  | "delts"
+  | "back"
+  | "glutes"
+  | "quads"
+  | "hamstrings"
+  | "calves";
+type ExerciseType = "machine" | "free weight" | "own weight" | "cables";
+type Exercise = {
+  id: string;
+  name: string;
+  muscleGroup: MuscleGroup;
+  type: ExerciseType;
+  unilateral: boolean;
+};
+
 type Result = {
+  exerciseId: string; // Ссылка на упражнение
   weight: number;
   reps: number;
+  date: string;
 };
 
 type Training = {
-  id: string; // Предполагаем, что id — строка; вы можете изменить на number, если нужно
+  id: string;
   name: string;
-  exercises: any[]; // Массив упражнений; вы не указали тип, так что используем any[]
-  results: Array<{
-    exerciseName: string;
-    result: Result;
-    date: string; // Предполагаем, что date — строка; используйте Date, если нужно
-  }>;
+  exercises: Exercise[]; // Массив упражнений
+  results: Result[]; // Массив результатов
 };
 
 // Добавим экспорт типа Plan
@@ -29,13 +47,12 @@ type State = {
   plans: Plan[];
   addPlan: (newPlan: Plan) => void;
   addTraining: (planName: string, training: Training) => void;
-  addExercise: (planName: string, trainingId: string, exercise: any) => void;
-  addResult: (
+  addExercise: (
     planName: string,
     trainingId: string,
-    exerciseName: string,
-    result: Result
+    exercise: Exercise
   ) => void;
+  addResult: (planName: string, trainingId: string, result: Result) => void;
   removeTraining: (planName: string, trainingId: string) => void;
 };
 
@@ -104,7 +121,7 @@ const useStore = create<State>()(
               : plan
           ),
         })),
-      addResult: (planName, trainingId, exerciseName, result) =>
+      addResult: (planName, trainingId, result) =>
         set((state) => ({
           plans: state.plans.map((plan) =>
             plan.planName === planName
@@ -114,14 +131,7 @@ const useStore = create<State>()(
                     training.id === trainingId
                       ? {
                           ...training,
-                          results: [
-                            ...training.results,
-                            {
-                              exerciseName,
-                              result,
-                              date: new Date().toISOString(),
-                            },
-                          ],
+                          results: [...training.results, result],
                         }
                       : training
                   ),
