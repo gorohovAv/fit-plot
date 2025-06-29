@@ -6,6 +6,8 @@ import {
   TextInput,
   TouchableOpacity,
 } from "react-native";
+import useStore from "../store/store";
+import { useRoute } from "@react-navigation/native";
 
 type ExerciseProps = {
   id: string;
@@ -34,11 +36,23 @@ export const Exercise: React.FC<ExerciseProps> = ({
   onComplete,
   completed,
 }) => {
+  const route = useRoute();
+  const { workoutId, planName } = route.params as {
+    workoutId: string;
+    planName: string;
+  };
   const [editing, setEditing] = useState(false);
   const [result, setResult] = useState({
     weight: 0,
     reps: 0,
   });
+  const { plans, addResult } = useStore();
+
+  const exerciseResults =
+    plans
+      .find((plan) => plan.planName === planName)
+      ?.trainings.find((training) => training.id === workoutId)
+      ?.results.filter((res) => res.exerciseId === id) || [];
 
   const handleAddResult = () => {
     const newResult: Result = {
@@ -47,8 +61,8 @@ export const Exercise: React.FC<ExerciseProps> = ({
       reps: result.reps,
       date: new Date().toISOString(),
     };
-    // Вызов метода хранилища для добавления результата
-    setResult({ weight: 0, reps: 0 }); // Сброс полей
+    addResult(planName, workoutId, newResult);
+    setResult({ weight: 0, reps: 0 });
   };
 
   return (
@@ -60,6 +74,17 @@ export const Exercise: React.FC<ExerciseProps> = ({
           {unilateral ? "Одностороннее" : "Двустороннее"}
         </Text>
       </View>
+
+      {/* Список результатов */}
+      {exerciseResults.length > 0 && (
+        <View style={styles.resultsList}>
+          {exerciseResults.map((res, index) => (
+            <Text key={index} style={styles.resultItem}>
+              {res.weight} кг × {res.reps} повторений
+            </Text>
+          ))}
+        </View>
+      )}
 
       {/* Форма ввода веса и повторений */}
       <View style={styles.resultForm}>
@@ -89,9 +114,6 @@ export const Exercise: React.FC<ExerciseProps> = ({
           <Text style={styles.confirmButtonText}>✓</Text>
         </TouchableOpacity>
       </View>
-
-      {/* История результатов (если нужно) */}
-      {/* ... */}
     </View>
   );
 };
@@ -151,5 +173,13 @@ const styles = StyleSheet.create({
   },
   confirmButtonText: {
     color: "white",
+  },
+  resultsList: {
+    marginTop: 8,
+  },
+  resultItem: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 4,
   },
 });

@@ -118,7 +118,10 @@ export default function WorkoutPlanScreen() {
           <Workout
             title={item.name}
             onPress={() =>
-              navigation.navigate("workout", { workoutId: item.id })
+              navigation.navigate("workout", {
+                workoutId: item.id,
+                planName: selectedPlan?.planName,
+              })
             }
             onDelete={() => handleDeleteTraining(item.id)}
           />

@@ -15,8 +15,11 @@ import { Picker } from "@react-native-picker/picker";
 
 export default function WorkoutScreen() {
   const route = useRoute();
-  const { workoutId } = route.params as { workoutId: string };
-  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const { workoutId, planName } = route.params as {
+    workoutId: string;
+    planName: string;
+  };
+  const { plans, addExercise } = useStore();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [newExercise, setNewExercise] = useState({
     name: "",
@@ -25,13 +28,25 @@ export default function WorkoutScreen() {
     unilateral: false,
   });
 
-  const addExercise = () => {
+  const currentTraining = plans
+    .find((plan) => plan.planName === planName)
+    ?.trainings.find((training) => training.id === workoutId);
+
+  const handleAddExercise = () => {
     if (newExercise.name.trim()) {
       const exercise: Exercise = {
         id: Date.now().toString(),
         ...newExercise,
       };
-      setExercises([...exercises, exercise]);
+      console.log(
+        "Adding exercise:",
+        exercise,
+        "to plan:",
+        planName,
+        "training:",
+        workoutId
+      );
+      addExercise(planName, workoutId, exercise);
       setNewExercise({
         name: "",
         muscleGroup: "chest",
@@ -51,7 +66,7 @@ export default function WorkoutScreen() {
   return (
     <View style={{ flex: 1, padding: 16 }}>
       <FlatList
-        data={exercises}
+        data={currentTraining?.exercises || []}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <Exercise
@@ -151,7 +166,7 @@ export default function WorkoutScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.submitButton}
-                onPress={addExercise}
+                onPress={handleAddExercise}
               >
                 <Text>Добавить</Text>
               </TouchableOpacity>
