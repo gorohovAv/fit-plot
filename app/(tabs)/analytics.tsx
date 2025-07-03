@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView } from "react-native";
 import { CartesianChart, Line } from "victory-native";
 import useStore from "../../store/store";
 import { Picker } from "@react-native-picker/picker";
+import { useFont } from "@shopify/react-native-skia";
 
 type ChartData = {
   x: string; // Дата
@@ -21,14 +22,28 @@ export default function AnalyticsScreen() {
     maxReps: ChartData;
   }>({ tonnage: [], maxWeight: [], maxReps: [] });
 
-  // Получаем список всех упражнений
-  const exercises = plans.flatMap((plan) =>
-    plan.trainings.flatMap((training) => training.exercises)
-  );
+  const font = useFont(require("../../assets/fonts/SpaceMono-Regular.ttf"));
 
-  // Фильтрация результатов
+  // Хелпер для получения даты в формате YYYY-MM-DD
+  const getDayString = (dateStr: string) => {
+    const d = new Date(dateStr);
+    // Корректно обрабатываем часовой пояс
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  // Хелпер для красивого отображения на графике (MM-DD)
+  const formatLabel = (dayStr: string) => {
+    const [, month, day] = dayStr.split("-");
+    return `${month}-${day}`;
+  };
+
   useEffect(() => {
     if (!selectedExercise) return;
+
+    console.log("[Analytics] Выбрано упражнение:", selectedExercise);
 
     const results = plans
       .flatMap((plan) =>
@@ -40,41 +55,54 @@ export default function AnalyticsScreen() {
       )
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
+    console.log("[Analytics] Результаты для графика:", results);
+
     if (results.length === 0) {
       setChartData({ tonnage: [], maxWeight: [], maxReps: [] });
       return;
     }
 
     if (autoPeriod) {
-      setStartDate(results[0].date);
-      setEndDate(results[results.length - 1].date);
+      setStartDate(getDayString(results[0].date));
+      setEndDate(getDayString(results[results.length - 1].date));
     }
 
-    const groupedByDate = results.reduce((acc, result) => {
-      const date = result.date;
-      if (!acc[date]) {
-        acc[date] = { tonnage: 0, maxWeight: 0, maxReps: 0 };
+    // Группировка по дням
+    const groupedByDay = results.reduce((acc, result) => {
+      const day = getDayString(result.date);
+      if (!acc[day]) {
+        acc[day] = { tonnage: 0, maxWeight: 0, maxReps: 0 };
       }
-      acc[date].tonnage += result.weight * result.reps;
-      acc[date].maxWeight = Math.max(acc[date].maxWeight, result.weight);
-      acc[date].maxReps = Math.max(acc[date].maxReps, result.reps);
+      acc[day].tonnage += result.weight * result.reps;
+      acc[day].maxWeight = Math.max(acc[day].maxWeight, result.weight);
+      acc[day].maxReps = Math.max(acc[day].maxReps, result.reps);
       return acc;
     }, {} as Record<string, { tonnage: number; maxWeight: number; maxReps: number }>);
 
-    const tonnageData = Object.entries(groupedByDate).map(([date, data]) => ({
-      x: date,
-      y: data.tonnage,
+    // Сортируем по дате
+    const sortedDays = Object.keys(groupedByDay).sort();
+
+    const tonnageData = sortedDays.map((day) => ({
+      x: day,
+      y: groupedByDay[day].tonnage,
     }));
 
-    const maxWeightData = Object.entries(groupedByDate).map(([date, data]) => ({
-      x: date,
-      y: data.maxWeight,
+    const maxWeightData = sortedDays.map((day) => ({
+      x: day,
+      y: groupedByDay[day].maxWeight,
     }));
 
-    const maxRepsData = Object.entries(groupedByDate).map(([date, data]) => ({
-      x: date,
-      y: data.maxReps,
+    const maxRepsData = sortedDays.map((day) => ({
+      x: day,
+      y: groupedByDay[day].maxReps,
     }));
+
+    console.log("[Analytics] Данные для графика тоннажа:", tonnageData);
+    console.log("[Analytics] Данные для графика макс. веса:", maxWeightData);
+    console.log(
+      "[Analytics] Данные для графика макс. повторений:",
+      maxRepsData
+    );
 
     setChartData({
       tonnage: tonnageData,
@@ -83,12 +111,25 @@ export default function AnalyticsScreen() {
     });
   }, [selectedExercise, startDate, endDate, autoPeriod, plans]);
 
-  // Рендер графика
-  const renderChart = (data: ChartData, title: string, color: string) => {
-    // Преобразуем даты к виду "ММ-ДД"
+  if (!font) {
+    return null;
+  }
+
+  const exercises = plans.flatMap((plan) =>
+    plan.trainings.flatMap((training) => training.exercises)
+  );
+
+  const renderChart = (
+    data: ChartData,
+    title: string,
+    color: string,
+    xLabel: string,
+    yLabel: string
+  ) => {
+    // Форматируем подписи X как MM-DD
     const formattedData = data.map((item) => ({
       ...item,
-      x: item.x.slice(5), // "YYYY-MM-DD" -> "MM-DD"
+      x: formatLabel(item.x),
     }));
 
     return (
@@ -103,8 +144,7 @@ export default function AnalyticsScreen() {
               labelColor: "#888",
               tickCount: 5,
               lineColor: "#ccc",
-              // Можно добавить подписи осей, если нужно:
-              // xLabel: "Дата", yLabel: "Значение"
+              font: font,
             }}
           >
             {({ points }) => (
@@ -112,7 +152,7 @@ export default function AnalyticsScreen() {
                 points={points.y}
                 color={color}
                 strokeWidth={3}
-                curveType="natural" // сглаживание линии
+                curveType="natural"
               />
             )}
           </CartesianChart>
@@ -123,7 +163,6 @@ export default function AnalyticsScreen() {
 
   return (
     <ScrollView style={styles.container}>
-      {/* Форма выбора данных */}
       <View style={styles.form}>
         <Picker
           selectedValue={selectedExercise}
@@ -141,12 +180,29 @@ export default function AnalyticsScreen() {
         </Picker>
       </View>
 
-      {/* Графики */}
       {chartData.tonnage.length > 0 && (
         <>
-          {renderChart(chartData.tonnage, "Общий тоннаж", "#c43a31")}
-          {renderChart(chartData.maxWeight, "Максимальный вес", "#2a9d8f")}
-          {renderChart(chartData.maxReps, "Максимальные повторения", "#264653")}
+          {renderChart(
+            chartData.tonnage,
+            "Общий тоннаж",
+            "#c43a31",
+            "Дата",
+            "Тоннаж"
+          )}
+          {renderChart(
+            chartData.maxWeight,
+            "Максимальный вес",
+            "#2a9d8f",
+            "Дата",
+            "Вес"
+          )}
+          {renderChart(
+            chartData.maxReps,
+            "Максимальные повторения",
+            "#264653",
+            "Дата",
+            "Повторения"
+          )}
         </>
       )}
     </ScrollView>
