@@ -36,6 +36,7 @@ export default function TabLayout() {
           ),
         }}
       />
+      {/*
       <Tabs.Screen
         name="explore"
         options={{
@@ -44,7 +45,7 @@ export default function TabLayout() {
             <IconSymbol size={28} name="paperplane.fill" color={color} />
           ),
         }}
-      />
+      />*/}
       <Tabs.Screen
         name="workout"
         options={{
@@ -53,18 +54,29 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="analytics"
-        options={{
-          href: null,
-          title: "Analytics",
-        }}
-      />
-      <Tabs.Screen
         name="storage"
         options={{
           title: "Storage",
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="archivebox.fill" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="analytics"
+        options={{
+          title: "Analytics",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="chart.bar.fill" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: "Settings",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={28} name="gearshape.fill" color={color} />
           ),
         }}
       />
