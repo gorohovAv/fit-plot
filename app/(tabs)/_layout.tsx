@@ -7,9 +7,11 @@ import { IconSymbol } from "@/components/ui/IconSymbol";
 import TabBarBackground from "@/components/ui/TabBarBackground";
 import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import useSettingsStore from "@/store/settingsStore";
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const devMode = useSettingsStore((state) => state.devMode);
 
   return (
     <Tabs
@@ -53,15 +55,17 @@ export default function TabLayout() {
           title: "Workout",
         }}
       />
-      <Tabs.Screen
-        name="storage"
-        options={{
-          title: "Storage",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="archivebox.fill" color={color} />
-          ),
-        }}
-      />
+      {devMode && (
+        <Tabs.Screen
+          name="storage"
+          options={{
+            title: "Storage",
+            tabBarIcon: ({ color }) => (
+              <IconSymbol size={28} name="archivebox.fill" color={color} />
+            ),
+          }}
+        />
+      )}
       <Tabs.Screen
         name="analytics"
         options={{

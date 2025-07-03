@@ -1,11 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, ScrollView } from "react-native";
 import { CartesianChart, Line } from "victory-native";
 import useStore from "../../store/store";
 import { Picker } from "@react-native-picker/picker";
-import { VictoryTheme as VictoryCoreTheme } from "victory-core";
-// import { useFont } from "@shopify/react-native-skia"; // если нужен кастомный шрифт
-// import inter from "../../assets/fonts/SpaceMono-Regular.ttf"; // пример подключения шрифта
 
 type ChartData = {
   x: string; // Дата
@@ -88,24 +85,35 @@ export default function AnalyticsScreen() {
 
   // Рендер графика
   const renderChart = (data: ChartData, title: string, color: string) => {
-    // const font = useFont(inter, 12); // если нужен кастомный шрифт
+    // Преобразуем даты к виду "ММ-ДД"
+    const formattedData = data.map((item) => ({
+      ...item,
+      x: item.x.slice(5), // "YYYY-MM-DD" -> "MM-DD"
+    }));
+
     return (
       <View style={styles.chartContainer}>
         <Text style={styles.chartTitle}>{title}</Text>
         <View style={{ height: 220 }}>
           <CartesianChart
-            data={data}
+            data={formattedData}
             xKey="x"
             yKeys={["y"]}
             axisOptions={{
-              // font, // если нужен кастомный шрифт
               labelColor: "#888",
               tickCount: 5,
               lineColor: "#ccc",
+              // Можно добавить подписи осей, если нужно:
+              // xLabel: "Дата", yLabel: "Значение"
             }}
           >
             {({ points }) => (
-              <Line points={points.y} color={color} strokeWidth={3} />
+              <Line
+                points={points.y}
+                color={color}
+                strokeWidth={3}
+                curveType="natural" // сглаживание линии
+              />
             )}
           </CartesianChart>
         </View>
@@ -114,7 +122,7 @@ export default function AnalyticsScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       {/* Форма выбора данных */}
       <View style={styles.form}>
         <Picker
@@ -141,7 +149,7 @@ export default function AnalyticsScreen() {
           {renderChart(chartData.maxReps, "Максимальные повторения", "#264653")}
         </>
       )}
-    </View>
+    </ScrollView>
   );
 }
 
