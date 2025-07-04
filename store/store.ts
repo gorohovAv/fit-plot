@@ -21,6 +21,7 @@ type Exercise = {
   muscleGroup: MuscleGroup;
   type: ExerciseType;
   unilateral: boolean;
+  amplitude: "full" | "partial";
 };
 
 type Result = {
@@ -28,6 +29,7 @@ type Result = {
   weight: number;
   reps: number;
   date: string;
+  amplitude: "full" | "partial";
 };
 
 type Training = {

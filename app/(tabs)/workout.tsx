@@ -26,7 +26,9 @@ export default function WorkoutScreen() {
     muscleGroup: "chest" as MuscleGroup,
     type: "free weight" as ExerciseType,
     unilateral: false,
+    amplitude: "full" as "full" | "partial",
   });
+  const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
 
   const currentTraining = plans
     .find((plan) => plan.planName === planName)
@@ -52,9 +54,19 @@ export default function WorkoutScreen() {
         muscleGroup: "chest",
         type: "free weight",
         unilateral: false,
+        amplitude: "full",
       });
       setIsModalVisible(false);
     }
+  };
+
+  const handleEditExercise = (exercise: Exercise) => {
+    setEditingExercise(exercise);
+    setIsModalVisible(true);
+  };
+
+  const handleDeleteExercise = (exerciseId: string) => {
+    // Логика удаления упражнения
   };
 
   const updateExercise = (index: number, updates: Partial<Exercise>) => {
@@ -75,12 +87,15 @@ export default function WorkoutScreen() {
             muscleGroup={item.muscleGroup}
             type={item.type}
             unilateral={item.unilateral}
+            amplitude={item.amplitude}
             reps={0}
             sets={0}
             onRepsChange={() => {}}
             onSetsChange={() => {}}
             onComplete={() => {}}
             completed={false}
+            onEdit={() => handleEditExercise(item)}
+            onDelete={() => handleDeleteExercise(item.id)}
           />
         )}
       />
@@ -141,6 +156,16 @@ export default function WorkoutScreen() {
               <Picker.Item label="Свободные веса" value="free weight" />
               <Picker.Item label="Собственный вес" value="own weight" />
               <Picker.Item label="Тросы" value="cables" />
+            </Picker>
+
+            <Picker
+              selectedValue={newExercise.amplitude}
+              onValueChange={(value) =>
+                setNewExercise({ ...newExercise, amplitude: value })
+              }
+            >
+              <Picker.Item label="Полная амплитуда" value="full" />
+              <Picker.Item label="Неполная амплитуда" value="partial" />
             </Picker>
 
             <TouchableOpacity

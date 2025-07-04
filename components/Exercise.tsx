@@ -17,10 +17,13 @@ type ExerciseProps = {
   unilateral: boolean;
   reps: number;
   sets: number;
+  amplitude: "full" | "partial";
   onRepsChange: (reps: number) => void;
   onSetsChange: (sets: number) => void;
   onComplete: () => void;
   completed: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
 };
 
 export const Exercise: React.FC<ExerciseProps> = ({
@@ -31,10 +34,13 @@ export const Exercise: React.FC<ExerciseProps> = ({
   unilateral,
   reps,
   sets,
+  amplitude,
   onRepsChange,
   onSetsChange,
   onComplete,
   completed,
+  onEdit,
+  onDelete,
 }) => {
   const route = useRoute();
   const { workoutId, planName } = route.params as {
@@ -71,8 +77,19 @@ export const Exercise: React.FC<ExerciseProps> = ({
         <Text style={styles.name}>{name}</Text>
         <Text style={styles.details}>
           {muscleGroup} • {type} •{" "}
-          {unilateral ? "Одностороннее" : "Двустороннее"}
+          {unilateral ? "Одностороннее" : "Двустороннее"} •{" "}
+          {amplitude === "full" ? "Полная амплитуда" : "Неполная амплитуда"}
         </Text>
+      </View>
+
+      {/* Кнопки редактирования и удаления */}
+      <View style={styles.actions}>
+        <TouchableOpacity onPress={onEdit} style={styles.actionButton}>
+          <Text>✏️</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={onDelete} style={styles.actionButton}>
+          <Text>❌</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Список результатов */}
@@ -181,5 +198,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#666",
     marginBottom: 4,
+  },
+  actions: {
+    position: "absolute",
+    right: 16,
+    top: 16,
+    flexDirection: "column",
+    gap: 8,
+  },
+  actionButton: {
+    padding: 4,
   },
 });
