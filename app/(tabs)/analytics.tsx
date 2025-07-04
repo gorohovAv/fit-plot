@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, ScrollView } from "react-native";
 import { CartesianChart, Line } from "victory-native";
 import useStore from "../../store/store";
 import { Picker } from "@react-native-picker/picker";
-import { useFont } from "@shopify/react-native-skia";
+import { Circle, useFont } from "@shopify/react-native-skia";
+import Plot from "@/components/Plot";
 
 type ChartData = {
   x: string; // Дата
@@ -36,7 +37,12 @@ export default function AnalyticsScreen() {
 
   // Хелпер для красивого отображения на графике (MM-DD)
   const formatLabel = (dayStr: string) => {
-    const [, month, day] = dayStr.split("-");
+    if (!dayStr || typeof dayStr !== "string") return "";
+    const parts = dayStr.split("-");
+    if (parts.length !== 3) return "";
+    const [, month, day] = parts;
+    // Проверяем, что month и day существуют и это числа
+    if (!month || !day || isNaN(Number(month)) || isNaN(Number(day))) return "";
     return `${month}-${day}`;
   };
 
@@ -126,37 +132,24 @@ export default function AnalyticsScreen() {
     xLabel: string,
     yLabel: string
   ) => {
-    // Форматируем подписи X как MM-DD
-    const formattedData = data.map((item) => ({
-      ...item,
-      x: formatLabel(item.x),
-    }));
+    // Оставляем только валидные точки
+    const filteredData = data.filter(
+      (item) =>
+        item.x &&
+        typeof item.x === "string" &&
+        item.x.split("-").length === 3 &&
+        !item.x.includes("undefined")
+    );
 
     return (
       <View style={styles.chartContainer}>
         <Text style={styles.chartTitle}>{title}</Text>
-        <View style={{ height: 220 }}>
-          <CartesianChart
-            data={formattedData}
-            xKey="x"
-            yKeys={["y"]}
-            axisOptions={{
-              labelColor: "#888",
-              tickCount: 5,
-              lineColor: "#ccc",
-              font: font,
-            }}
-          >
-            {({ points }) => (
-              <Line
-                points={points.y}
-                color={color}
-                strokeWidth={3}
-                curveType="natural"
-              />
-            )}
-          </CartesianChart>
-        </View>
+        <Plot
+          data={filteredData}
+          width={350}
+          height={220}
+          margin={{ top: 20, right: 20, bottom: 40, left: 40 }}
+        />
       </View>
     );
   };
