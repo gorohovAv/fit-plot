@@ -66,7 +66,8 @@ export default function WorkoutScreen() {
   };
 
   const handleDeleteExercise = (exerciseId: string) => {
-    // Логика удаления упражнения
+    const { removeExercise } = useStore.getState();
+    removeExercise(planName, workoutId, exerciseId);
   };
 
   const updateExercise = (index: number, updates: Partial<Exercise>) => {

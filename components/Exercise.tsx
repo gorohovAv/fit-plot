@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import useStore from "../store/store";
 import { useRoute } from "@react-navigation/native";
+import { Picker } from "@react-native-picker/picker";
 
 type ExerciseProps = {
   id: string;
@@ -51,6 +52,7 @@ export const Exercise: React.FC<ExerciseProps> = ({
   const [result, setResult] = useState({
     weight: 0,
     reps: 0,
+    amplitude: "full" as "full" | "partial",
   });
   const { plans, addResult } = useStore();
 
@@ -65,10 +67,11 @@ export const Exercise: React.FC<ExerciseProps> = ({
       exerciseId: id,
       weight: result.weight,
       reps: result.reps,
+      amplitude: result.amplitude,
       date: new Date().toISOString(),
     };
     addResult(planName, workoutId, newResult);
-    setResult({ weight: 0, reps: 0 });
+    setResult({ weight: 0, reps: 0, amplitude: "full" });
   };
 
   return (
@@ -103,7 +106,7 @@ export const Exercise: React.FC<ExerciseProps> = ({
         </View>
       )}
 
-      {/* Форма ввода веса и повторений */}
+      {/* Форма ввода веса, повторений и амплитуды */}
       <View style={styles.resultForm}>
         <TextInput
           style={styles.weightInput}
@@ -124,6 +127,14 @@ export const Exercise: React.FC<ExerciseProps> = ({
             setResult({ ...result, reps: parseInt(text) || 0 })
           }
         />
+        <Picker
+          selectedValue={result.amplitude}
+          onValueChange={(value) => setResult({ ...result, amplitude: value })}
+          style={styles.amplitudePicker}
+        >
+          <Picker.Item label="Полная" value="full" />
+          <Picker.Item label="Неполная" value="partial" />
+        </Picker>
         <TouchableOpacity
           style={styles.confirmButton}
           onPress={handleAddResult}
@@ -208,5 +219,10 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     padding: 4,
+  },
+  amplitudePicker: {
+    width: 100,
+    height: 40,
+    marginLeft: 8,
   },
 });
