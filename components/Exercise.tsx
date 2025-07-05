@@ -8,7 +8,18 @@ import {
 } from "react-native";
 import useStore from "../store/store";
 import { useRoute } from "@react-navigation/native";
-import { Picker } from "@react-native-picker/picker";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+
+type MuscleGroup = string; // Пример: Определяем как строку, если нет других определений
+type ExerciseType = string; // Пример: Определяем как строку, если нет других определений
+
+interface Result {
+  exerciseId: string;
+  weight: number;
+  reps: number;
+  amplitude: "full" | "partial";
+  date: string;
+}
 
 type ExerciseProps = {
   id: string;
@@ -88,10 +99,10 @@ export const Exercise: React.FC<ExerciseProps> = ({
       {/* Кнопки редактирования и удаления */}
       <View style={styles.actions}>
         <TouchableOpacity onPress={onEdit} style={styles.actionButton}>
-          <Text>✏️</Text>
+          <MaterialIcons name="edit" size={20} color="#666" />
         </TouchableOpacity>
         <TouchableOpacity onPress={onDelete} style={styles.actionButton}>
-          <Text>❌</Text>
+          <MaterialIcons name="delete" size={20} color="#666" />
         </TouchableOpacity>
       </View>
 
@@ -100,7 +111,8 @@ export const Exercise: React.FC<ExerciseProps> = ({
         <View style={styles.resultsList}>
           {exerciseResults.map((res, index) => (
             <Text key={index} style={styles.resultItem}>
-              {res.weight} кг × {res.reps} повторений
+              {res.amplitude === "full" ? "⚪" : "⚫"} {res.weight} кг ×{" "}
+              {res.reps} повторений
             </Text>
           ))}
         </View>
@@ -127,19 +139,28 @@ export const Exercise: React.FC<ExerciseProps> = ({
             setResult({ ...result, reps: parseInt(text) || 0 })
           }
         />
-        <Picker
-          selectedValue={result.amplitude}
-          onValueChange={(value) => setResult({ ...result, amplitude: value })}
-          style={styles.amplitudePicker}
+        <TouchableOpacity
+          onPress={() =>
+            setResult({
+              ...result,
+              amplitude: result.amplitude === "full" ? "partial" : "full",
+            })
+          }
+          style={styles.amplitudeToggle}
         >
-          <Picker.Item label="Полная" value="full" />
-          <Picker.Item label="Неполная" value="partial" />
-        </Picker>
+          <MaterialIcons
+            name={
+              result.amplitude === "full" ? "circle" : "radio-button-unchecked"
+            }
+            size={24}
+            color="#666"
+          />
+        </TouchableOpacity>
         <TouchableOpacity
           style={styles.confirmButton}
           onPress={handleAddResult}
         >
-          <Text style={styles.confirmButtonText}>✓</Text>
+          <MaterialIcons name="check" size={20} color="white" />
         </TouchableOpacity>
       </View>
     </View>
@@ -199,9 +220,6 @@ const styles = StyleSheet.create({
     width: 30,
     alignItems: "center",
   },
-  confirmButtonText: {
-    color: "white",
-  },
   resultsList: {
     marginTop: 8,
   },
@@ -220,9 +238,8 @@ const styles = StyleSheet.create({
   actionButton: {
     padding: 4,
   },
-  amplitudePicker: {
-    width: 100,
-    height: 40,
+  amplitudeToggle: {
     marginLeft: 8,
+    padding: 4,
   },
 });

@@ -8,10 +8,15 @@ import {
   StyleSheet,
   Modal,
 } from "react-native";
-import { Exercise } from "../../components/Exercise";
+import { Exercise as ExerciseComponent } from "../../components/Exercise";
 import { useRoute } from "@react-navigation/native";
-import useStore from "../../store/store";
+import useStore, {
+  MuscleGroup,
+  ExerciseType,
+  Exercise,
+} from "../../store/store";
 import { Picker } from "@react-native-picker/picker";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 export default function WorkoutScreen() {
   const route = useRoute();
@@ -19,7 +24,7 @@ export default function WorkoutScreen() {
     workoutId: string;
     planName: string;
   };
-  const { plans, addExercise } = useStore();
+  const { plans, addExercise, updateExerciseInStore } = useStore();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [newExercise, setNewExercise] = useState({
     name: "",
@@ -34,21 +39,21 @@ export default function WorkoutScreen() {
     .find((plan) => plan.planName === planName)
     ?.trainings.find((training) => training.id === workoutId);
 
-  const handleAddExercise = () => {
+  const handleAddEditExercise = () => {
     if (newExercise.name.trim()) {
-      const exercise: Exercise = {
-        id: Date.now().toString(),
-        ...newExercise,
-      };
-      console.log(
-        "Adding exercise:",
-        exercise,
-        "to plan:",
-        planName,
-        "training:",
-        workoutId
-      );
-      addExercise(planName, workoutId, exercise);
+      if (editingExercise) {
+        const updatedExercise: Exercise = {
+          ...editingExercise,
+          ...newExercise,
+        };
+        updateExerciseInStore(planName, workoutId, updatedExercise);
+      } else {
+        const exercise: Exercise = {
+          id: Date.now().toString(),
+          ...newExercise,
+        };
+        addExercise(planName, workoutId, exercise);
+      }
       setNewExercise({
         name: "",
         muscleGroup: "chest",
@@ -56,12 +61,20 @@ export default function WorkoutScreen() {
         unilateral: false,
         amplitude: "full",
       });
+      setEditingExercise(null);
       setIsModalVisible(false);
     }
   };
 
   const handleEditExercise = (exercise: Exercise) => {
     setEditingExercise(exercise);
+    setNewExercise({
+      name: exercise.name,
+      muscleGroup: exercise.muscleGroup,
+      type: exercise.type,
+      unilateral: exercise.unilateral,
+      amplitude: exercise.amplitude,
+    });
     setIsModalVisible(true);
   };
 
@@ -70,19 +83,13 @@ export default function WorkoutScreen() {
     removeExercise(planName, workoutId, exerciseId);
   };
 
-  const updateExercise = (index: number, updates: Partial<Exercise>) => {
-    setExercises(
-      exercises.map((ex, i) => (i === index ? { ...ex, ...updates } : ex))
-    );
-  };
-
   return (
     <View style={{ flex: 1, padding: 16 }}>
       <FlatList
         data={currentTraining?.exercises || []}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <Exercise
+          <ExerciseComponent
             id={item.id}
             name={item.name}
             muscleGroup={item.muscleGroup}
@@ -101,24 +108,39 @@ export default function WorkoutScreen() {
         )}
       />
 
-      {/* Кнопка для открытия модального окна */}
       <TouchableOpacity
         style={styles.addButton}
-        onPress={() => setIsModalVisible(true)}
+        onPress={() => {
+          setEditingExercise(null);
+          setNewExercise({
+            name: "",
+            muscleGroup: "chest",
+            type: "free weight",
+            unilateral: false,
+            amplitude: "full",
+          });
+          setIsModalVisible(true);
+        }}
       >
         <Text style={styles.addButtonText}>+</Text>
       </TouchableOpacity>
 
-      {/* Модальное окно */}
       <Modal
         visible={isModalVisible}
         animationType="slide"
         transparent={true}
-        onRequestClose={() => setIsModalVisible(false)}
+        onRequestClose={() => {
+          setIsModalVisible(false);
+          setEditingExercise(null);
+        }}
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Добавить упражнение</Text>
+            <Text style={styles.modalTitle}>
+              {editingExercise
+                ? "Редактировать упражнение"
+                : "Добавить упражнение"}
+            </Text>
 
             <TextInput
               style={styles.input}
@@ -159,15 +181,27 @@ export default function WorkoutScreen() {
               <Picker.Item label="Тросы" value="cables" />
             </Picker>
 
-            <Picker
-              selectedValue={newExercise.amplitude}
-              onValueChange={(value) =>
-                setNewExercise({ ...newExercise, amplitude: value })
+            <TouchableOpacity
+              style={styles.amplitudeButton}
+              onPress={() =>
+                setNewExercise({
+                  ...newExercise,
+                  amplitude:
+                    newExercise.amplitude === "full" ? "partial" : "full",
+                })
               }
             >
-              <Picker.Item label="Полная амплитуда" value="full" />
-              <Picker.Item label="Неполная амплитуда" value="partial" />
-            </Picker>
+              <MaterialIcons
+                name={newExercise.amplitude === "full" ? "straighten" : "crop"}
+                size={24}
+                color="black"
+              />
+              <Text>
+                {newExercise.amplitude === "full"
+                  ? "Полная амплитуда"
+                  : "Неполная амплитуда"}
+              </Text>
+            </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.unilateralButton}
@@ -186,15 +220,18 @@ export default function WorkoutScreen() {
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={styles.cancelButton}
-                onPress={() => setIsModalVisible(false)}
+                onPress={() => {
+                  setIsModalVisible(false);
+                  setEditingExercise(null);
+                }}
               >
                 <Text>Отмена</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.submitButton}
-                onPress={handleAddExercise}
+                onPress={handleAddEditExercise}
               >
-                <Text>Добавить</Text>
+                <Text>{editingExercise ? "Сохранить" : "Добавить"}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -245,6 +282,16 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     padding: 10,
     marginBottom: 10,
+  },
+  amplitudeButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 10,
+    backgroundColor: "#f0f0f0",
+    borderRadius: 5,
+    marginBottom: 10,
+    gap: 5,
   },
   unilateralButton: {
     padding: 10,

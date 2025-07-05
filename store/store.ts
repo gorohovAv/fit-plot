@@ -61,6 +61,11 @@ type State = {
     trainingId: string,
     exerciseId: string
   ) => void;
+  updateExerciseInStore: (
+    planName: string,
+    trainingId: string,
+    updatedExercise: Exercise
+  ) => void;
 };
 
 // Адаптер для zustand persist с AsyncStorage
@@ -259,6 +264,26 @@ const useStore = create<State>()(
                           ...training,
                           exercises: training.exercises.filter(
                             (ex) => ex.id !== exerciseId
+                          ),
+                        }
+                      : training
+                  ),
+                }
+              : plan
+          ),
+        })),
+      updateExerciseInStore: (planName, trainingId, updatedExercise) =>
+        set((state) => ({
+          plans: state.plans.map((plan) =>
+            plan.planName === planName
+              ? {
+                  ...plan,
+                  trainings: plan.trainings.map((training) =>
+                    training.id === trainingId
+                      ? {
+                          ...training,
+                          exercises: training.exercises.map((ex) =>
+                            ex.id === updatedExercise.id ? updatedExercise : ex
                           ),
                         }
                       : training
