@@ -9,6 +9,7 @@ import {
 import useStore from "../store/store";
 import { useRoute } from "@react-navigation/native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { useNavigation } from "@react-navigation/native";
 
 type MuscleGroup = string; // Пример: Определяем как строку, если нет других определений
 type ExerciseType = string; // Пример: Определяем как строку, если нет других определений
@@ -59,6 +60,7 @@ export const Exercise: React.FC<ExerciseProps> = ({
     workoutId: string;
     planName: string;
   };
+  const navigation = useNavigation();
   const [editing, setEditing] = useState(false);
   const [result, setResult] = useState({
     weight: 0,
@@ -103,6 +105,21 @@ export const Exercise: React.FC<ExerciseProps> = ({
         </TouchableOpacity>
         <TouchableOpacity onPress={onDelete} style={styles.actionButton}>
           <MaterialIcons name="delete" size={20} color="#666" />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => {
+            console.log("Навигация на аналитику с параметрами:", {
+              exerciseId: id,
+              exerciseName: name,
+            });
+            navigation.navigate("analytics", {
+              exerciseId: id,
+              exerciseName: name,
+            });
+          }}
+          style={styles.actionButton}
+        >
+          <MaterialIcons name="analytics" size={20} color="#666" />
         </TouchableOpacity>
       </View>
 
@@ -236,7 +253,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   actionButton: {
-    padding: 4,
+    padding: 20,
   },
   amplitudeToggle: {
     marginLeft: 8,

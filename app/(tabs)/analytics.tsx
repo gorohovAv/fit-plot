@@ -17,6 +17,7 @@ import ResultsList from "@/components/ResultsList";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system";
 import { v4 as uuidv4 } from "uuid";
+import { useRoute } from "@react-navigation/native";
 
 type ChartData = {
   x: string; // Дата
@@ -67,6 +68,7 @@ export default function AnalyticsScreen() {
   const [showResultsList, setShowResultsList] = useState<boolean>(false);
 
   const font = useFont(require("../../assets/fonts/SpaceMono-Regular.ttf"));
+  const route = useRoute();
 
   // Хелпер для получения даты в формате YYYY-MM-DD
   const getDayString = (dateStr: string) => {
@@ -90,6 +92,21 @@ export default function AnalyticsScreen() {
   };
 
   useEffect(() => {
+    // Проверяем, был ли передан exerciseId через параметры маршрута
+    const params = route.params as
+      | { exerciseId?: string; exerciseName?: string }
+      | undefined;
+
+    console.log("[AnalyticsScreen] Получены параметры маршрута:", params);
+
+    if (params?.exerciseId && selectedExercise !== params.exerciseId) {
+      setSelectedExercise(params.exerciseId);
+      console.log(
+        "[AnalyticsScreen] Обновлен selectedExercise до:",
+        params.exerciseId
+      );
+    }
+
     if (!selectedExercise) return;
 
     console.log("[Analytics] Выбрано упражнение:", selectedExercise);
@@ -158,7 +175,7 @@ export default function AnalyticsScreen() {
       maxWeight: maxWeightData,
       maxReps: maxRepsData,
     });
-  }, [selectedExercise, startDate, endDate, autoPeriod, plans]);
+  }, [selectedExercise, startDate, endDate, autoPeriod, plans, route.params]);
 
   if (!font) {
     return null;
