@@ -45,17 +45,16 @@ export default function TabLayout() {
           title: "Workout",
         }}
       />
-      {devMode && (
-        <Tabs.Screen
-          name="storage"
-          options={{
-            title: "Storage",
-            tabBarIcon: ({ color }) => (
-              <MaterialIcons size={28} name="plumbing" color={color} />
-            ),
-          }}
-        />
-      )}
+      <Tabs.Screen
+        name="storage"
+        options={{
+          title: "Storage",
+          tabBarIcon: ({ color }) => (
+            <MaterialIcons size={28} name="plumbing" color={color} />
+          ),
+          href: devMode ? undefined : null,
+        }}
+      />
       <Tabs.Screen
         name="analytics"
         options={{

@@ -3,7 +3,7 @@ import { persist, PersistStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Определение новых типов
-type MuscleGroup =
+export type MuscleGroup =
   | "chest"
   | "triceps"
   | "biceps"
@@ -14,8 +14,8 @@ type MuscleGroup =
   | "quads"
   | "hamstrings"
   | "calves";
-type ExerciseType = "machine" | "free weight" | "own weight" | "cables";
-type Exercise = {
+export type ExerciseType = "machine" | "free weight" | "own weight" | "cables";
+export type Exercise = {
   id: string;
   name: string;
   muscleGroup: MuscleGroup;
@@ -24,7 +24,7 @@ type Exercise = {
   amplitude: "full" | "partial";
 };
 
-type Result = {
+export type Result = {
   exerciseId: string; // Ссылка на упражнение
   weight: number;
   reps: number;
@@ -32,7 +32,7 @@ type Result = {
   amplitude: "full" | "partial";
 };
 
-type Training = {
+export type Training = {
   id: string;
   name: string;
   exercises: Exercise[]; // Массив упражнений
