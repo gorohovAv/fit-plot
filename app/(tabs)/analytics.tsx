@@ -5,6 +5,8 @@ import useStore from "../../store/store";
 import { Picker } from "@react-native-picker/picker";
 import { Circle, useFont } from "@shopify/react-native-skia";
 import Plot from "@/components/Plot";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import ResultsList from "@/components/ResultsList";
 
 type ChartData = {
   x: string; // Дата
@@ -22,6 +24,7 @@ export default function AnalyticsScreen() {
     maxWeight: ChartData;
     maxReps: ChartData;
   }>({ tonnage: [], maxWeight: [], maxReps: [] });
+  const [showResultsList, setShowResultsList] = useState<boolean>(false);
 
   const font = useFont(require("../../assets/fonts/SpaceMono-Regular.ttf"));
 
@@ -157,46 +160,61 @@ export default function AnalyticsScreen() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.form}>
-        <Picker
-          selectedValue={selectedExercise}
-          onValueChange={(itemValue) => setSelectedExercise(itemValue)}
-          style={styles.picker}
-        >
-          <Picker.Item label="Выберите упражнение" value="" />
-          {exercises.map((exercise) => (
-            <Picker.Item
-              key={exercise.id}
-              label={exercise.name}
-              value={exercise.id}
-            />
-          ))}
-        </Picker>
+        {showResultsList ? (
+          <View style={styles.pickerPlaceholder} />
+        ) : (
+          <Picker
+            selectedValue={selectedExercise}
+            onValueChange={(itemValue) => setSelectedExercise(itemValue)}
+            style={styles.picker}
+          >
+            <Picker.Item label="Выберите упражнение" value="" />
+            {exercises.map((exercise) => (
+              <Picker.Item
+                key={exercise.id}
+                label={exercise.name}
+                value={exercise.id}
+              />
+            ))}
+          </Picker>
+        )}
+        <MaterialIcons
+          name={showResultsList ? "bar-chart" : "list"}
+          size={24}
+          color="#000"
+          onPress={() => setShowResultsList(!showResultsList)}
+          style={styles.icon}
+        />
       </View>
 
-      {chartData.tonnage.length > 0 && (
-        <>
-          {renderChart(
-            chartData.tonnage,
-            "Общий тоннаж",
-            "#c43a31",
-            "Дата",
-            "Тоннаж"
-          )}
-          {renderChart(
-            chartData.maxWeight,
-            "Максимальный вес",
-            "#2a9d8f",
-            "Дата",
-            "Вес"
-          )}
-          {renderChart(
-            chartData.maxReps,
-            "Максимальные повторения",
-            "#264653",
-            "Дата",
-            "Повторения"
-          )}
-        </>
+      {showResultsList ? (
+        <ResultsList plans={plans} />
+      ) : (
+        chartData.tonnage.length > 0 && (
+          <>
+            {renderChart(
+              chartData.tonnage,
+              "Общий тоннаж",
+              "#c43a31",
+              "Дата",
+              "Тоннаж"
+            )}
+            {renderChart(
+              chartData.maxWeight,
+              "Максимальный вес",
+              "#2a9d8f",
+              "Дата",
+              "Вес"
+            )}
+            {renderChart(
+              chartData.maxReps,
+              "Максимальные повторения",
+              "#264653",
+              "Дата",
+              "Повторения"
+            )}
+          </>
+        )
       )}
     </ScrollView>
   );
@@ -215,6 +233,16 @@ const styles = StyleSheet.create({
   picker: {
     flex: 1,
     marginRight: 8,
+  },
+  pickerPlaceholder: {
+    flex: 1,
+    marginRight: 8,
+    marginTop: 30,
+    paddingTop: 30,
+  },
+  icon: {
+    marginLeft: 8,
+    alignSelf: "center",
   },
   chartContainer: {
     marginBottom: 24,
