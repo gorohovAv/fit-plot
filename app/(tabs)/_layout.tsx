@@ -61,7 +61,7 @@ export default function TabLayout() {
           options={{
             title: "Storage",
             tabBarIcon: ({ color }) => (
-              <MaterialIcons size={28} name="archive" color={color} />
+              <MaterialIcons size={28} name="plumbing" color={color} />
             ),
           }}
         />
@@ -71,7 +71,7 @@ export default function TabLayout() {
         options={{
           title: "Analytics",
           tabBarIcon: ({ color }) => (
-            <MaterialIcons size={28} name="bar_chart" color={color} />
+            <MaterialIcons size={28} name="analytics" color={color} />
           ),
         }}
       />
