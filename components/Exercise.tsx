@@ -73,7 +73,8 @@ export const Exercise: React.FC<ExerciseProps> = ({
     plans
       .find((plan) => plan.planName === planName)
       ?.trainings.find((training) => training.id === workoutId)
-      ?.results.filter((res) => res.exerciseId === id) || [];
+      ?.results.filter((res) => res.exerciseId === id)
+      .slice(-5) || [];
 
   const handleAddResult = () => {
     const newResult: Result = {
@@ -127,10 +128,16 @@ export const Exercise: React.FC<ExerciseProps> = ({
       {exerciseResults.length > 0 && (
         <View style={styles.resultsList}>
           {exerciseResults.map((res, index) => (
-            <Text key={index} style={styles.resultItem}>
-              {res.amplitude === "full" ? "⚪" : "⚫"} {res.weight} кг ×{" "}
-              {res.reps} повторений
-            </Text>
+            <View key={index} style={styles.resultItem}>
+              <MaterialIcons
+                name={res.amplitude === "full" ? "straighten" : "crop"}
+                size={16}
+                color="#666"
+              />
+              <Text style={styles.resultText}>
+                {res.weight} кг × {res.reps} повторений
+              </Text>
+            </View>
           ))}
         </View>
       )}
@@ -166,9 +173,7 @@ export const Exercise: React.FC<ExerciseProps> = ({
           style={styles.amplitudeToggle}
         >
           <MaterialIcons
-            name={
-              result.amplitude === "full" ? "circle" : "radio-button-unchecked"
-            }
+            name={result.amplitude === "full" ? "straighten" : "crop"}
             size={24}
             color="#666"
           />
@@ -176,6 +181,7 @@ export const Exercise: React.FC<ExerciseProps> = ({
         <TouchableOpacity
           style={styles.confirmButton}
           onPress={handleAddResult}
+          activeOpacity={0.7}
         >
           <MaterialIcons name="check" size={20} color="white" />
         </TouchableOpacity>
@@ -190,6 +196,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderRadius: 8,
     backgroundColor: "#f8f8f8",
+    minHeight: 180,
   },
   completed: {
     backgroundColor: "#e8f5e9",
@@ -241,14 +248,19 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   resultItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginBottom: 4,
+  },
+  resultText: {
     fontSize: 14,
     color: "#666",
-    marginBottom: 4,
   },
   actions: {
     position: "absolute",
     right: 16,
-    top: 16,
+    top: 24,
     flexDirection: "column",
     gap: 8,
   },
