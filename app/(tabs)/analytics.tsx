@@ -209,6 +209,7 @@ export default function AnalyticsScreen() {
           width={350}
           height={220}
           margin={{ top: 20, right: 20, bottom: 40, left: 40 }}
+          fixedYRange={100}
         />
       </View>
     );
