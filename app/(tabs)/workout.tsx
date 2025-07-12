@@ -155,6 +155,8 @@ export default function WorkoutScreen() {
                 onChangeText={(text) =>
                   setNewExercise({ ...newExercise, name: text })
                 }
+                autoFocus={true}
+                blurOnSubmit={false}
               />
 
               <Picker
