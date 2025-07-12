@@ -46,12 +46,14 @@ const Plot: React.FC<PlotProps> = ({
     ? [0, fixedYRange]
     : [0, d3.max(data, (d) => d.y) || 0];
 
-  // Масштабирование для оси X с автоматическим выравниванием
-  const minPixelDistance = 50; // Жестко заданное минимальное расстояние в пикселях
+  // Масштабирование для оси X с увеличенным доменом
   const xScale = d3
     .scaleTime()
-    .domain(d3.extent(data, (d) => new Date(d.x)) as [Date, Date])
-    .range([0, innerWidth])
+    .domain([
+      d3.min(data, (d) => new Date(d.x)) as Date,
+      d3.max(data, (d) => new Date(d.x)) as Date,
+    ])
+    .range([0, innerWidth * 15]) // Увеличиваем диапазон в 15 раз, чтобы даты были видны
     .nice();
 
   // Масштабирование для оси Y
@@ -71,18 +73,8 @@ const Plot: React.FC<PlotProps> = ({
   const mainLinePath = lineGenerator(data);
   const additionalLinesPaths = additionalLines.map(lineGenerator);
 
-  // Форматирование даты с учетом минимального расстояния
-  const formatDate = (date: Date) => {
-    const minDistance = 50; // Минимальное расстояние в пикселях
-    const dateCount = data.length;
-    const availableWidth = innerWidth;
-
-    // Если места мало, используем сокращенный формат
-    if (dateCount * minDistance > availableWidth) {
-      return d3.timeFormat("%d.%m")(date);
-    }
-    return d3.timeFormat("%d.%m.%Y")(date);
-  };
+  // Форматирование даты
+  const formatDate = (date: Date) => d3.timeFormat("%d.%m.%Y")(date);
 
   return (
     <View style={{ flexDirection: "row" }}>
@@ -121,10 +113,13 @@ const Plot: React.FC<PlotProps> = ({
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ width: width + 100 }}
+        contentContainerStyle={{
+          width: width * 15 + margin.left + margin.right + 100, // +100 для запаса
+        }}
+        contentOffset={{ x: 0, y: 0 }} // Начинаем с левого края
       >
         <View style={styles.container}>
-          <Svg width={width} height={height}>
+          <Svg width={width * 15} height={height}>
             {/* Выделенные зоны */}
             {highlightZones.map((zone, i) => {
               const startX = xScale(new Date(zone.start));
@@ -150,13 +145,15 @@ const Plot: React.FC<PlotProps> = ({
               <Line
                 x1={0}
                 y1={0}
-                x2={innerWidth}
+                x2={innerWidth * 15}
                 y2={0}
                 stroke="#888"
                 strokeWidth={1}
               />
               <Polygon
-                points={`${innerWidth + 5},0 ${innerWidth},-5 ${innerWidth},5`}
+                points={`${innerWidth * 15 + 5},0 ${innerWidth * 15},-5 ${
+                  innerWidth * 15
+                },5`}
                 fill="#888"
               />
               {data.map((d, i) => (
