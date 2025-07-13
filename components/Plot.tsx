@@ -70,8 +70,17 @@ const Plot: React.FC<PlotProps> = ({
       .y((d) => yScale(d.y))
       .curve(d3.curveCatmullRom.alpha(0.5))(data) || "";
 
-  const mainLinePath = lineGenerator(data);
-  const additionalLinesPaths = additionalLines.map(lineGenerator);
+  // Генератор основной линии, игнорирующий нулевые значения
+  const mainLineGenerator = (data: DataPoint[]) =>
+    d3
+      .line<DataPoint>()
+      .x((d) => xScale(new Date(d.x)))
+      .y((d) => yScale(d.y))
+      .defined((d) => d.y > 0) // Игнорируем точки, где y <= 0
+      .curve(d3.curveCatmullRom.alpha(0.5))(data) || "";
+
+  const mainLinePath = mainLineGenerator(data); // Используем новый генератор для основной линии
+  const additionalLinesPaths = additionalLines.map(lineGenerator); // Для дополнительных линий используем старый генератор
 
   // Форматирование даты
   const formatDate = (date: Date) => d3.timeFormat("%d.%m.%Y")(date);
