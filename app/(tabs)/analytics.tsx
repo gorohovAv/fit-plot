@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, ScrollView, Alert } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Alert,
+  TouchableOpacity,
+} from "react-native";
 import { CartesianChart, Line } from "victory-native";
 import useStore, {
   Plan,
@@ -18,6 +25,7 @@ import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system";
 import { v4 as uuidv4 } from "uuid";
 import { useRoute } from "@react-navigation/native";
+import AnalyticsExerciseSelector from "@/components/AnalyticsExerciseSelector";
 
 type ChartData = {
   x: string; // Дата
@@ -57,6 +65,7 @@ type RawPlan = {
 export default function AnalyticsScreen() {
   const { plans } = useStore();
   const [selectedExercise, setSelectedExercise] = useState<string>("");
+  const [selectedExerciseIds, setSelectedExerciseIds] = useState<string[]>([]);
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
   const [autoPeriod, setAutoPeriod] = useState<boolean>(true);
@@ -66,6 +75,7 @@ export default function AnalyticsScreen() {
     maxReps: ChartData;
   }>({ tonnage: [], maxWeight: [], maxReps: [] });
   const [showResultsList, setShowResultsList] = useState<boolean>(false);
+  const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
 
   const font = useFont(require("../../assets/fonts/SpaceMono-Regular.ttf"));
   const route = useRoute();
@@ -99,42 +109,49 @@ export default function AnalyticsScreen() {
 
     console.log("[AnalyticsScreen] Получены параметры маршрута:", params);
 
-    if (params?.exerciseId && selectedExercise !== params.exerciseId) {
-      setSelectedExercise(params.exerciseId);
-      console.log(
-        "[AnalyticsScreen] Обновлен selectedExercise до:",
-        params.exerciseId
-      );
+    if (params?.exerciseId) {
+      if (!selectedExerciseIds.includes(params.exerciseId)) {
+        setSelectedExerciseIds((prev) => [...prev, params.exerciseId!]);
+      }
     }
 
-    if (!selectedExercise) return;
+    if (selectedExerciseIds.length === 0) {
+      setChartData({ tonnage: [], maxWeight: [], maxReps: [] });
+      return;
+    }
 
-    console.log("[Analytics] Выбрано упражнение:", selectedExercise);
-
-    const results = plans
-      .flatMap((plan) =>
-        plan.trainings.flatMap((training) =>
-          training.results.filter(
-            (result) => result.exerciseId === selectedExercise
+    const allResults: Result[] = [];
+    selectedExerciseIds.forEach((id) => {
+      plans
+        .flatMap((plan) =>
+          plan.trainings.flatMap((training) =>
+            training.results.filter((result) => result.exerciseId === id)
           )
         )
-      )
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        .forEach((result) => allResults.push(result));
+    });
 
-    console.log("[Analytics] Результаты для графика:", results);
+    allResults.sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
 
-    if (results.length === 0) {
+    console.log(
+      "[Analytics] Результаты для графика (множественный выбор):",
+      allResults
+    );
+
+    if (allResults.length === 0) {
       setChartData({ tonnage: [], maxWeight: [], maxReps: [] });
       return;
     }
 
     if (autoPeriod) {
-      setStartDate(getDayString(results[0].date));
-      setEndDate(getDayString(results[results.length - 1].date));
+      setStartDate(getDayString(allResults[0].date));
+      setEndDate(getDayString(allResults[allResults.length - 1].date));
     }
 
     // Группировка по дням
-    const groupedByDay = results.reduce((acc, result) => {
+    const groupedByDay = allResults.reduce((acc, result) => {
       const day = getDayString(result.date);
       if (!acc[day]) {
         acc[day] = { tonnage: 0, maxWeight: 0, maxReps: 0 };
@@ -163,10 +180,16 @@ export default function AnalyticsScreen() {
       y: groupedByDay[day].maxReps,
     }));
 
-    console.log("[Analytics] Данные для графика тоннажа:", tonnageData);
-    console.log("[Analytics] Данные для графика макс. веса:", maxWeightData);
     console.log(
-      "[Analytics] Данные для графика макс. повторений:",
+      "[Analytics] Данные для графика тоннажа (множественный выбор):",
+      tonnageData
+    );
+    console.log(
+      "[Analytics] Данные для графика макс. веса (множественный выбор):",
+      maxWeightData
+    );
+    console.log(
+      "[Analytics] Данные для графика макс. повторений (множественный выбор):",
       maxRepsData
     );
 
@@ -175,7 +198,14 @@ export default function AnalyticsScreen() {
       maxWeight: maxWeightData,
       maxReps: maxRepsData,
     });
-  }, [selectedExercise, startDate, endDate, autoPeriod, plans, route.params]);
+  }, [
+    selectedExerciseIds,
+    startDate,
+    endDate,
+    autoPeriod,
+    plans,
+    route.params,
+  ]);
 
   if (!font) {
     return null;
@@ -201,11 +231,64 @@ export default function AnalyticsScreen() {
         !item.x.includes("undefined")
     );
 
+    // Подготовка данных для дополнительных линий
+    const additionalLinesData: DataPoint[][] = [];
+    selectedExerciseIds.forEach((id) => {
+      const exerciseResults = plans
+        .flatMap((plan) =>
+          plan.trainings.flatMap((training) => training.results)
+        )
+        .filter((result) => result.exerciseId === id)
+        .sort(
+          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+        );
+
+      if (exerciseResults.length > 0) {
+        const groupedForExercise = exerciseResults.reduce((acc, result) => {
+          const day = getDayString(result.date);
+          if (!acc[day]) {
+            acc[day] = { tonnage: 0, maxWeight: 0, maxReps: 0 };
+          }
+          acc[day].tonnage += result.weight * result.reps;
+          acc[day].maxWeight = Math.max(acc[day].maxWeight, result.weight);
+          acc[day].maxReps = Math.max(acc[day].maxReps, result.reps);
+          return acc;
+        }, {} as Record<string, { tonnage: number; maxWeight: number; maxReps: number }>);
+
+        const sortedDaysForExercise = Object.keys(groupedForExercise).sort();
+
+        // В зависимости от типа графика, формируем данные
+        if (title.includes("тоннаж")) {
+          additionalLinesData.push(
+            sortedDaysForExercise.map((day) => ({
+              x: day,
+              y: groupedForExercise[day].tonnage,
+            }))
+          );
+        } else if (title.includes("Максимальный вес")) {
+          additionalLinesData.push(
+            sortedDaysForExercise.map((day) => ({
+              x: day,
+              y: groupedForExercise[day].maxWeight,
+            }))
+          );
+        } else if (title.includes("Максимальные повторения")) {
+          additionalLinesData.push(
+            sortedDaysForExercise.map((day) => ({
+              x: day,
+              y: groupedForExercise[day].maxReps,
+            }))
+          );
+        }
+      }
+    });
+
     return (
       <View style={styles.chartContainer}>
         <Text style={styles.chartTitle}>{title}</Text>
         <Plot
           data={filteredData}
+          additionalLines={additionalLinesData}
           width={350}
           height={220}
           margin={{ top: 20, right: 20, bottom: 40, left: 40 }}
@@ -358,27 +441,23 @@ export default function AnalyticsScreen() {
         {showResultsList ? (
           <View style={styles.pickerPlaceholder} />
         ) : (
-          <Picker
-            selectedValue={selectedExercise}
-            onValueChange={(itemValue) => setSelectedExercise(itemValue)}
-            style={styles.picker}
+          <TouchableOpacity
+            onPress={() => setIsModalVisible(true)}
+            style={styles.pickerButton}
           >
-            <Picker.Item label="Выберите упражнение" value="" />
-            {exercises.map((exercise) => (
-              <Picker.Item
-                key={exercise.id}
-                label={exercise.name}
-                value={exercise.id}
-              />
-            ))}
-          </Picker>
+            <Text style={styles.pickerButtonText}>
+              {selectedExerciseIds.length > 0
+                ? `Выбрано: ${selectedExerciseIds.length} упражн.`
+                : "Выберите упражнения"}
+            </Text>
+          </TouchableOpacity>
         )}
-        {showResultsList && ( // Показываем иконку импорта только в режиме списка
+        {showResultsList && (
           <MaterialIcons
-            name="cloud-upload" // Иконка для загрузки
+            name="cloud-upload"
             size={24}
             color="#000"
-            onPress={importPlans} // Вызываем функцию импорта
+            onPress={importPlans}
             style={styles.icon}
           />
         )}
@@ -420,6 +499,17 @@ export default function AnalyticsScreen() {
           </>
         )
       )}
+
+      <AnalyticsExerciseSelector
+        isVisible={isModalVisible}
+        exercises={exercises}
+        selectedExerciseIds={selectedExerciseIds}
+        onClose={() => setIsModalVisible(false)}
+        onSave={(newSelectedIds) => {
+          setSelectedExerciseIds(newSelectedIds);
+          setIsModalVisible(false);
+        }}
+      />
     </ScrollView>
   );
 }
@@ -433,16 +523,31 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 16,
+    marginTop: 20,
   },
   picker: {
     flex: 1,
     marginRight: 8,
   },
+  pickerButton: {
+    flex: 1,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    padding: 10,
+    borderRadius: 5,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pickerButtonText: {
+    fontSize: 16,
+    color: "#000",
+  },
   pickerPlaceholder: {
     flex: 1,
     marginRight: 8,
     marginTop: 30,
-    paddingTop: 30,
+    paddingTop: 0,
   },
   icon: {
     marginLeft: 8,
