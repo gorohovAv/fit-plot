@@ -10,6 +10,7 @@ import useStore from "../store/store";
 import { useRoute } from "@react-navigation/native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useNavigation } from "@react-navigation/native";
+import Timer from "./Timer";
 
 type MuscleGroup = string; // Пример: Определяем как строку, если нет других определений
 type ExerciseType = string; // Пример: Определяем как строку, если нет других определений
@@ -68,6 +69,8 @@ export const Exercise: React.FC<ExerciseProps> = ({
     amplitude: "full" as "full" | "partial",
   });
   const { plans, addResult } = useStore();
+  const [showTimer, setShowTimer] = useState(false);
+  const [timerKey, setTimerKey] = useState(0);
 
   const exerciseResults =
     plans
@@ -185,6 +188,29 @@ export const Exercise: React.FC<ExerciseProps> = ({
         >
           <MaterialIcons name="check" size={20} color="white" />
         </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.timerWrapper}
+          onPress={() => {
+            setShowTimer(false);
+            setTimeout(() => {
+              setTimerKey((k) => k + 1);
+              setShowTimer(true);
+            }, 10);
+          }}
+          activeOpacity={0.7}
+        >
+          {showTimer ? (
+            <Timer
+              key={timerKey}
+              duration={60}
+              size={40}
+              strokeWidth={6}
+              onEnd={() => setShowTimer(false)}
+            />
+          ) : (
+            <MaterialIcons name="timer" size={32} color="#bbb" />
+          )}
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -270,5 +296,12 @@ const styles = StyleSheet.create({
   amplitudeToggle: {
     marginLeft: 8,
     padding: 4,
+  },
+  timerWrapper: {
+    marginLeft: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    width: 44,
+    height: 44,
   },
 });

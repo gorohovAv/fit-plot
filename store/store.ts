@@ -32,11 +32,20 @@ export type Result = {
   amplitude: "full" | "partial";
 };
 
+export type PlannedResult = {
+  exerciseId: string;
+  plannedWeight: number;
+  plannedReps: number;
+  plannedDate: string;
+  amplitude: "full" | "partial";
+};
+
 export type Training = {
   id: string;
   name: string;
   exercises: Exercise[]; // Массив упражнений
   results: Result[]; // Массив результатов
+  plannedResults: PlannedResult[]; // Добавляем поле plannedResults
 };
 
 // Добавим экспорт типа Plan
@@ -55,6 +64,11 @@ type State = {
     exercise: Exercise
   ) => void;
   addResult: (planName: string, trainingId: string, result: Result) => void;
+  addPlannedResult: (
+    planName: string,
+    trainingId: string,
+    plannedResult: PlannedResult
+  ) => void;
   removeTraining: (planName: string, trainingId: string) => void;
   removeExercise: (
     planName: string,
@@ -105,6 +119,30 @@ const useStore = create<State>()(
                 {
                   id: "ex2",
                   name: "Жим гантелей",
+                  muscleGroup: "chest",
+                  type: "free weight",
+                  unilateral: false,
+                  amplitude: "full",
+                },
+                {
+                  id: "ex3",
+                  name: "Подтягивания",
+                  muscleGroup: "back",
+                  type: "own weight",
+                  unilateral: false,
+                  amplitude: "full",
+                },
+                {
+                  id: "ex4",
+                  name: "Приседания",
+                  muscleGroup: "quads",
+                  type: "own weight",
+                  unilateral: false,
+                  amplitude: "full",
+                },
+                {
+                  id: "ex5",
+                  name: "Жим штанги",
                   muscleGroup: "chest",
                   type: "free weight",
                   unilateral: false,
@@ -183,12 +221,29 @@ const useStore = create<State>()(
                   amplitude: "full",
                 },
               ],
+              plannedResults: [
+                {
+                  exerciseId: "ex1",
+                  plannedWeight: 0,
+                  plannedReps: 15,
+                  plannedDate: "2023-03-10",
+                  amplitude: "full",
+                },
+                {
+                  exerciseId: "ex1",
+                  plannedWeight: 0,
+                  plannedReps: 18,
+                  plannedDate: "2023-03-13",
+                  amplitude: "full",
+                },
+              ],
             },
             {
               id: "2",
               name: "Тренировка низа",
               exercises: [],
               results: [],
+              plannedResults: [],
             },
           ],
         },
@@ -232,6 +287,27 @@ const useStore = create<State>()(
                       ? {
                           ...training,
                           results: [...training.results, result],
+                        }
+                      : training
+                  ),
+                }
+              : plan
+          ),
+        })),
+      addPlannedResult: (planName, trainingId, plannedResult) =>
+        set((state) => ({
+          plans: state.plans.map((plan) =>
+            plan.planName === planName
+              ? {
+                  ...plan,
+                  trainings: plan.trainings.map((training) =>
+                    training.id === trainingId
+                      ? {
+                          ...training,
+                          plannedResults: [
+                            ...training.plannedResults,
+                            plannedResult,
+                          ],
                         }
                       : training
                   ),

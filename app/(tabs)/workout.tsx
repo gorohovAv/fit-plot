@@ -19,6 +19,7 @@ import useStore, {
 } from "../../store/store";
 import { Picker } from "@react-native-picker/picker";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import ExerciseModal from "../../components/ExerciseModal";
 
 export default function WorkoutScreen() {
   const route = useRoute();
@@ -41,18 +42,18 @@ export default function WorkoutScreen() {
     .find((plan) => plan.planName === planName)
     ?.trainings.find((training) => training.id === workoutId);
 
-  const handleAddEditExercise = () => {
-    if (newExercise.name.trim()) {
+  const handleAddEditExercise = (exerciseData: typeof newExercise) => {
+    if (exerciseData.name.trim()) {
       if (editingExercise) {
         const updatedExercise: Exercise = {
           ...editingExercise,
-          ...newExercise,
+          ...exerciseData,
         };
         updateExerciseInStore(planName, workoutId, updatedExercise);
       } else {
         const exercise: Exercise = {
           id: Date.now().toString(),
-          ...newExercise,
+          ...exerciseData,
         };
         addExercise(planName, workoutId, exercise);
       }
@@ -131,122 +132,16 @@ export default function WorkoutScreen() {
           <Text style={styles.addButtonText}>+</Text>
         </TouchableOpacity>
 
-        <Modal
+        <ExerciseModal
           visible={isModalVisible}
-          animationType="slide"
-          transparent={true}
-          onRequestClose={() => {
+          onClose={() => {
             setIsModalVisible(false);
             setEditingExercise(null);
           }}
-        >
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>
-                {editingExercise
-                  ? "Редактировать упражнение"
-                  : "Добавить упражнение"}
-              </Text>
-
-              <TextInput
-                style={styles.input}
-                placeholder="Название упражнения"
-                value={newExercise.name}
-                onChangeText={(text) =>
-                  setNewExercise({ ...newExercise, name: text })
-                }
-                autoFocus={true}
-                blurOnSubmit={false}
-              />
-
-              <Picker
-                selectedValue={newExercise.muscleGroup}
-                onValueChange={(value) =>
-                  setNewExercise({ ...newExercise, muscleGroup: value })
-                }
-              >
-                <Picker.Item label="Грудь" value="chest" />
-                <Picker.Item label="Трицепс" value="triceps" />
-                <Picker.Item label="Бицепс" value="biceps" />
-                <Picker.Item label="Предплечья" value="forearms" />
-                <Picker.Item label="Плечи" value="delts" />
-                <Picker.Item label="Спина" value="back" />
-                <Picker.Item label="Ягодицы" value="glutes" />
-                <Picker.Item label="Квадрицепсы" value="quads" />
-                <Picker.Item label="Бицепс бедра" value="hamstrings" />
-                <Picker.Item label="Икры" value="calves" />
-              </Picker>
-
-              <Picker
-                selectedValue={newExercise.type}
-                onValueChange={(value) =>
-                  setNewExercise({ ...newExercise, type: value })
-                }
-              >
-                <Picker.Item label="Тренажёр" value="machine" />
-                <Picker.Item label="Свободные веса" value="free weight" />
-                <Picker.Item label="Собственный вес" value="own weight" />
-                <Picker.Item label="Тросы" value="cables" />
-              </Picker>
-
-              <TouchableOpacity
-                style={styles.amplitudeButton}
-                onPress={() =>
-                  setNewExercise({
-                    ...newExercise,
-                    amplitude:
-                      newExercise.amplitude === "full" ? "partial" : "full",
-                  })
-                }
-              >
-                <MaterialIcons
-                  name={
-                    newExercise.amplitude === "full" ? "straighten" : "crop"
-                  }
-                  size={24}
-                  color="black"
-                />
-                <Text>
-                  {newExercise.amplitude === "full"
-                    ? "Полная амплитуда"
-                    : "Неполная амплитуда"}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.unilateralButton}
-                onPress={() =>
-                  setNewExercise({
-                    ...newExercise,
-                    unilateral: !newExercise.unilateral,
-                  })
-                }
-              >
-                <Text>
-                  {newExercise.unilateral ? "Одностороннее" : "Двустороннее"}
-                </Text>
-              </TouchableOpacity>
-
-              <View style={styles.modalButtons}>
-                <TouchableOpacity
-                  style={styles.cancelButton}
-                  onPress={() => {
-                    setIsModalVisible(false);
-                    setEditingExercise(null);
-                  }}
-                >
-                  <Text>Отмена</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.submitButton}
-                  onPress={handleAddEditExercise}
-                >
-                  <Text>{editingExercise ? "Сохранить" : "Добавить"}</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
+          onSubmit={handleAddEditExercise}
+          initialExercise={editingExercise || newExercise}
+          isEdit={!!editingExercise}
+        />
       </View>
     </KeyboardAvoidingView>
   );

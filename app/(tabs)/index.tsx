@@ -77,12 +77,17 @@ export default function WorkoutPlanScreen() {
           style={modalStyles.input}
           placeholder="Введите название"
           value={trainingName}
-          onChangeText={setTrainingName}
+          onChangeText={(text) => setTrainingName(text)}
+          onSubmitEditing={handleAddTraining}
+          blurOnSubmit={false}
         />
         <View style={modalStyles.buttons}>
           <TouchableOpacity
             style={[modalStyles.button, modalStyles.cancelButton]}
-            onPress={() => setShowTrainingModal(false)}
+            onPress={() => {
+              setShowTrainingModal(false);
+              setTrainingName("");
+            }}
           >
             <Text style={modalStyles.buttonText}>Отмена</Text>
           </TouchableOpacity>
@@ -137,12 +142,26 @@ export default function WorkoutPlanScreen() {
       />
 
       {selectedPlan && (
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => setShowTrainingModal(true)}
-        >
-          <Text style={styles.addButtonText}>+ Добавить тренировку</Text>
-        </TouchableOpacity>
+        <>
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => setShowTrainingModal(true)}
+          >
+            <Text style={styles.addButtonText}>+ Добавить тренировку</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.planScaleButton}
+            onPress={() =>
+              navigation.navigate("plan", {
+                planName: selectedPlan.planName,
+              })
+            }
+          >
+            <Text style={styles.planScaleButtonText}>
+              Планирование результатов
+            </Text>
+          </TouchableOpacity>
+        </>
       )}
 
       {showTrainingModal && <TrainingModal />}
@@ -162,7 +181,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    paddingBottom: 80,
+    paddingBottom: 120,
   },
   planButton: {
     padding: 12,
@@ -181,7 +200,7 @@ const styles = StyleSheet.create({
   },
   addButton: {
     position: "absolute",
-    bottom: 20,
+    bottom: 80,
     right: 20,
     left: 20,
     padding: 16,
@@ -190,6 +209,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   addButtonText: {
+    color: "white",
+    fontWeight: "bold",
+  },
+  planScaleButton: {
+    position: "absolute",
+    bottom: 20,
+    right: 20,
+    left: 20,
+    padding: 16,
+    backgroundColor: "#4CAF50",
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  planScaleButtonText: {
     color: "white",
     fontWeight: "bold",
   },
