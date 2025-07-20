@@ -106,6 +106,30 @@ export default function ExerciseModal({
                   autoFocus={true}
                   blurOnSubmit={false}
                 />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Комментарий"
+                  value={exercise.comment ?? ""}
+                  onChangeText={(text) =>
+                    setExercise({ ...exercise, comment: text })
+                  }
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Время таймера (сек)"
+                  keyboardType="numeric"
+                  value={
+                    exercise.timerDuration !== undefined
+                      ? exercise.timerDuration.toString()
+                      : ""
+                  }
+                  onChangeText={(text) =>
+                    setExercise({
+                      ...exercise,
+                      timerDuration: text ? parseInt(text) || 0 : undefined,
+                    })
+                  }
+                />
                 <Picker
                   selectedValue={exercise.muscleGroup}
                   onValueChange={(value) =>

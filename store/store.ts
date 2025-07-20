@@ -22,6 +22,8 @@ export type Exercise = {
   type: ExerciseType;
   unilateral: boolean;
   amplitude: "full" | "partial";
+  comment?: string;
+  timerDuration?: number;
 };
 
 export type Result = {
@@ -115,6 +117,8 @@ const useStore = create<State>()(
                   type: "own weight",
                   unilateral: false,
                   amplitude: "full",
+                  comment: "",
+                  timerDuration: 60,
                 },
                 {
                   id: "ex2",
@@ -123,6 +127,8 @@ const useStore = create<State>()(
                   type: "free weight",
                   unilateral: false,
                   amplitude: "full",
+                  comment: "",
+                  timerDuration: 60,
                 },
                 {
                   id: "ex3",
@@ -131,6 +137,8 @@ const useStore = create<State>()(
                   type: "own weight",
                   unilateral: false,
                   amplitude: "full",
+                  comment: "",
+                  timerDuration: 60,
                 },
                 {
                   id: "ex4",
@@ -139,6 +147,8 @@ const useStore = create<State>()(
                   type: "own weight",
                   unilateral: false,
                   amplitude: "full",
+                  comment: "",
+                  timerDuration: 60,
                 },
                 {
                   id: "ex5",
@@ -147,6 +157,8 @@ const useStore = create<State>()(
                   type: "free weight",
                   unilateral: false,
                   amplitude: "full",
+                  comment: "",
+                  timerDuration: 60,
                 },
               ],
               results: [
@@ -218,6 +230,76 @@ const useStore = create<State>()(
                   weight: 17.5,
                   reps: 8,
                   date: "2023-03-05",
+                  amplitude: "full",
+                },
+                {
+                  exerciseId: "ex1",
+                  weight: 0,
+                  reps: 22,
+                  date: "2023-03-12",
+                  amplitude: "full",
+                },
+                {
+                  exerciseId: "ex2",
+                  weight: 20,
+                  reps: 6,
+                  date: "2023-03-19",
+                  amplitude: "full",
+                },
+                {
+                  exerciseId: "ex1",
+                  weight: 0,
+                  reps: 25,
+                  date: "2023-03-26",
+                  amplitude: "full",
+                },
+                {
+                  exerciseId: "ex2",
+                  weight: 22.5,
+                  reps: 6,
+                  date: "2023-04-02",
+                  amplitude: "full",
+                },
+                {
+                  exerciseId: "ex1",
+                  weight: 0,
+                  reps: 30,
+                  date: "2023-04-09",
+                  amplitude: "full",
+                },
+                {
+                  exerciseId: "ex2",
+                  weight: 25,
+                  reps: 5,
+                  date: "2023-04-16",
+                  amplitude: "full",
+                },
+                {
+                  exerciseId: "ex1",
+                  weight: 0,
+                  reps: 35,
+                  date: "2023-04-23",
+                  amplitude: "full",
+                },
+                {
+                  exerciseId: "ex2",
+                  weight: 27.5,
+                  reps: 4,
+                  date: "2023-04-30",
+                  amplitude: "full",
+                },
+                {
+                  exerciseId: "ex1",
+                  weight: 0,
+                  reps: 40,
+                  date: "2023-05-07",
+                  amplitude: "full",
+                },
+                {
+                  exerciseId: "ex2",
+                  weight: 30,
+                  reps: 3,
+                  date: "2023-05-14",
                   amplitude: "full",
                 },
               ],

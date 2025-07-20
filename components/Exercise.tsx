@@ -32,6 +32,8 @@ type ExerciseProps = {
   reps: number;
   sets: number;
   amplitude: "full" | "partial";
+  comment?: string;
+  timerDuration?: number;
   onRepsChange: (reps: number) => void;
   onSetsChange: (sets: number) => void;
   onComplete: () => void;
@@ -49,6 +51,8 @@ export const Exercise: React.FC<ExerciseProps> = ({
   reps,
   sets,
   amplitude,
+  comment,
+  timerDuration,
   onRepsChange,
   onSetsChange,
   onComplete,
@@ -100,6 +104,7 @@ export const Exercise: React.FC<ExerciseProps> = ({
           {unilateral ? "Одностороннее" : "Двустороннее"} •{" "}
           {amplitude === "full" ? "Полная амплитуда" : "Неполная амплитуда"}
         </Text>
+        {comment ? <Text style={styles.comment}>{comment}</Text> : null}
       </View>
 
       {/* Кнопки редактирования и удаления */}
@@ -202,7 +207,7 @@ export const Exercise: React.FC<ExerciseProps> = ({
           {showTimer ? (
             <Timer
               key={timerKey}
-              duration={60}
+              duration={timerDuration ?? 60}
               size={40}
               strokeWidth={6}
               onEnd={() => setShowTimer(false)}
@@ -218,11 +223,11 @@ export const Exercise: React.FC<ExerciseProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
+    padding: 36,
     marginBottom: 12,
     borderRadius: 8,
     backgroundColor: "#f8f8f8",
-    minHeight: 180,
+    minHeight: 280,
   },
   completed: {
     backgroundColor: "#e8f5e9",
@@ -285,7 +290,7 @@ const styles = StyleSheet.create({
   },
   actions: {
     position: "absolute",
-    right: 16,
+    right: 12,
     top: 24,
     flexDirection: "column",
     gap: 8,
@@ -303,5 +308,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     width: 44,
     height: 44,
+  },
+  comment: {
+    fontSize: 13,
+    color: "#888",
+    marginTop: 2,
+    fontStyle: "italic",
   },
 });
