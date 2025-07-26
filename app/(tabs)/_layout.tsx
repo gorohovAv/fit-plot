@@ -22,7 +22,6 @@ export default function TabLayout() {
         tabBarBackground: TabBarBackground,
         tabBarStyle: Platform.select({
           ios: {
-            // Use a transparent background on iOS to show the blur effect
             position: "absolute",
           },
           default: {},
@@ -35,6 +34,19 @@ export default function TabLayout() {
           title: "Home",
           tabBarIcon: ({ color }) => (
             <MaterialIcons size={28} name="home" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="callories"
+        options={{
+          title: "Калории",
+          tabBarIcon: ({ color }) => (
+            <MaterialIcons
+              size={28}
+              name="local-fire-department"
+              color={color}
+            />
           ),
         }}
       />
