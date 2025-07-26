@@ -1,68 +1,242 @@
-import React from "react";
-import { View, Text, StyleSheet } from "react-native";
-import { useRoute } from "@react-navigation/native";
-import PlanScale from "../../components/PlanScale";
+import React, { useMemo, useState } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Modal,
+  TextInput,
+  FlatList,
+  Button,
+  Platform,
+} from "react-native";
 import useStore from "../../store/store";
+import { Exercise, PlannedResult, Plan } from "../../store/store";
+import { Picker } from "@react-native-picker/picker";
+import dayjs from "dayjs";
 
-export default function PlanScaleScreen() {
-  const route = useRoute();
-  const { planName } = route.params as { planName: string };
+const SEASON_COLORS = [
+  "#A7D8FF", // зима
+  "#B6F5B6", // весна
+  "#FFF7A7", // лето
+  "#FFD6A7", // осень
+];
+
+function getSeasonColor(month: number) {
+  if ([11, 0, 1].includes(month)) return SEASON_COLORS[0]; // зима
+  if ([2, 3, 4].includes(month)) return SEASON_COLORS[1]; // весна
+  if ([5, 6, 7].includes(month)) return SEASON_COLORS[2]; // лето
+  return SEASON_COLORS[3]; // осень
+}
+
+function getMonthLabel(date: dayjs.Dayjs) {
+  return date.format("MMMM YYYY");
+}
+
+function getMonthsRange(plannedResults: PlannedResult[]) {
+  let start: dayjs.Dayjs;
+  if (plannedResults.length > 0) {
+    start = dayjs(plannedResults.map((r) => r.plannedDate).sort()[0]).startOf(
+      "month"
+    );
+  } else {
+    start = dayjs().startOf("month");
+  }
+  const end = dayjs().add(12, "month").endOf("month"); // например, показываем год вперёд
+  const months = [];
+  let current = start.clone();
+  while (current.isBefore(end)) {
+    months.push(current.clone());
+    current = current.add(1, "month");
+  }
+  return months;
+}
+
+export default function PlanScreen() {
   const plans = useStore((s) => s.plans);
-  const plan = plans.find((p) => p.planName === planName);
-  const trainings = plan?.trainings || [];
+  const addPlannedResult = useStore((s) => s.addPlannedResult);
 
-  if (!plan) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.title}>План не найден</Text>
-      </View>
-    );
-  }
+  // Для простоты берём первый план
+  const plan: Plan = plans[0];
+  const allExercises = plan.trainings.flatMap((t) => t.exercises);
+  const plannedResults = plan.trainings.flatMap((t) => t.plannedResults);
 
-  if (trainings.length === 0) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.title}>В этом плане нет тренировок</Text>
-      </View>
+  const months = useMemo(
+    () => getMonthsRange(plannedResults),
+    [plannedResults]
+  );
+
+  // Модалка
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState<dayjs.Dayjs | null>(null);
+  const [selectedExerciseId, setSelectedExerciseId] = useState<string>("");
+  const [plannedWeight, setPlannedWeight] = useState<string>("");
+  const [plannedReps, setPlannedReps] = useState<string>("");
+  const [plannedDate, setPlannedDate] = useState<string>("");
+
+  const openModal = (month: dayjs.Dayjs) => {
+    setSelectedMonth(month);
+    setModalVisible(true);
+    setSelectedExerciseId(allExercises[0]?.id || "");
+    setPlannedWeight("");
+    setPlannedReps("");
+    setPlannedDate(month.startOf("month").format("YYYY-MM-DD"));
+  };
+
+  const closeModal = () => setModalVisible(false);
+
+  const handleSubmit = () => {
+    if (
+      !selectedMonth ||
+      !selectedExerciseId ||
+      !plannedWeight ||
+      !plannedReps ||
+      !plannedDate
+    )
+      return;
+    // Находим тренировку, куда добавить результат
+    const training = plan.trainings.find((t) =>
+      t.exercises.some((e) => e.id === selectedExerciseId)
     );
-  }
+    if (!training) return;
+    addPlannedResult(plan.planName, training.id, {
+      exerciseId: selectedExerciseId,
+      plannedWeight: Number(plannedWeight),
+      plannedReps: Number(plannedReps),
+      plannedDate,
+      amplitude: "full", // или добавить выбор
+    });
+    closeModal();
+  };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>
-        Планирование результатов: {plan.planName}
+    <View style={{ flex: 1, padding: 16 }}>
+      <Text style={{ fontSize: 20, fontWeight: "bold", marginBottom: 16 }}>
+        Планирование результатов
       </Text>
-      {trainings.map((training) => (
-        <View key={training.id} style={styles.trainingBlock}>
-          <Text style={styles.trainingTitle}>{training.name}</Text>
-          <PlanScale planName={plan.planName} trainingId={training.id} />
+      <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
+        {months.map((month, idx) => (
+          <View
+            key={month.format("YYYY-MM")}
+            style={{
+              width: 120,
+              height: 80,
+              margin: 8,
+              borderRadius: 12,
+              backgroundColor: getSeasonColor(month.month()),
+              opacity: 0.5,
+              justifyContent: "flex-end",
+              alignItems: "flex-end",
+              position: "relative",
+            }}
+          >
+            <Text
+              style={{
+                position: "absolute",
+                left: 8,
+                top: 8,
+                fontWeight: "bold",
+              }}
+            >
+              {getMonthLabel(month)}
+            </Text>
+            <TouchableOpacity
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 16,
+                backgroundColor: "#000",
+                opacity: 0.2,
+                justifyContent: "center",
+                alignItems: "center",
+                margin: 8,
+              }}
+              onPress={() => openModal(month)}
+            >
+              <Text style={{ color: "#fff", fontSize: 24, fontWeight: "bold" }}>
+                +
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ))}
+      </View>
+      <Modal visible={modalVisible} transparent animationType="slide">
+        <View
+          style={{
+            flex: 1,
+            justifyContent: "center",
+            alignItems: "center",
+            backgroundColor: "rgba(0,0,0,0.3)",
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: "#fff",
+              padding: 20,
+              borderRadius: 12,
+              width: 300,
+            }}
+          >
+            <Text style={{ fontWeight: "bold", marginBottom: 8 }}>
+              Добавить плановый результат
+            </Text>
+            <Text>Упражнение:</Text>
+            <Picker
+              selectedValue={selectedExerciseId}
+              onValueChange={setSelectedExerciseId}
+              style={{ width: "100%" }}
+            >
+              {allExercises.map((ex) => (
+                <Picker.Item key={ex.id} label={ex.name} value={ex.id} />
+              ))}
+            </Picker>
+            <Text>Вес (кг):</Text>
+            <TextInput
+              value={plannedWeight}
+              onChangeText={setPlannedWeight}
+              keyboardType="numeric"
+              style={{
+                borderWidth: 1,
+                borderColor: "#ccc",
+                marginBottom: 8,
+                borderRadius: 6,
+                padding: 4,
+              }}
+            />
+            <Text>Повторения:</Text>
+            <TextInput
+              value={plannedReps}
+              onChangeText={setPlannedReps}
+              keyboardType="numeric"
+              style={{
+                borderWidth: 1,
+                borderColor: "#ccc",
+                marginBottom: 8,
+                borderRadius: 6,
+                padding: 4,
+              }}
+            />
+            <Text>Дата (в пределах месяца):</Text>
+            <TextInput
+              value={plannedDate}
+              onChangeText={setPlannedDate}
+              placeholder="YYYY-MM-DD"
+              style={{
+                borderWidth: 1,
+                borderColor: "#ccc",
+                marginBottom: 8,
+                borderRadius: 6,
+                padding: 4,
+              }}
+            />
+            <View
+              style={{ flexDirection: "row", justifyContent: "space-between" }}
+            >
+              <Button title="Отмена" onPress={closeModal} />
+              <Button title="Сохранить" onPress={handleSubmit} />
+            </View>
+          </View>
         </View>
-      ))}
+      </Modal>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-    paddingBottom: 40,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 16,
-    textAlign: "center",
-  },
-  trainingBlock: {
-    marginBottom: 32,
-    backgroundColor: "#f9f9f9",
-    borderRadius: 12,
-    padding: 12,
-  },
-  trainingTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 8,
-  },
-});
