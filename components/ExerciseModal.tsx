@@ -14,6 +14,8 @@ import { Picker } from "@react-native-picker/picker";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { EXERCISE_LIST } from "../constants/exerciseList"; // D:\Projects\fit-plot\constants\exerciseList.ts
 import { MuscleGroup, ExerciseType } from "../store/store";
+import { Colors } from "../constants/Colors";
+import useSettingsStore from "../store/settingsStore";
 
 export default function ExerciseModal({
   visible,
@@ -30,6 +32,17 @@ export default function ExerciseModal({
 }) {
   const [showExerciseList, setShowExerciseList] = useState(false);
   const [exercise, setExercise] = useState(initialExercise);
+
+  const theme = useSettingsStore((state) => state.theme);
+  const colorScheme =
+    theme === "system"
+      ? typeof window !== "undefined" &&
+        window.matchMedia &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light"
+      : theme;
+  const themeColors = Colors[colorScheme];
 
   React.useEffect(() => {
     setExercise(initialExercise);
@@ -54,11 +67,26 @@ export default function ExerciseModal({
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
+        <View
+          style={[
+            styles.modalContainer,
+            { backgroundColor: themeColors.background + "CC" },
+          ]}
+        >
+          <View
+            style={[
+              styles.modalContent,
+              {
+                backgroundColor: themeColors.card,
+                borderColor: themeColors.border,
+              },
+            ]}
+          >
             {showExerciseList ? (
               <>
-                <Text style={styles.modalTitle}>Выбери упражнение</Text>
+                <Text style={[styles.modalTitle, { color: themeColors.text }]}>
+                  Выбери упражнение
+                </Text>
                 <FlatList
                   data={EXERCISE_LIST}
                   keyExtractor={(item) => item.name}
@@ -67,7 +95,9 @@ export default function ExerciseModal({
                       style={styles.exerciseItem}
                       onPress={() => handleSelectExercise(item)}
                     >
-                      <Text>{item.name}</Text>
+                      <Text style={{ color: themeColors.text }}>
+                        {item.name}
+                      </Text>
                     </TouchableOpacity>
                   )}
                 />
@@ -75,7 +105,7 @@ export default function ExerciseModal({
                   style={styles.cancelButton}
                   onPress={() => setShowExerciseList(false)}
                 >
-                  <Text>Назад</Text>
+                  <Text style={{ color: themeColors.text }}>Назад</Text>
                 </TouchableOpacity>
               </>
             ) : (
@@ -87,18 +117,32 @@ export default function ExerciseModal({
                     justifyContent: "space-between",
                   }}
                 >
-                  <Text style={styles.modalTitle}>
+                  <Text
+                    style={[styles.modalTitle, { color: themeColors.text }]}
+                  >
                     {isEdit
                       ? "Редактировать упражнение"
                       : "Добавить упражнение"}
                   </Text>
                   <TouchableOpacity onPress={() => setShowExerciseList(true)}>
-                    <MaterialIcons name="list" size={28} color="#1976d2" />
+                    <MaterialIcons
+                      name="list"
+                      size={28}
+                      color={themeColors.tint}
+                    />
                   </TouchableOpacity>
                 </View>
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    {
+                      color: themeColors.text,
+                      backgroundColor: themeColors.background,
+                      borderColor: themeColors.border,
+                    },
+                  ]}
                   placeholder="Название упражнения"
+                  placeholderTextColor={themeColors.tabIconDefault}
                   value={exercise.name}
                   onChangeText={(text) =>
                     setExercise({ ...exercise, name: text })
@@ -107,16 +151,32 @@ export default function ExerciseModal({
                   blurOnSubmit={false}
                 />
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    {
+                      color: themeColors.text,
+                      backgroundColor: themeColors.background,
+                      borderColor: themeColors.border,
+                    },
+                  ]}
                   placeholder="Комментарий"
+                  placeholderTextColor={themeColors.tabIconDefault}
                   value={exercise.comment ?? ""}
                   onChangeText={(text) =>
                     setExercise({ ...exercise, comment: text })
                   }
                 />
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    {
+                      color: themeColors.text,
+                      backgroundColor: themeColors.background,
+                      borderColor: themeColors.border,
+                    },
+                  ]}
                   placeholder="Время таймера (сек)"
+                  placeholderTextColor={themeColors.tabIconDefault}
                   keyboardType="numeric"
                   value={
                     exercise.timerDuration !== undefined
@@ -135,6 +195,11 @@ export default function ExerciseModal({
                   onValueChange={(value) =>
                     setExercise({ ...exercise, muscleGroup: value })
                   }
+                  style={{
+                    color: themeColors.text,
+                    backgroundColor: themeColors.background,
+                  }}
+                  dropdownIconColor={themeColors.icon}
                 >
                   <Picker.Item label="Грудь" value="chest" />
                   <Picker.Item label="Трицепс" value="triceps" />
@@ -153,6 +218,11 @@ export default function ExerciseModal({
                   onValueChange={(value) =>
                     setExercise({ ...exercise, type: value })
                   }
+                  style={{
+                    color: themeColors.text,
+                    backgroundColor: themeColors.background,
+                  }}
+                  dropdownIconColor={themeColors.icon}
                 >
                   <Picker.Item label="Тренажёр" value="machine" />
                   <Picker.Item label="Свободные веса" value="free weight" />
@@ -160,7 +230,10 @@ export default function ExerciseModal({
                   <Picker.Item label="Тросы" value="cables" />
                 </Picker>
                 <TouchableOpacity
-                  style={styles.amplitudeButton}
+                  style={[
+                    styles.amplitudeButton,
+                    { backgroundColor: themeColors.background },
+                  ]}
                   onPress={() =>
                     setExercise({
                       ...exercise,
@@ -172,16 +245,19 @@ export default function ExerciseModal({
                   <MaterialIcons
                     name={exercise.amplitude === "full" ? "straighten" : "crop"}
                     size={24}
-                    color="black"
+                    color={themeColors.icon}
                   />
-                  <Text>
+                  <Text style={{ color: themeColors.text }}>
                     {exercise.amplitude === "full"
                       ? "Полная амплитуда"
                       : "Неполная амплитуда"}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={styles.unilateralButton}
+                  style={[
+                    styles.unilateralButton,
+                    { backgroundColor: themeColors.background },
+                  ]}
                   onPress={() =>
                     setExercise({
                       ...exercise,
@@ -189,7 +265,7 @@ export default function ExerciseModal({
                     })
                   }
                 >
-                  <Text>
+                  <Text style={{ color: themeColors.text }}>
                     {exercise.unilateral ? "Одностороннее" : "Двустороннее"}
                   </Text>
                 </TouchableOpacity>
@@ -198,13 +274,18 @@ export default function ExerciseModal({
                     style={styles.cancelButton}
                     onPress={onClose}
                   >
-                    <Text>Отмена</Text>
+                    <Text style={{ color: themeColors.text }}>Отмена</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={styles.submitButton}
+                    style={[
+                      styles.submitButton,
+                      { backgroundColor: themeColors.tint },
+                    ]}
                     onPress={() => onSubmit(exercise)}
                   >
-                    <Text>{isEdit ? "Сохранить" : "Добавить"}</Text>
+                    <Text style={{ color: themeColors.background }}>
+                      {isEdit ? "Сохранить" : "Добавить"}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </>

@@ -9,6 +9,7 @@ import {
   Modal,
   KeyboardAvoidingView,
   Platform,
+  Appearance,
 } from "react-native";
 import { Exercise as ExerciseComponent } from "../../components/Exercise";
 import { useRoute } from "@react-navigation/native";
@@ -20,6 +21,8 @@ import useStore, {
 import { Picker } from "@react-native-picker/picker";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import ExerciseModal from "../../components/ExerciseModal";
+import { Colors } from "../../constants/Colors";
+import useSettingsStore from "../../store/settingsStore";
 
 export default function WorkoutScreen() {
   const route = useRoute();
@@ -37,6 +40,22 @@ export default function WorkoutScreen() {
     amplitude: "full" as "full" | "partial",
   });
   const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
+  const theme = useSettingsStore((state) => state.theme);
+
+  // определяем текущую тему
+  let colorScheme: "light" | "dark" = "light";
+  if (theme === "dark") {
+    colorScheme = "dark";
+  } else if (theme === "light") {
+    colorScheme = "light";
+  } else {
+    // если system, пробуем взять из платформы, иначе по умолчанию светлая
+    colorScheme =
+      Platform.OS === "ios" || Platform.OS === "android"
+        ? (Appearance.getColorScheme?.() as "light" | "dark") || "light"
+        : "light";
+  }
+  const themeColors = Colors[colorScheme];
 
   const currentTraining = plans
     .find((plan) => plan.planName === planName)
@@ -89,9 +108,15 @@ export default function WorkoutScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={{ flex: 1 }}
+      style={{ flex: 1, backgroundColor: themeColors.background }}
     >
-      <View style={{ flex: 1, padding: 16 }}>
+      <View
+        style={{
+          flex: 1,
+          padding: 16,
+          backgroundColor: themeColors.background,
+        }}
+      >
         <FlatList
           data={currentTraining?.exercises || []}
           keyExtractor={(item) => item.id}
@@ -117,7 +142,7 @@ export default function WorkoutScreen() {
         />
 
         <TouchableOpacity
-          style={styles.addButton}
+          style={[styles.addButton, { backgroundColor: themeColors.tint }]}
           onPress={() => {
             setEditingExercise(null);
             setNewExercise({
@@ -130,7 +155,9 @@ export default function WorkoutScreen() {
             setIsModalVisible(true);
           }}
         >
-          <Text style={styles.addButtonText}>+</Text>
+          <Text style={[styles.addButtonText, { color: themeColors.card }]}>
+            +
+          </Text>
         </TouchableOpacity>
 
         <ExerciseModal

@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
+import { useThemeColor } from "../hooks/useThemeColor";
 
 type WorkoutProps = {
   title: string;
@@ -12,22 +13,24 @@ export const Workout: React.FC<WorkoutProps> = ({
   title,
   onPress,
   onDelete,
-}) => (
-  <View style={styles.container}>
-    <TouchableOpacity onPress={onPress} style={styles.titleContainer}>
-      <Text style={styles.title}>{title}</Text>
-    </TouchableOpacity>
-    <TouchableOpacity onPress={onDelete} style={styles.deleteButton}>
-      <MaterialIcons name="close" size={24} color="red" />
-    </TouchableOpacity>
-  </View>
-);
+}) => {
+  const backgroundColor = useThemeColor({}, "background");
+  const textColor = useThemeColor({}, "text");
+  return (
+    <View style={[styles.container, { backgroundColor }]}>
+      <TouchableOpacity onPress={onPress} style={styles.titleContainer}>
+        <Text style={[styles.title, { color: textColor }]}>{title}</Text>
+      </TouchableOpacity>
+      <TouchableOpacity onPress={onDelete} style={styles.deleteButton}>
+        <MaterialIcons name="close" size={24} color="red" />
+      </TouchableOpacity>
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
     padding: 12,
-    backgroundColor: "#f5f5f5",
-    color: "black",
     marginBottom: 8,
     borderRadius: 8,
     flexDirection: "row",

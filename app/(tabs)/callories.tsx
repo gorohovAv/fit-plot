@@ -10,11 +10,24 @@ import {
 } from "react-native";
 import Plot from "../../components/Plot";
 import useCaloriesStore from "../../store/calloriesStore";
+import useSettingsStore from "../../store/settingsStore";
+import { Colors } from "../../constants/Colors";
 
 export default function CaloriesScreen() {
   const [calories, setCalories] = useState("");
   const [weight, setWeight] = useState("");
   const { entries, addEntry, getEntryByDate } = useCaloriesStore();
+
+  // Получаем тему из стора
+  const theme = useSettingsStore((state) => state.theme);
+
+  // Определяем текущую палитру
+  const colorScheme =
+    theme === "dark"
+      ? Colors.dark
+      : theme === "light"
+      ? Colors.light
+      : Colors.light; // Можно добавить автоопределение system, если нужно
 
   const today = new Date().toISOString().split("T")[0];
   const todayEntry = getEntryByDate(today);
@@ -64,52 +77,92 @@ export default function CaloriesScreen() {
   }));
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.formContainer}>
-        <Text style={styles.title}>Калории</Text>
+    <ScrollView
+      style={[styles.container, { backgroundColor: colorScheme.background }]}
+    >
+      <View
+        style={[styles.formContainer, { backgroundColor: colorScheme.card }]}
+      >
+        <Text style={[styles.title, { color: colorScheme.text }]}>Калории</Text>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Калории за день</Text>
+          <Text style={[styles.label, { color: colorScheme.text }]}>
+            Калории за день
+          </Text>
           <TextInput
-            style={styles.input}
+            style={[
+              styles.input,
+              {
+                backgroundColor: colorScheme.card,
+                color: colorScheme.text,
+                borderColor: colorScheme.border,
+              },
+            ]}
             value={calories}
             onChangeText={setCalories}
             placeholder="Введите количество калорий"
             keyboardType="numeric"
-            placeholderTextColor="#888"
+            placeholderTextColor={colorScheme.icon}
           />
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Ваш вес (кг)</Text>
+          <Text style={[styles.label, { color: colorScheme.text }]}>
+            Ваш вес (кг)
+          </Text>
           <TextInput
-            style={styles.input}
+            style={[
+              styles.input,
+              {
+                backgroundColor: colorScheme.card,
+                color: colorScheme.text,
+                borderColor: colorScheme.border,
+              },
+            ]}
             value={weight}
             onChangeText={setWeight}
             placeholder="Введите ваш вес"
             keyboardType="numeric"
-            placeholderTextColor="#888"
+            placeholderTextColor={colorScheme.icon}
           />
         </View>
 
-        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-          <Text style={styles.saveButtonText}>Сохранить</Text>
+        <TouchableOpacity
+          style={[styles.saveButton, { backgroundColor: colorScheme.tint }]}
+          onPress={handleSave}
+        >
+          <Text style={[styles.saveButtonText, { color: colorScheme.card }]}>
+            Сохранить
+          </Text>
         </TouchableOpacity>
 
         {todayEntry && (
-          <View style={styles.todayInfo}>
-            <Text style={styles.todayTitle}>Сегодня:</Text>
-            <Text style={styles.todayText}>
+          <View
+            style={[
+              styles.todayInfo,
+              { backgroundColor: colorScheme.success + "22" },
+            ]}
+          >
+            <Text style={[styles.todayTitle, { color: colorScheme.success }]}>
+              Сегодня:
+            </Text>
+            <Text style={[styles.todayText, { color: colorScheme.text }]}>
               Калории: {todayEntry.calories} ккал
             </Text>
-            <Text style={styles.todayText}>Вес: {todayEntry.weight} кг</Text>
+            <Text style={[styles.todayText, { color: colorScheme.text }]}>
+              Вес: {todayEntry.weight} кг
+            </Text>
           </View>
         )}
       </View>
 
       {sortedEntries.length > 0 && (
-        <View style={styles.chartContainer}>
-          <Text style={styles.chartTitle}>График калорий и веса</Text>
+        <View
+          style={[styles.chartContainer, { backgroundColor: colorScheme.card }]}
+        >
+          <Text style={[styles.chartTitle, { color: colorScheme.text }]}>
+            График калорий и веса
+          </Text>
           <Plot
             data={chartData}
             secondData={weightData}

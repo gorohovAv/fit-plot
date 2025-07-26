@@ -6,6 +6,7 @@ import {
   ScrollView,
   Alert,
   TouchableOpacity,
+  Appearance,
 } from "react-native";
 import { CartesianChart, Line } from "victory-native";
 import useStore, {
@@ -16,6 +17,8 @@ import useStore, {
   MuscleGroup,
   ExerciseType,
 } from "../../store/store";
+import useSettingsStore from "@/store/settingsStore";
+import { Colors } from "@/constants/Colors";
 import { Picker } from "@react-native-picker/picker";
 import { Circle, useFont } from "@shopify/react-native-skia";
 import Plot from "@/components/Plot";
@@ -79,6 +82,10 @@ export default function AnalyticsScreen() {
 
   const font = useFont(require("../../assets/fonts/SpaceMono-Regular.ttf"));
   const route = useRoute();
+  const theme = useSettingsStore((state) => state.theme);
+  const colorScheme =
+    theme === "system" ? Appearance.getColorScheme?.() ?? "light" : theme;
+  const themeColors = Colors[colorScheme];
 
   // Хелпер для получения даты в формате YYYY-MM-DD
   const getDayString = (dateStr: string) => {
@@ -284,8 +291,12 @@ export default function AnalyticsScreen() {
     });
 
     return (
-      <View style={styles.chartContainer}>
-        <Text style={styles.chartTitle}>{title}</Text>
+      <View
+        style={[styles.chartContainer, { backgroundColor: themeColors.card }]}
+      >
+        <Text style={[styles.chartTitle, { color: themeColors.text }]}>
+          {title}
+        </Text>
         <Plot
           data={filteredData}
           additionalLines={additionalLinesData}
@@ -436,16 +447,20 @@ export default function AnalyticsScreen() {
   // --- Конец функции импорта данных ---
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView
+      style={[styles.container, { backgroundColor: themeColors.background }]}
+    >
       <View style={styles.form}>
         {showResultsList ? (
           <View style={styles.pickerPlaceholder} />
         ) : (
           <TouchableOpacity
             onPress={() => setIsModalVisible(true)}
-            style={styles.pickerButton}
+            style={[styles.pickerButton, { borderColor: themeColors.border }]}
           >
-            <Text style={styles.pickerButtonText}>
+            <Text
+              style={[styles.pickerButtonText, { color: themeColors.text }]}
+            >
               {selectedExerciseIds.length > 0
                 ? `Выбрано: ${selectedExerciseIds.length} упражн.`
                 : "Выберите упражнения"}
@@ -456,7 +471,7 @@ export default function AnalyticsScreen() {
           <MaterialIcons
             name="cloud-upload"
             size={24}
-            color="#000"
+            color={themeColors.icon}
             onPress={importPlans}
             style={styles.icon}
           />
@@ -464,7 +479,7 @@ export default function AnalyticsScreen() {
         <MaterialIcons
           name={showResultsList ? "bar-chart" : "list"}
           size={24}
-          color="#000"
+          color={themeColors.icon}
           onPress={() => setShowResultsList(!showResultsList)}
           style={styles.icon}
         />

@@ -1,38 +1,73 @@
 import React from "react";
 import { View, Text, TextInput, Switch, StyleSheet } from "react-native";
 import useSettingsStore from "@/store/settingsStore";
+import { Colors } from "@/constants/Colors";
+import { useColorScheme } from "react-native";
 
 export default function SettingsScreen() {
   const { theme, weight, devMode, setTheme, setWeight, setDevMode } =
     useSettingsStore();
+  const systemTheme = useColorScheme();
+  const currentTheme = theme === "system" ? systemTheme : theme;
+  const colors = Colors[currentTheme || "light"];
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.label}>Тема</Text>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Text style={[styles.label, { color: colors.text }]}>Тема</Text>
       <View style={styles.row}>
         <Text
-          style={[styles.themeOption, theme === "system" && styles.selected]}
+          style={[
+            styles.themeOption,
+            theme === "system" && styles.selected,
+            theme === "system" && {
+              backgroundColor: colors.tabIconSelected,
+              color: colors.text,
+            },
+          ]}
           onPress={() => setTheme("system")}
         >
           Системная
         </Text>
         <Text
-          style={[styles.themeOption, theme === "light" && styles.selected]}
+          style={[
+            styles.themeOption,
+            theme === "light" && styles.selected,
+            theme === "light" && {
+              backgroundColor: colors.tabIconSelected,
+              color: colors.text,
+            },
+          ]}
           onPress={() => setTheme("light")}
         >
           Светлая
         </Text>
         <Text
-          style={[styles.themeOption, theme === "dark" && styles.selected]}
+          style={[
+            styles.themeOption,
+            theme === "dark" && styles.selected,
+            theme === "dark" && {
+              backgroundColor: colors.tabIconSelected,
+              color: colors.text,
+            },
+          ]}
           onPress={() => setTheme("dark")}
         >
           Тёмная
         </Text>
       </View>
 
-      <Text style={styles.label}>Собственный вес (кг)</Text>
+      <Text style={[styles.label, { color: colors.text }]}>
+        Собственный вес (кг)
+      </Text>
       <TextInput
-        style={styles.input}
+        style={[
+          styles.input,
+          {
+            borderColor: colors.border,
+            color: colors.text,
+            backgroundColor: colors.card,
+          },
+        ]}
         keyboardType="numeric"
         value={weight.toString()}
         onChangeText={(text) => {
@@ -40,10 +75,13 @@ export default function SettingsScreen() {
           if (!isNaN(num)) setWeight(num);
         }}
         placeholder="Введите вес"
+        placeholderTextColor={colors.icon}
       />
 
       <View style={styles.switchRow}>
-        <Text style={styles.label}>Режим разработчика</Text>
+        <Text style={[styles.label, { color: colors.text }]}>
+          Режим разработчика
+        </Text>
         <Switch value={devMode} onValueChange={setDevMode} />
       </View>
     </View>

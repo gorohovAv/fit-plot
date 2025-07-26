@@ -9,6 +9,10 @@ import Svg, {
   Circle,
 } from "react-native-svg";
 import * as d3 from "d3";
+import { useMemo } from "react";
+import useSettingsStore from "@/store/settingsStore";
+import { Colors } from "@/constants/Colors";
+import { useColorScheme } from "react-native";
 
 type DataPoint = {
   x: string;
@@ -38,6 +42,12 @@ const Plot: React.FC<PlotProps> = ({
   height = 200,
   margin = { top: 20, right: 40, bottom: 40, left: 40 },
 }) => {
+  // Получаем тему из стора и системы
+  const settingsTheme = useSettingsStore((s) => s.theme);
+  const systemTheme = useColorScheme();
+  const theme = settingsTheme === "system" ? systemTheme : settingsTheme;
+  const colors = Colors[theme || "light"];
+
   if (!data || data.length === 0) {
     return <View style={styles.container} />;
   }
@@ -113,7 +123,7 @@ const Plot: React.FC<PlotProps> = ({
 
   return (
     <View style={{ flexDirection: "row" }}>
-      {/* Левая ось Y */}
+      {/* Левая ось Y (первая) */}
       <View style={{ width: margin.left }}>
         <Svg width={margin.left} height={height}>
           <G transform={`translate(${margin.left - 5}, ${margin.top})`}>
@@ -122,19 +132,24 @@ const Plot: React.FC<PlotProps> = ({
               y1={0}
               x2={0}
               y2={innerHeight}
-              stroke="#888"
+              stroke={colors.chartGrid}
               strokeWidth={1}
             />
-            <Polygon points={`0,-5 -5,0 5,0`} fill="#888" />
+            <Polygon points={`0,-5 -5,0 5,0`} fill={colors.icon} />
             {yScale.ticks(5).map((tick, i) => (
               <G key={`y-${i}`} transform={`translate(0, ${yScale(tick)})`}>
-                <Line x1={-5} x2={0} stroke="#888" strokeWidth={1} />
+                <Line
+                  x1={-5}
+                  x2={0}
+                  stroke={colors.chartGrid}
+                  strokeWidth={1}
+                />
                 <SvgText
                   x={-10}
                   y={5}
                   textAnchor="end"
                   fontSize={10}
-                  fill="#888"
+                  fill={colors.text}
                 >
                   {tick}
                 </SvgText>
@@ -143,6 +158,53 @@ const Plot: React.FC<PlotProps> = ({
           </G>
         </Svg>
       </View>
+
+      {/* Вторая ось Y (если есть) */}
+      {secondData && y2Scale && (
+        <View style={{ width: margin.left }}>
+          <Svg width={margin.left} height={height}>
+            <G transform={`translate(${margin.left - 5}, ${margin.top})`}>
+              <Line
+                x1={0}
+                y1={0}
+                x2={0}
+                y2={innerHeight}
+                stroke={colors.chartLine[1]}
+                strokeWidth={1}
+              />
+              <Polygon points={`0,-5 -5,0 5,0`} fill={colors.chartLine[1]} />
+              {y2Scale.ticks(5).map((tick, i) => (
+                <G key={`y2-${i}`} transform={`translate(0, ${y2Scale(tick)})`}>
+                  <Line
+                    x1={-5}
+                    x2={0}
+                    stroke={colors.chartLine[1]}
+                    strokeWidth={1}
+                  />
+                  <SvgText
+                    x={-10}
+                    y={5}
+                    textAnchor="end"
+                    fontSize={10}
+                    fill={colors.chartLine[1]}
+                  >
+                    {tick}
+                  </SvgText>
+                </G>
+              ))}
+              <SvgText
+                x={-10}
+                y={-10}
+                textAnchor="end"
+                fontSize={12}
+                fill={colors.chartLine[1]}
+              >
+                {secondYAxisLabel}
+              </SvgText>
+            </G>
+          </Svg>
+        </View>
+      )}
 
       {/* Прокручиваемая часть */}
       <ScrollView
@@ -153,7 +215,12 @@ const Plot: React.FC<PlotProps> = ({
         }}
         contentOffset={{ x: 0, y: 0 }}
       >
-        <View style={styles.container}>
+        <View
+          style={[
+            styles.container,
+            { backgroundColor: colors.chartBackground },
+          ]}
+        >
           <Svg width={width * 15} height={height}>
             {/* Выделенные зоны */}
             {highlightZones.map((zone, i) => {
@@ -218,7 +285,7 @@ const Plot: React.FC<PlotProps> = ({
               <Path
                 d={mainLinePath}
                 fill="none"
-                stroke="#3b82f6"
+                stroke={colors.chartLine[0]}
                 strokeWidth={2}
               />
               {data.map((d, i) => (
@@ -227,88 +294,36 @@ const Plot: React.FC<PlotProps> = ({
                   cx={xScale(new Date(d.x))}
                   cy={yScale(d.y)}
                   r={4}
-                  fill="#3b82f6"
+                  fill={colors.chartLine[0]}
                 />
               ))}
             </G>
-
-            {/* Вторая линия и ось Y справа */}
+            {/* Вторая линия */}
             {secondData && y2Scale && (
-              <>
-                {/* Вторая линия */}
-                <G transform={`translate(${margin.left}, ${margin.top})`}>
-                  <Path
-                    d={
-                      d3
-                        .line<DataPoint>()
-                        .x((d) => xScale(new Date(d.x)))
-                        .y((d) => y2Scale(d.y))
-                        .curve(d3.curveCatmullRom.alpha(0.5))(secondData) || ""
-                    }
-                    fill="none"
-                    stroke={secondYAxisColor}
-                    strokeWidth={2}
+              <G transform={`translate(${margin.left}, ${margin.top})`}>
+                <Path
+                  d={
+                    d3
+                      .line<DataPoint>()
+                      .x((d) => xScale(new Date(d.x)))
+                      .y((d) => y2Scale(d.y))
+                      .curve(d3.curveCatmullRom.alpha(0.5))(secondData) || ""
+                  }
+                  fill="none"
+                  stroke={colors.chartLine[1]}
+                  strokeWidth={2}
+                />
+                {secondData.map((d, i) => (
+                  <Circle
+                    key={`point2-${i}`}
+                    cx={xScale(new Date(d.x))}
+                    cy={y2Scale(d.y)}
+                    r={4}
+                    fill={colors.chartLine[1]}
                   />
-                  {secondData.map((d, i) => (
-                    <Circle
-                      key={`point2-${i}`}
-                      cx={xScale(new Date(d.x))}
-                      cy={y2Scale(d.y)}
-                      r={4}
-                      fill={secondYAxisColor}
-                    />
-                  ))}
-                </G>
-                {/* Вторая ось Y */}
-                <G
-                  transform={`translate(${innerWidth * 15 + margin.left + 5}, ${
-                    margin.top
-                  })`}
-                >
-                  <Line
-                    x1={0}
-                    y1={0}
-                    x2={0}
-                    y2={innerHeight}
-                    stroke={secondYAxisColor}
-                    strokeWidth={1}
-                  />
-                  <Polygon points={`0,-5 -5,0 5,0`} fill={secondYAxisColor} />
-                  {y2Scale.ticks(5).map((tick, i) => (
-                    <G
-                      key={`y2-${i}`}
-                      transform={`translate(0, ${y2Scale(tick)})`}
-                    >
-                      <Line
-                        x1={0}
-                        x2={5}
-                        stroke={secondYAxisColor}
-                        strokeWidth={1}
-                      />
-                      <SvgText
-                        x={15}
-                        y={5}
-                        textAnchor="start"
-                        fontSize={10}
-                        fill={secondYAxisColor}
-                      >
-                        {tick}
-                      </SvgText>
-                    </G>
-                  ))}
-                  <SvgText
-                    x={15}
-                    y={-10}
-                    textAnchor="start"
-                    fontSize={12}
-                    fill={secondYAxisColor}
-                  >
-                    {secondYAxisLabel}
-                  </SvgText>
-                </G>
-              </>
+                ))}
+              </G>
             )}
-
             {/* Дополнительные линии */}
             {additionalLinesPaths.map((path, i) => (
               <G
@@ -318,7 +333,7 @@ const Plot: React.FC<PlotProps> = ({
                 <Path
                   d={path}
                   fill="none"
-                  stroke={["#ff7f0e", "#2ca02c", "#d62728"][i % 3]}
+                  stroke={colors.chartLine[(i + 2) % colors.chartLine.length]}
                   strokeWidth={2}
                 />
               </G>

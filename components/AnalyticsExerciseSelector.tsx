@@ -9,6 +9,8 @@ import {
 } from "react-native";
 import { Checkbox } from "expo-checkbox";
 import { Exercise } from "../store/store"; // Убедитесь, что путь правильный
+import { Colors } from "../constants/Colors";
+import useSettingsStore from "../store/settingsStore";
 
 interface AnalyticsExerciseSelectorProps {
   isVisible: boolean;
@@ -25,6 +27,15 @@ const AnalyticsExerciseSelector: React.FC<AnalyticsExerciseSelectorProps> = ({
   onClose,
   onSave,
 }) => {
+  const theme = useSettingsStore((state) => state.theme);
+
+  // Определяем текущую тему
+  let colorScheme: "light" | "dark" = "light";
+  if (theme === "dark") colorScheme = "dark";
+  // Можно добавить поддержку system, если есть хук или контекст, сейчас только light/dark
+
+  const themedStyles = getThemedStyles(Colors[colorScheme]);
+
   const [currentSelectedIds, setCurrentSelectedIds] =
     useState<string[]>(selectedExerciseIds);
 
@@ -54,37 +65,37 @@ const AnalyticsExerciseSelector: React.FC<AnalyticsExerciseSelectorProps> = ({
       visible={isVisible}
       onRequestClose={onClose}
     >
-      <View style={styles.centeredView}>
-        <View style={styles.modalView}>
-          <Text style={styles.modalTitle}>Выберите упражнения</Text>
-          <ScrollView style={styles.scrollView}>
+      <View style={themedStyles.centeredView}>
+        <View style={themedStyles.modalView}>
+          <Text style={themedStyles.modalTitle}>Выберите упражнения</Text>
+          <ScrollView style={themedStyles.scrollView}>
             {exercises.map((exercise) => (
-              <View key={exercise.id} style={styles.checkboxContainer}>
+              <View key={exercise.id} style={themedStyles.checkboxContainer}>
                 <Checkbox
                   value={currentSelectedIds.includes(exercise.id)}
                   onValueChange={() => handleCheckboxChange(exercise.id)}
                   color={
                     currentSelectedIds.includes(exercise.id)
-                      ? "#4630EB"
+                      ? Colors[colorScheme].tint
                       : undefined
                   }
                 />
-                <Text style={styles.checkboxLabel}>{exercise.name}</Text>
+                <Text style={themedStyles.checkboxLabel}>{exercise.name}</Text>
               </View>
             ))}
           </ScrollView>
-          <View style={styles.buttonContainer}>
+          <View style={themedStyles.buttonContainer}>
             <TouchableOpacity
-              style={[styles.button, styles.buttonClose]}
+              style={[themedStyles.button, themedStyles.buttonClose]}
               onPress={onClose}
             >
-              <Text style={styles.textStyle}>Отмена</Text>
+              <Text style={themedStyles.textStyle}>Отмена</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.button, styles.buttonSave]}
+              style={[themedStyles.button, themedStyles.buttonSave]}
               onPress={handleSave}
             >
-              <Text style={styles.textStyle}>Сохранить</Text>
+              <Text style={themedStyles.textStyle}>Сохранить</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -93,72 +104,77 @@ const AnalyticsExerciseSelector: React.FC<AnalyticsExerciseSelectorProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  centeredView: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 22,
-  },
-  modalView: {
-    margin: 20,
-    backgroundColor: "white",
-    borderRadius: 20,
-    padding: 35,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
+function getThemedStyles(colors: typeof Colors.light) {
+  return StyleSheet.create({
+    centeredView: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      marginTop: 22,
+      backgroundColor: colors.background,
     },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-    width: "90%",
-    maxHeight: "80%",
-  },
-  modalTitle: {
-    marginBottom: 15,
-    textAlign: "center",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  scrollView: {
-    width: "100%",
-  },
-  checkboxContainer: {
-    flexDirection: "row",
-    marginBottom: 10,
-    alignItems: "center",
-  },
-  checkboxLabel: {
-    marginLeft: 8,
-    fontSize: 16,
-  },
-  buttonContainer: {
-    flexDirection: "row",
-    marginTop: 20,
-    justifyContent: "space-around",
-    width: "100%",
-  },
-  button: {
-    borderRadius: 10,
-    padding: 10,
-    elevation: 2,
-    width: "45%",
-    alignItems: "center",
-  },
-  buttonClose: {
-    backgroundColor: "#f44336",
-  },
-  buttonSave: {
-    backgroundColor: "#2196F3",
-  },
-  textStyle: {
-    color: "white",
-    fontWeight: "bold",
-    textAlign: "center",
-  },
-});
+    modalView: {
+      margin: 20,
+      backgroundColor: colors.card,
+      borderRadius: 20,
+      padding: 35,
+      alignItems: "center",
+      shadowColor: "#000",
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.25,
+      shadowRadius: 4,
+      elevation: 5,
+      width: "90%",
+      maxHeight: "80%",
+    },
+    modalTitle: {
+      marginBottom: 15,
+      textAlign: "center",
+      fontSize: 18,
+      fontWeight: "bold",
+      color: colors.text,
+    },
+    scrollView: {
+      width: "100%",
+    },
+    checkboxContainer: {
+      flexDirection: "row",
+      marginBottom: 10,
+      alignItems: "center",
+    },
+    checkboxLabel: {
+      marginLeft: 8,
+      fontSize: 16,
+      color: colors.text,
+    },
+    buttonContainer: {
+      flexDirection: "row",
+      marginTop: 20,
+      justifyContent: "space-around",
+      width: "100%",
+    },
+    button: {
+      borderRadius: 10,
+      padding: 10,
+      elevation: 2,
+      width: "45%",
+      alignItems: "center",
+    },
+    buttonClose: {
+      backgroundColor: colors.error,
+    },
+    buttonSave: {
+      backgroundColor: colors.tint,
+    },
+    textStyle: {
+      color: "white",
+      fontWeight: "bold",
+      textAlign: "center",
+    },
+  });
+}
 
 export default AnalyticsExerciseSelector;

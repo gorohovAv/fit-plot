@@ -11,6 +11,8 @@ import { Workout } from "../../components/Workout";
 import { useNavigation } from "@react-navigation/native";
 import { PlanSelector } from "../../components/PlanSelector";
 import useStore, { Plan } from "../../store/store";
+import useSettingsStore from "../../store/settingsStore";
+import { Colors } from "../../constants/Colors";
 
 type Training = {
   id: string;
@@ -28,6 +30,15 @@ export default function WorkoutPlanScreen() {
   const [showPlanSelector, setShowPlanSelector] = useState(false);
   const [showTrainingModal, setShowTrainingModal] = useState(false);
   const [trainingName, setTrainingName] = useState("");
+  const theme = useSettingsStore((state) => state.theme);
+
+  // Определяем текущую палитру цветов
+  const colorScheme =
+    theme === "dark"
+      ? Colors.dark
+      : theme === "light"
+      ? Colors.light
+      : Colors.light; // Можно добавить автоопределение system, если нужно
 
   useEffect(() => {
     if (selectedPlan) {
@@ -103,15 +114,17 @@ export default function WorkoutPlanScreen() {
   );
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[styles.container, { backgroundColor: colorScheme.background }]}
+    >
       <TouchableOpacity
-        style={styles.planButton}
+        style={[styles.planButton, { backgroundColor: colorScheme.card }]}
         onPress={() => {
           console.log("Button pressed, showPlanSelector:", !showPlanSelector);
           setShowPlanSelector(!showPlanSelector);
         }}
       >
-        <Text style={styles.planButtonText}>
+        <Text style={[styles.planButtonText, { color: colorScheme.text }]}>
           {selectedPlan?.planName || "Выберите план"}
         </Text>
       </TouchableOpacity>
@@ -133,7 +146,7 @@ export default function WorkoutPlanScreen() {
         )}
         contentContainerStyle={{ flexGrow: 1 }}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>
+          <Text style={[styles.emptyText, { color: colorScheme.text }]}>
             {selectedPlan
               ? "Нет тренировок в плане"
               : "Выберите план для начала"}
@@ -144,13 +157,16 @@ export default function WorkoutPlanScreen() {
       {selectedPlan && (
         <>
           <TouchableOpacity
-            style={styles.addButton}
+            style={[styles.addButton, { backgroundColor: colorScheme.tint }]}
             onPress={() => setShowTrainingModal(true)}
           >
             <Text style={styles.addButtonText}>+ Добавить тренировку</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.planScaleButton}
+            style={[
+              styles.planScaleButton,
+              { backgroundColor: colorScheme.success },
+            ]}
             onPress={() =>
               navigation.navigate("plan", {
                 planName: selectedPlan.planName,

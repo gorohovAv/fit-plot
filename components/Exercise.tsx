@@ -11,6 +11,8 @@ import { useRoute } from "@react-navigation/native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useNavigation } from "@react-navigation/native";
 import Timer from "./Timer";
+import useSettingsStore from "../store/settingsStore";
+import { Colors } from "../constants/Colors";
 
 type MuscleGroup = string; // Пример: Определяем как строку, если нет других определений
 type ExerciseType = string; // Пример: Определяем как строку, если нет других определений
@@ -75,6 +77,16 @@ export const Exercise: React.FC<ExerciseProps> = ({
   const { plans, addResult } = useStore();
   const [showTimer, setShowTimer] = useState(false);
   const [timerKey, setTimerKey] = useState(0);
+  const theme = useSettingsStore((state) => state.theme);
+  const colorScheme =
+    theme === "system"
+      ? typeof window !== "undefined" &&
+        window.matchMedia &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light"
+      : theme;
+  const themeColors = Colors[colorScheme];
 
   const exerciseResults =
     plans
@@ -96,15 +108,25 @@ export const Exercise: React.FC<ExerciseProps> = ({
   };
 
   return (
-    <View style={[styles.container, completed && styles.completed]}>
+    <View
+      style={[
+        styles.container,
+        completed && { backgroundColor: themeColors.success + "22" },
+        { backgroundColor: themeColors.card },
+      ]}
+    >
       <View style={styles.header}>
-        <Text style={styles.name}>{name}</Text>
-        <Text style={styles.details}>
+        <Text style={[styles.name, { color: themeColors.text }]}>{name}</Text>
+        <Text style={[styles.details, { color: themeColors.icon }]}>
           {muscleGroup} • {type} •{" "}
           {unilateral ? "Одностороннее" : "Двустороннее"} •{" "}
           {amplitude === "full" ? "Полная амплитуда" : "Неполная амплитуда"}
         </Text>
-        {comment ? <Text style={styles.comment}>{comment}</Text> : null}
+        {comment ? (
+          <Text style={[styles.comment, { color: themeColors.icon }]}>
+            {comment}
+          </Text>
+        ) : null}
       </View>
 
       {/* Кнопки редактирования и удаления */}
@@ -140,9 +162,9 @@ export const Exercise: React.FC<ExerciseProps> = ({
               <MaterialIcons
                 name={res.amplitude === "full" ? "straighten" : "crop"}
                 size={16}
-                color="#666"
+                color={themeColors.icon}
               />
-              <Text style={styles.resultText}>
+              <Text style={[styles.resultText, { color: themeColors.icon }]}>
                 {res.weight} кг × {res.reps} повторений
               </Text>
             </View>
@@ -153,18 +175,34 @@ export const Exercise: React.FC<ExerciseProps> = ({
       {/* Форма ввода веса, повторений и амплитуды */}
       <View style={styles.resultForm}>
         <TextInput
-          style={styles.weightInput}
+          style={[
+            styles.weightInput,
+            {
+              color: themeColors.text,
+              borderColor: themeColors.border,
+              backgroundColor: themeColors.card,
+            },
+          ]}
           placeholder="Вес"
+          placeholderTextColor={themeColors.icon}
           keyboardType="numeric"
           value={result.weight.toString()}
           onChangeText={(text) =>
             setResult({ ...result, weight: parseFloat(text) || 0 })
           }
         />
-        <Text style={styles.xSymbol}>×</Text>
+        <Text style={[styles.xSymbol, { color: themeColors.text }]}>×</Text>
         <TextInput
-          style={styles.repsInput}
+          style={[
+            styles.repsInput,
+            {
+              color: themeColors.text,
+              borderColor: themeColors.border,
+              backgroundColor: themeColors.card,
+            },
+          ]}
           placeholder="Повторения"
+          placeholderTextColor={themeColors.icon}
           keyboardType="numeric"
           value={result.reps.toString()}
           onChangeText={(text) =>
@@ -183,11 +221,14 @@ export const Exercise: React.FC<ExerciseProps> = ({
           <MaterialIcons
             name={result.amplitude === "full" ? "straighten" : "crop"}
             size={24}
-            color="#666"
+            color={themeColors.icon}
           />
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.confirmButton}
+          style={[
+            styles.confirmButton,
+            { backgroundColor: themeColors.success },
+          ]}
           onPress={handleAddResult}
           activeOpacity={0.7}
         >
@@ -213,7 +254,7 @@ export const Exercise: React.FC<ExerciseProps> = ({
               onEnd={() => setShowTimer(false)}
             />
           ) : (
-            <MaterialIcons name="timer" size={32} color="#bbb" />
+            <MaterialIcons name="timer" size={32} color={themeColors.icon} />
           )}
         </TouchableOpacity>
       </View>

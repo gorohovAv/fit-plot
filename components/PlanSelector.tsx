@@ -7,8 +7,11 @@ import {
   StyleSheet,
   TextInput,
   FlatList,
+  Appearance,
 } from "react-native";
 import useStore, { Plan } from "../store/store";
+import useSettingsStore from "../store/settingsStore";
+import { Colors } from "../constants/Colors";
 
 type PlanSelectorProps = {
   visible: boolean;
@@ -25,6 +28,10 @@ export const PlanSelector: React.FC<PlanSelectorProps> = ({
   const { plans, addPlan } = useStore();
   const [newPlanName, setNewPlanName] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
+  const theme = useSettingsStore((state) => state.theme);
+  const colorScheme =
+    theme === "system" ? Appearance.getColorScheme?.() ?? "light" : theme;
+  const colors = Colors[colorScheme];
 
   const handleCreatePlan = () => {
     if (newPlanName.trim()) {
@@ -41,9 +48,13 @@ export const PlanSelector: React.FC<PlanSelectorProps> = ({
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContainer}>
-          <Text style={styles.title}>Выберите план тренировок</Text>
+      <View
+        style={[styles.modalOverlay, { backgroundColor: "rgba(0,0,0,0.5)" }]}
+      >
+        <View style={[styles.modalContainer, { backgroundColor: colors.card }]}>
+          <Text style={[styles.title, { color: colors.text }]}>
+            Выберите план тренировок
+          </Text>
 
           <FlatList
             data={plans}

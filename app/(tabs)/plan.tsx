@@ -13,6 +13,8 @@ import useStore from "../../store/store";
 import { Exercise, PlannedResult, Plan } from "../../store/store";
 import { Picker } from "@react-native-picker/picker";
 import dayjs from "dayjs";
+import useSettingsStore from "../../store/settingsStore";
+import { Colors } from "../../constants/Colors";
 
 const SEASON_COLORS = [
   "#A7D8FF", // зима
@@ -108,9 +110,28 @@ export default function PlanScreen() {
     closeModal();
   };
 
+  const theme = useSettingsStore((s) => s.theme);
+  const colorScheme =
+    theme === "system"
+      ? Platform.OS === "web"
+        ? window.matchMedia &&
+          window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light"
+        : "light" // Можно заменить на react-native Appearance, если нужно
+      : theme;
+  const colors = Colors[colorScheme];
+
   return (
-    <View style={{ flex: 1, padding: 16 }}>
-      <Text style={{ fontSize: 20, fontWeight: "bold", marginBottom: 16 }}>
+    <View style={{ flex: 1, padding: 16, backgroundColor: colors.background }}>
+      <Text
+        style={{
+          fontSize: 20,
+          fontWeight: "bold",
+          marginBottom: 16,
+          color: colors.text,
+        }}
+      >
         Планирование результатов
       </Text>
       <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
@@ -127,6 +148,8 @@ export default function PlanScreen() {
               justifyContent: "flex-end",
               alignItems: "flex-end",
               position: "relative",
+              borderColor: colors.border,
+              borderWidth: 1,
             }}
           >
             <Text
@@ -135,6 +158,7 @@ export default function PlanScreen() {
                 left: 8,
                 top: 8,
                 fontWeight: "bold",
+                color: colors.text,
               }}
             >
               {getMonthLabel(month)}
@@ -144,8 +168,8 @@ export default function PlanScreen() {
                 width: 32,
                 height: 32,
                 borderRadius: 16,
-                backgroundColor: "#000",
-                opacity: 0.2,
+                backgroundColor: colors.tint,
+                opacity: 0.8,
                 justifyContent: "center",
                 alignItems: "center",
                 margin: 8,
@@ -170,69 +194,94 @@ export default function PlanScreen() {
         >
           <View
             style={{
-              backgroundColor: "#fff",
+              backgroundColor: colors.card,
               padding: 20,
               borderRadius: 12,
               width: 300,
             }}
           >
-            <Text style={{ fontWeight: "bold", marginBottom: 8 }}>
+            <Text
+              style={{
+                fontWeight: "bold",
+                marginBottom: 8,
+                color: colors.text,
+              }}
+            >
               Добавить плановый результат
             </Text>
-            <Text>Упражнение:</Text>
+            <Text style={{ color: colors.text }}>Упражнение:</Text>
             <Picker
               selectedValue={selectedExerciseId}
               onValueChange={setSelectedExerciseId}
-              style={{ width: "100%" }}
+              style={{ width: "100%", color: colors.text }}
             >
               {allExercises.map((ex) => (
                 <Picker.Item key={ex.id} label={ex.name} value={ex.id} />
               ))}
             </Picker>
-            <Text>Вес (кг):</Text>
+            <Text style={{ color: colors.text }}>Вес (кг):</Text>
             <TextInput
               value={plannedWeight}
               onChangeText={setPlannedWeight}
               keyboardType="numeric"
               style={{
                 borderWidth: 1,
-                borderColor: "#ccc",
+                borderColor: colors.border,
                 marginBottom: 8,
                 borderRadius: 6,
                 padding: 4,
+                color: colors.text,
+                backgroundColor: colors.background,
               }}
+              placeholderTextColor={colors.icon}
             />
-            <Text>Повторения:</Text>
+            <Text style={{ color: colors.text }}>Повторения:</Text>
             <TextInput
               value={plannedReps}
               onChangeText={setPlannedReps}
               keyboardType="numeric"
               style={{
                 borderWidth: 1,
-                borderColor: "#ccc",
+                borderColor: colors.border,
                 marginBottom: 8,
                 borderRadius: 6,
                 padding: 4,
+                color: colors.text,
+                backgroundColor: colors.background,
               }}
+              placeholderTextColor={colors.icon}
             />
-            <Text>Дата (в пределах месяца):</Text>
+            <Text style={{ color: colors.text }}>
+              Дата (в пределах месяца):
+            </Text>
             <TextInput
               value={plannedDate}
               onChangeText={setPlannedDate}
               placeholder="YYYY-MM-DD"
               style={{
                 borderWidth: 1,
-                borderColor: "#ccc",
+                borderColor: colors.border,
                 marginBottom: 8,
                 borderRadius: 6,
                 padding: 4,
+                color: colors.text,
+                backgroundColor: colors.background,
               }}
+              placeholderTextColor={colors.icon}
             />
             <View
               style={{ flexDirection: "row", justifyContent: "space-between" }}
             >
-              <Button title="Отмена" onPress={closeModal} />
-              <Button title="Сохранить" onPress={handleSubmit} />
+              <Button
+                title="Отмена"
+                onPress={closeModal}
+                color={colors.error}
+              />
+              <Button
+                title="Сохранить"
+                onPress={handleSubmit}
+                color={colors.success}
+              />
             </View>
           </View>
         </View>

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Plan } from "../store/store";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { useThemeColor } from "../hooks/useThemeColor";
 
 type ResultsListProps = {
   plans: Plan[];
@@ -46,29 +47,41 @@ const ResultsList: React.FC<ResultsListProps> = ({ plans }) => {
       return acc;
     }, {} as Record<string, Record<string, (typeof groupedResults)[0][]>>);
 
+  const backgroundColor = useThemeColor({}, "background");
+  const groupHeaderColor = useThemeColor({}, "card");
+  const textColor = useThemeColor({}, "text");
+  const resultBg = useThemeColor({}, "secondaryBackground");
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor }]}>
       {Object.entries(groupedResults).map(([muscleGroup, exercises]) => (
         <View key={muscleGroup} style={styles.group}>
           <TouchableOpacity
             onPress={() => toggleGroup(muscleGroup)}
-            style={styles.groupHeader}
+            style={[styles.groupHeader, { backgroundColor: groupHeaderColor }]}
           >
-            <Text style={styles.groupTitle}>{muscleGroup}</Text>
+            <Text style={[styles.groupTitle, { color: textColor }]}>
+              {muscleGroup}
+            </Text>
             <MaterialIcons
               name={expandedGroups[muscleGroup] ? "expand-less" : "expand-more"}
               size={24}
-              color="#000"
+              color={textColor}
             />
           </TouchableOpacity>
           {expandedGroups[muscleGroup] && (
             <View style={styles.exercisesContainer}>
               {Object.entries(exercises).map(([exerciseName, results]) => (
                 <View key={exerciseName} style={styles.exercise}>
-                  <Text style={styles.exerciseTitle}>{exerciseName}</Text>
+                  <Text style={[styles.exerciseTitle, { color: textColor }]}>
+                    {exerciseName}
+                  </Text>
                   {results.map((result, index) => (
-                    <View key={index} style={styles.result}>
-                      <Text>
+                    <View
+                      key={index}
+                      style={[styles.result, { backgroundColor: resultBg }]}
+                    >
+                      <Text style={{ color: textColor }}>
                         {result.date}: {result.weight} кг × {result.reps}{" "}
                         повторений
                       </Text>
@@ -88,6 +101,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
+    // backgroundColor: "#fff", // убрано, теперь через useThemeColor
   },
   group: {
     marginBottom: 16,
@@ -97,12 +111,13 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     padding: 8,
-    backgroundColor: "#f0f0f0",
+    // backgroundColor: "#f0f0f0", // убрано, теперь через useThemeColor
     borderRadius: 4,
   },
   groupTitle: {
     fontSize: 16,
     fontWeight: "bold",
+    // color: "#000", // убрано, теперь через useThemeColor
   },
   exercisesContainer: {
     marginTop: 8,
@@ -115,10 +130,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "bold",
     marginBottom: 4,
+    // color: "#000", // убрано, теперь через useThemeColor
   },
   result: {
     padding: 4,
-    backgroundColor: "#f9f9f9",
+    // backgroundColor: "#f9f9f9", // убрано, теперь через useThemeColor
     borderRadius: 4,
     marginBottom: 4,
   },

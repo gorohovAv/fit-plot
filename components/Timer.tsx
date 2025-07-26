@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { View, StyleSheet } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
+import useSettingsStore from "../store/settingsStore";
+import { Colors } from "../constants/Colors";
 
 interface TimerProps {
   duration: number; // продолжительность таймера в секундах
@@ -59,6 +61,16 @@ const Timer: React.FC<TimerProps> = ({
 }) => {
   const [elapsed, setElapsed] = useState(0);
   const intervalRef = useRef<number | null>(null);
+  const theme = useSettingsStore((state) => state.theme);
+  const colorScheme =
+    theme === "system"
+      ? typeof window !== "undefined" &&
+        window.matchMedia &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light"
+      : theme;
+  const themeColors = Colors[colorScheme];
 
   useEffect(() => {
     setElapsed(0);
@@ -103,7 +115,7 @@ const Timer: React.FC<TimerProps> = ({
           cx={center}
           cy={center}
           r={radius}
-          stroke="#e0e0e0"
+          stroke={themeColors.border}
           strokeWidth={strokeWidth}
           fill="none"
         />
