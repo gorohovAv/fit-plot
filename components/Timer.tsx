@@ -58,7 +58,7 @@ const Timer: React.FC<TimerProps> = ({
   onEnd,
 }) => {
   const [elapsed, setElapsed] = useState(0);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<number | null>(null);
 
   useEffect(() => {
     setElapsed(0);
@@ -67,7 +67,9 @@ const Timer: React.FC<TimerProps> = ({
     }
     intervalRef.current = setInterval(() => {
       setElapsed((prev) => {
-        if (prev + 1 >= duration) {
+        const next = prev + 1;
+        console.log(`Таймер: ${next} из ${duration}`);
+        if (next >= duration) {
           if (intervalRef.current) {
             clearInterval(intervalRef.current);
             intervalRef.current = null;
@@ -75,7 +77,7 @@ const Timer: React.FC<TimerProps> = ({
           onEnd && onEnd();
           return duration;
         }
-        return prev + 1;
+        return next;
       });
     }, 1000);
 

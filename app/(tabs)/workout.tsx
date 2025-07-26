@@ -111,6 +111,7 @@ export default function WorkoutScreen() {
               completed={false}
               onEdit={() => handleEditExercise(item)}
               onDelete={() => handleDeleteExercise(item.id)}
+              timerDuration={item.timerDuration}
             />
           )}
         />
