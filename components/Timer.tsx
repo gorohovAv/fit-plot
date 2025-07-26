@@ -62,18 +62,30 @@ const Timer: React.FC<TimerProps> = ({
 
   useEffect(() => {
     setElapsed(0);
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
     intervalRef.current = setInterval(() => {
       setElapsed((prev) => {
         if (prev + 1 >= duration) {
-          clearInterval(intervalRef.current!);
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+          }
           onEnd && onEnd();
           return duration;
         }
         return prev + 1;
       });
     }, 1000);
-    return () => clearInterval(intervalRef.current!);
-  }, [duration]);
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, [duration, onEnd]);
 
   const progress = elapsed / duration;
   const angle = 360 * progress;
