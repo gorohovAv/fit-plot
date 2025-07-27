@@ -1,6 +1,6 @@
 import { create } from "zustand";
-import { persist, PersistStorage } from "zustand/middleware";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { createSyncMiddleware } from "./syncMiddleware";
+import * as dbLayer from "./dbLayer";
 
 type CalorieEntry = {
   date: string;
@@ -14,45 +14,38 @@ type CaloriesState = {
   updateEntry: (date: string, entry: CalorieEntry) => void;
   deleteEntry: (date: string) => void;
   getEntryByDate: (date: string) => CalorieEntry | undefined;
+  initializeFromDB: () => Promise<void>;
 };
 
-const zustandAsyncStorage: PersistStorage<CaloriesState> = {
-  getItem: async (name) => {
-    const value = await AsyncStorage.getItem(name);
-    return value ? JSON.parse(value) : null;
-  },
-  setItem: async (name, value) => {
-    await AsyncStorage.setItem(name, JSON.stringify(value));
-  },
-  removeItem: async (name) => {
-    await AsyncStorage.removeItem(name);
-  },
-};
+const syncMiddleware = createSyncMiddleware();
 
 const useCaloriesStore = create<CaloriesState>()(
-  persist(
-    (set, get) => ({
-      entries: [],
-      addEntry: (entry) =>
-        set((state) => ({
-          entries: [...state.entries, entry],
-        })),
-      updateEntry: (date, entry) =>
-        set((state) => ({
-          entries: state.entries.map((e) => (e.date === date ? entry : e)),
-        })),
-      deleteEntry: (date) =>
-        set((state) => ({
-          entries: state.entries.filter((e) => e.date !== date),
-        })),
-      getEntryByDate: (date) =>
-        get().entries.find((entry) => entry.date === date),
-    }),
-    {
-      name: "fit-plot-calories",
-      storage: zustandAsyncStorage,
-    }
-  )
+  syncMiddleware((set, get) => ({
+    entries: [],
+    addEntry: (entry) =>
+      set((state) => ({
+        entries: [...state.entries, entry],
+      })),
+    updateEntry: (date, entry) =>
+      set((state) => ({
+        entries: state.entries.map((e) => (e.date === date ? entry : e)),
+      })),
+    deleteEntry: (date) =>
+      set((state) => ({
+        entries: state.entries.filter((e) => e.date !== date),
+      })),
+    getEntryByDate: (date) =>
+      get().entries.find((entry) => entry.date === date),
+    initializeFromDB: async () => {
+      try {
+        await dbLayer.initDatabase();
+        const entries = await dbLayer.getCalorieEntries();
+        set({ entries });
+      } catch (error) {
+        console.error("Ошибка инициализации калорий из БД:", error);
+      }
+    },
+  }))
 );
 
 export default useCaloriesStore;
