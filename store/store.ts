@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { createSyncMiddleware } from "./syncMiddleware";
+import { createSyncMiddleware, loadFromDatabase } from "./syncMiddleware";
 import * as dbLayer from "./dbLayer";
 
 // Определение новых типов

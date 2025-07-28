@@ -12,69 +12,55 @@ const getDatabase = async () => {
 export const initDatabase = async () => {
   const database = await getDatabase();
 
-  await database.execAsync([
-    {
-      sql: `CREATE TABLE IF NOT EXISTS plans (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        planName TEXT UNIQUE NOT NULL
-      )`,
-      args: [],
-    },
-    {
-      sql: `CREATE TABLE IF NOT EXISTS trainings (
-        id TEXT PRIMARY KEY,
-        planName TEXT NOT NULL,
-        name TEXT NOT NULL,
-        FOREIGN KEY (planName) REFERENCES plans (planName)
-      )`,
-      args: [],
-    },
-    {
-      sql: `CREATE TABLE IF NOT EXISTS exercises (
-        id TEXT PRIMARY KEY,
-        trainingId TEXT NOT NULL,
-        name TEXT NOT NULL,
-        muscleGroup TEXT NOT NULL,
-        type TEXT NOT NULL,
-        unilateral BOOLEAN NOT NULL,
-        amplitude TEXT NOT NULL,
-        comment TEXT,
-        timerDuration INTEGER,
-        FOREIGN KEY (trainingId) REFERENCES trainings (id)
-      )`,
-      args: [],
-    },
-    {
-      sql: `CREATE TABLE IF NOT EXISTS results (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        exerciseId TEXT NOT NULL,
-        weight REAL NOT NULL,
-        reps INTEGER NOT NULL,
-        date TEXT NOT NULL,
-        amplitude TEXT NOT NULL,
-        isPlanned BOOLEAN NOT NULL DEFAULT 0,
-        FOREIGN KEY (exerciseId) REFERENCES exercises (id)
-      )`,
-      args: [],
-    },
-    {
-      sql: `CREATE TABLE IF NOT EXISTS calories (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        date TEXT UNIQUE NOT NULL,
-        calories INTEGER NOT NULL,
-        weight REAL NOT NULL
-      )`,
-      args: [],
-    },
-    {
-      sql: `CREATE TABLE IF NOT EXISTS settings (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        key TEXT UNIQUE NOT NULL,
-        value TEXT NOT NULL
-      )`,
-      args: [],
-    },
-  ]);
+  const createTables = [
+    `CREATE TABLE IF NOT EXISTS plans (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      planName TEXT UNIQUE NOT NULL
+    )`,
+    `CREATE TABLE IF NOT EXISTS trainings (
+      id TEXT PRIMARY KEY,
+      planName TEXT NOT NULL,
+      name TEXT NOT NULL,
+      FOREIGN KEY (planName) REFERENCES plans (planName)
+    )`,
+    `CREATE TABLE IF NOT EXISTS exercises (
+      id TEXT PRIMARY KEY,
+      trainingId TEXT NOT NULL,
+      name TEXT NOT NULL,
+      muscleGroup TEXT NOT NULL,
+      type TEXT NOT NULL,
+      unilateral BOOLEAN NOT NULL,
+      amplitude TEXT NOT NULL,
+      comment TEXT,
+      timerDuration INTEGER,
+      FOREIGN KEY (trainingId) REFERENCES trainings (id)
+    )`,
+    `CREATE TABLE IF NOT EXISTS results (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      exerciseId TEXT NOT NULL,
+      weight REAL NOT NULL,
+      reps INTEGER NOT NULL,
+      date TEXT NOT NULL,
+      amplitude TEXT NOT NULL,
+      isPlanned BOOLEAN NOT NULL DEFAULT 0,
+      FOREIGN KEY (exerciseId) REFERENCES exercises (id)
+    )`,
+    `CREATE TABLE IF NOT EXISTS calories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      date TEXT UNIQUE NOT NULL,
+      calories INTEGER NOT NULL,
+      weight REAL NOT NULL
+    )`,
+    `CREATE TABLE IF NOT EXISTS settings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      key TEXT UNIQUE NOT NULL,
+      value TEXT NOT NULL
+    )`,
+  ];
+
+  for (const sql of createTables) {
+    await database.runAsync(sql);
+  }
 };
 
 // Методы для работы с планами

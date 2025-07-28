@@ -27,8 +27,14 @@ export const createSyncMiddleware = (): SyncMiddleware => {
 
 const syncToDatabase = async (prevState: any, newState: any) => {
   try {
+    // Проверяем, что состояния существуют
+    if (!prevState || !newState) {
+      console.warn("syncToDatabase: prevState или newState undefined");
+      return;
+    }
+
     // Синхронизация планов
-    if (newState.plans !== prevState.plans) {
+    if (newState.plans && newState.plans !== prevState.plans) {
       await syncPlans(newState.plans);
     }
 
@@ -42,7 +48,7 @@ const syncToDatabase = async (prevState: any, newState: any) => {
     }
 
     // Синхронизация калорий
-    if (newState.entries !== prevState.entries) {
+    if (newState.entries && newState.entries !== prevState.entries) {
       await syncCalories(newState.entries);
     }
   } catch (error) {
@@ -51,48 +57,74 @@ const syncToDatabase = async (prevState: any, newState: any) => {
 };
 
 const syncPlans = async (plans: any[]) => {
+  if (!plans || !Array.isArray(plans)) {
+    console.warn("syncPlans: plans не является массивом");
+    return;
+  }
+
   for (const plan of plans) {
+    if (!plan || !plan.planName) continue;
+
     await dbLayer.savePlan(plan.planName);
 
-    for (const training of plan.trainings) {
-      await dbLayer.saveTraining(training.id, plan.planName, training.name);
+    if (plan.trainings && Array.isArray(plan.trainings)) {
+      for (const training of plan.trainings) {
+        if (!training || !training.id || !training.name) continue;
 
-      for (const exercise of training.exercises) {
-        await dbLayer.saveExercise({
-          ...exercise,
-          trainingId: training.id,
-        });
-      }
+        await dbLayer.saveTraining(training.id, plan.planName, training.name);
 
-      for (const result of training.results) {
-        await dbLayer.saveResult({
-          ...result,
-          isPlanned: false,
-        });
-      }
+        if (training.exercises && Array.isArray(training.exercises)) {
+          for (const exercise of training.exercises) {
+            if (!exercise || !exercise.id) continue;
 
-      for (const plannedResult of training.plannedResults) {
-        await dbLayer.saveResult({
-          exerciseId: plannedResult.exerciseId,
-          weight: plannedResult.plannedWeight,
-          reps: plannedResult.plannedReps,
-          date: plannedResult.plannedDate,
-          amplitude: plannedResult.amplitude,
-          isPlanned: true,
-        });
+            await dbLayer.saveExercise({
+              ...exercise,
+              trainingId: training.id,
+            });
+          }
+        }
+
+        if (training.results && Array.isArray(training.results)) {
+          for (const result of training.results) {
+            if (!result || !result.exerciseId) continue;
+
+            await dbLayer.saveResult({
+              ...result,
+              isPlanned: false,
+            });
+          }
+        }
+
+        if (training.plannedResults && Array.isArray(training.plannedResults)) {
+          for (const plannedResult of training.plannedResults) {
+            if (!plannedResult || !plannedResult.exerciseId) continue;
+
+            await dbLayer.saveResult({
+              exerciseId: plannedResult.exerciseId,
+              weight: plannedResult.plannedWeight,
+              reps: plannedResult.plannedReps,
+              date: plannedResult.plannedDate,
+              amplitude: plannedResult.amplitude,
+              isPlanned: true,
+            });
+          }
+        }
       }
     }
   }
 };
 
 const syncSettings = async (settings: any) => {
-  await dbLayer.saveSetting("theme", settings.theme);
-  await dbLayer.saveSetting("weight", settings.weight.toString());
-  await dbLayer.saveSetting("devMode", settings.devMode.toString());
+  if (!settings) return;
+  await dbLayer.saveSetting("theme", settings.theme ?? "system");
+  await dbLayer.saveSetting("weight", (settings.weight ?? 70).toString());
+  await dbLayer.saveSetting("devMode", (settings.devMode ?? false).toString());
 };
 
 const syncCalories = async (entries: any[]) => {
+  if (!entries || !Array.isArray(entries)) return;
   for (const entry of entries) {
+    if (!entry || !entry.date) continue;
     await dbLayer.saveCalorieEntry(entry.date, entry.calories, entry.weight);
   }
 };
