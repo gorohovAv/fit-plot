@@ -268,6 +268,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderRadius: 8,
     minHeight: 280,
+    paddingRight: 80,
   },
   completed: {
     backgroundColor: "#e8f5e9",
@@ -286,6 +287,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginTop: 8,
+    flexWrap: "wrap",
+    gap: 8,
   },
   weightInput: {
     borderWidth: 1,
@@ -313,6 +316,7 @@ const styles = StyleSheet.create({
   },
   resultsList: {
     marginTop: 8,
+    minHeight: 40,
   },
   resultItem: {
     flexDirection: "row",
@@ -341,8 +345,9 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     alignItems: "center",
     justifyContent: "center",
-    width: 44,
-    height: 44,
+    width: 48,
+    height: 48,
+    minWidth: 48,
   },
   comment: {
     fontSize: 13,

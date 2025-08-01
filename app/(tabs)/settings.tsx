@@ -1,8 +1,17 @@
-import React from "react";
-import { View, Text, TextInput, Switch, StyleSheet } from "react-native";
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  Switch,
+  StyleSheet,
+  TouchableOpacity,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import useSettingsStore from "@/store/settingsStore";
 import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "react-native";
+import { ImportScreen } from "@/components/ImportScreen";
 
 export default function SettingsScreen() {
   const { theme, weight, devMode, setTheme, setWeight, setDevMode } =
@@ -10,6 +19,11 @@ export default function SettingsScreen() {
   const systemTheme = useColorScheme();
   const currentTheme = theme === "system" ? systemTheme : theme;
   const colors = Colors[currentTheme || "light"];
+  const [showImport, setShowImport] = useState(false);
+
+  if (showImport) {
+    return <ImportScreen onBack={() => setShowImport(false)} />;
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -84,6 +98,22 @@ export default function SettingsScreen() {
         </Text>
         <Switch value={devMode} onValueChange={setDevMode} />
       </View>
+
+      <TouchableOpacity
+        style={[
+          styles.importButton,
+          {
+            borderColor: colors.border,
+            backgroundColor: colors.card,
+          },
+        ]}
+        onPress={() => setShowImport(true)}
+      >
+        <Ionicons name="download-outline" size={20} color={colors.text} />
+        <Text style={[styles.importButtonText, { color: colors.text }]}>
+          Импорт данных
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -114,5 +144,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     marginTop: 24,
+  },
+  importButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 16,
+    marginTop: 24,
+  },
+  importButtonText: {
+    marginLeft: 8,
+    fontSize: 16,
+    fontWeight: "500",
   },
 });
