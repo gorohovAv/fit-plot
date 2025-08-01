@@ -201,7 +201,6 @@ const styles = StyleSheet.create({
   },
   planButton: {
     padding: 12,
-    backgroundColor: "#f0f0f0",
     borderRadius: 8,
     marginBottom: 16,
     alignItems: "center",
@@ -212,7 +211,6 @@ const styles = StyleSheet.create({
   emptyText: {
     textAlign: "center",
     marginTop: 20,
-    color: "#666",
   },
   addButton: {
     position: "absolute",
@@ -220,12 +218,10 @@ const styles = StyleSheet.create({
     right: 20,
     left: 20,
     padding: 16,
-    backgroundColor: "#2196F3",
     borderRadius: 8,
     alignItems: "center",
   },
   addButtonText: {
-    color: "white",
     fontWeight: "bold",
   },
   planScaleButton: {
@@ -234,12 +230,10 @@ const styles = StyleSheet.create({
     right: 20,
     left: 20,
     padding: 16,
-    backgroundColor: "#4CAF50",
     borderRadius: 8,
     alignItems: "center",
   },
   planScaleButtonText: {
-    color: "white",
     fontWeight: "bold",
   },
 });
@@ -251,13 +245,11 @@ const modalStyles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
   },
   modal: {
     width: "80%",
-    backgroundColor: "white",
     borderRadius: 8,
     padding: 16,
   },
@@ -269,7 +261,6 @@ const modalStyles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: "#ccc",
     borderRadius: 4,
     padding: 8,
     marginBottom: 16,
@@ -292,7 +283,6 @@ const modalStyles = StyleSheet.create({
     backgroundColor: "#2196F3",
   },
   buttonText: {
-    color: "white",
     fontWeight: "bold",
   },
 });

@@ -24,16 +24,19 @@ export const PlanSelector: React.FC<PlanSelectorProps> = ({
   onClose,
   onSelect,
 }) => {
-  console.log("PlanSelector rendered, visible:", visible);
-  const { plans, addPlan } = useStore();
+  const { plans, addPlan, removePlan } = useStore();
   const [newPlanName, setNewPlanName] = useState("");
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
   const theme = useSettingsStore((state) => state.theme);
   const colorScheme =
-    theme === "system" ? Appearance.getColorScheme?.() ?? "light" : theme;
-  const colors = Colors[colorScheme];
+    theme === "dark"
+      ? Colors.dark
+      : theme === "light"
+      ? Colors.light
+      : Colors.light;
+  const themeColors = colorScheme;
 
-  const handleCreatePlan = () => {
+  const handleAddPlan = () => {
     if (newPlanName.trim()) {
       const newPlan: Plan = {
         planName: newPlanName,
@@ -42,18 +45,34 @@ export const PlanSelector: React.FC<PlanSelectorProps> = ({
       addPlan(newPlan);
       onSelect(newPlan);
       setNewPlanName("");
-      setShowAddForm(false);
+      setShowAddModal(false);
     }
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent={true}
+      onRequestClose={onClose}
+    >
       <View
-        style={[styles.modalOverlay, { backgroundColor: "rgba(0,0,0,0.5)" }]}
+        style={[
+          styles.modalContainer,
+          { backgroundColor: "rgba(0, 0, 0, 0.5)" },
+        ]}
       >
-        <View style={[styles.modalContainer, { backgroundColor: colors.card }]}>
-          <Text style={[styles.title, { color: colors.text }]}>
-            Выберите план тренировок
+        <View
+          style={[
+            styles.modalContent,
+            {
+              backgroundColor: themeColors.card,
+              borderColor: themeColors.border,
+            },
+          ]}
+        >
+          <Text style={[styles.modalTitle, { color: themeColors.text }]}>
+            Выберите план
           </Text>
 
           <FlatList
@@ -61,125 +80,214 @@ export const PlanSelector: React.FC<PlanSelectorProps> = ({
             keyExtractor={(item) => item.planName}
             renderItem={({ item }) => (
               <TouchableOpacity
-                style={styles.planItem}
+                style={[
+                  styles.planItem,
+                  {
+                    borderBottomColor: themeColors.border,
+                  },
+                ]}
                 onPress={() => onSelect(item)}
               >
-                <Text style={styles.planText}>{item.planName}</Text>
+                <Text style={[styles.planName, { color: themeColors.text }]}>
+                  {item.planName}
+                </Text>
+                <Text style={[styles.planCount, { color: themeColors.icon }]}>
+                  {item.trainings.length} тренировок
+                </Text>
               </TouchableOpacity>
             )}
           />
 
-          {showAddForm ? (
-            <View style={styles.addForm}>
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={[styles.addButton, { backgroundColor: themeColors.tint }]}
+              onPress={() => setShowAddModal(true)}
+            >
+              <Text style={[styles.buttonText, { color: themeColors.card }]}>
+                Добавить план
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.cancelButton,
+                { backgroundColor: themeColors.chartGrid },
+              ]}
+              onPress={onClose}
+            >
+              <Text style={[styles.buttonText, { color: themeColors.text }]}>
+                Отмена
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {showAddModal && (
+          <View
+            style={[
+              styles.addModalContainer,
+              { backgroundColor: "rgba(0, 0, 0, 0.5)" },
+            ]}
+          >
+            <View
+              style={[
+                styles.addModalContent,
+                {
+                  backgroundColor: themeColors.card,
+                  borderColor: themeColors.border,
+                },
+              ]}
+            >
+              <Text style={[styles.addModalTitle, { color: themeColors.text }]}>
+                Новый план
+              </Text>
               <TextInput
-                style={styles.input}
-                placeholder="Введите название плана"
+                style={[
+                  styles.addModalInput,
+                  {
+                    borderColor: themeColors.border,
+                    color: themeColors.text,
+                    backgroundColor: themeColors.card,
+                  },
+                ]}
+                placeholder="Название плана"
+                placeholderTextColor={themeColors.icon}
                 value={newPlanName}
                 onChangeText={setNewPlanName}
-                autoFocus
               />
-              <View style={styles.formButtons}>
+              <View style={styles.addModalButtons}>
                 <TouchableOpacity
-                  style={[styles.button, styles.cancelButton]}
-                  onPress={() => setShowAddForm(false)}
+                  style={[
+                    styles.addModalButton,
+                    { backgroundColor: themeColors.error },
+                  ]}
+                  onPress={() => setShowAddModal(false)}
                 >
-                  <Text style={styles.buttonText}>Отмена</Text>
+                  <Text
+                    style={[
+                      styles.addModalButtonText,
+                      { color: themeColors.card },
+                    ]}
+                  >
+                    Отмена
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.button, styles.createButton]}
-                  onPress={handleCreatePlan}
+                  style={[
+                    styles.addModalButton,
+                    { backgroundColor: themeColors.success },
+                  ]}
+                  onPress={handleAddPlan}
                 >
-                  <Text style={styles.buttonText}>Создать</Text>
+                  <Text
+                    style={[
+                      styles.addModalButtonText,
+                      { color: themeColors.card },
+                    ]}
+                  >
+                    Добавить
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
-          ) : (
-            <TouchableOpacity
-              style={[styles.button, styles.addButton]}
-              onPress={() => setShowAddForm(true)}
-            >
-              <Text style={styles.buttonText}>+ Новый план</Text>
-            </TouchableOpacity>
-          )}
-
-          <TouchableOpacity
-            style={[styles.button, styles.closeButton]}
-            onPress={onClose}
-          >
-            <Text style={styles.buttonText}>Закрыть</Text>
-          </TouchableOpacity>
-        </View>
+          </View>
+        )}
       </View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  modalOverlay: {
+  modalContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.5)",
   },
-  modalContainer: {
+  modalContent: {
     width: "80%",
-    backgroundColor: "white",
-    borderRadius: 10,
-    padding: 20,
     maxHeight: "70%",
+    borderRadius: 10,
+    borderWidth: 1,
   },
-  title: {
-    fontSize: 18,
+  modalTitle: {
+    fontSize: 20,
     fontWeight: "bold",
-    marginBottom: 15,
     textAlign: "center",
+    padding: 20,
   },
   planItem: {
-    padding: 12,
+    padding: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
   },
-  planText: {
+  planName: {
     fontSize: 16,
+    fontWeight: "bold",
   },
-  addForm: {
-    marginTop: 15,
+  planCount: {
+    fontSize: 14,
+    marginTop: 4,
   },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 5,
-    padding: 10,
-    marginBottom: 10,
-  },
-  formButtons: {
+  buttonContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  button: {
-    padding: 12,
-    borderRadius: 5,
-    alignItems: "center",
-    marginTop: 10,
+    padding: 20,
+    gap: 10,
   },
   addButton: {
-    backgroundColor: "#2196F3",
-  },
-  createButton: {
-    backgroundColor: "#4CAF50",
     flex: 1,
-    marginLeft: 5,
+    padding: 15,
+    borderRadius: 8,
+    alignItems: "center",
   },
   cancelButton: {
-    backgroundColor: "#f44336",
     flex: 1,
-    marginRight: 5,
-  },
-  closeButton: {
-    backgroundColor: "#9E9E9E",
+    padding: 15,
+    borderRadius: 8,
+    alignItems: "center",
   },
   buttonText: {
-    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  addModalContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  addModalContent: {
+    width: "80%",
+    padding: 20,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  addModalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  addModalInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    marginBottom: 20,
+  },
+  addModalButtons: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  addModalButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  addModalButtonText: {
+    fontSize: 16,
     fontWeight: "bold",
   },
 });

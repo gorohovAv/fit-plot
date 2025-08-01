@@ -132,10 +132,10 @@ export const Exercise: React.FC<ExerciseProps> = ({
       {/* Кнопки редактирования и удаления */}
       <View style={styles.actions}>
         <TouchableOpacity onPress={onEdit} style={styles.actionButton}>
-          <MaterialIcons name="edit" size={20} color="#666" />
+          <MaterialIcons name="edit" size={20} color={themeColors.icon} />
         </TouchableOpacity>
         <TouchableOpacity onPress={onDelete} style={styles.actionButton}>
-          <MaterialIcons name="delete" size={20} color="#666" />
+          <MaterialIcons name="delete" size={20} color={themeColors.icon} />
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => {
@@ -150,7 +150,7 @@ export const Exercise: React.FC<ExerciseProps> = ({
           }}
           style={styles.actionButton}
         >
-          <MaterialIcons name="analytics" size={20} color="#666" />
+          <MaterialIcons name="analytics" size={20} color={themeColors.icon} />
         </TouchableOpacity>
       </View>
 
@@ -232,7 +232,7 @@ export const Exercise: React.FC<ExerciseProps> = ({
           onPress={handleAddResult}
           activeOpacity={0.7}
         >
-          <MaterialIcons name="check" size={20} color="white" />
+          <MaterialIcons name="check" size={20} color={themeColors.card} />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.timerWrapper}
@@ -267,7 +267,6 @@ const styles = StyleSheet.create({
     padding: 36,
     marginBottom: 12,
     borderRadius: 8,
-    backgroundColor: "#f8f8f8",
     minHeight: 280,
   },
   completed: {
@@ -282,7 +281,6 @@ const styles = StyleSheet.create({
   },
   details: {
     fontSize: 14,
-    color: "#666",
   },
   resultForm: {
     flexDirection: "row",
@@ -291,7 +289,6 @@ const styles = StyleSheet.create({
   },
   weightInput: {
     borderWidth: 1,
-    borderColor: "#ddd",
     borderRadius: 4,
     padding: 8,
     width: 60,
@@ -299,7 +296,6 @@ const styles = StyleSheet.create({
   },
   repsInput: {
     borderWidth: 1,
-    borderColor: "#ddd",
     borderRadius: 4,
     padding: 8,
     width: 60,
@@ -311,7 +307,6 @@ const styles = StyleSheet.create({
   confirmButton: {
     marginLeft: 8,
     padding: 8,
-    backgroundColor: "#4caf50",
     borderRadius: 4,
     width: 30,
     alignItems: "center",
@@ -327,7 +322,6 @@ const styles = StyleSheet.create({
   },
   resultText: {
     fontSize: 14,
-    color: "#666",
   },
   actions: {
     position: "absolute",
@@ -352,7 +346,6 @@ const styles = StyleSheet.create({
   },
   comment: {
     fontSize: 13,
-    color: "#888",
     marginTop: 2,
     fontStyle: "italic",
   },

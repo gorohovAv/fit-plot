@@ -89,7 +89,7 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, backgroundColor: "#fff" },
+  container: { flex: 1, padding: 24 },
   label: { fontSize: 16, marginVertical: 12 },
   row: { flexDirection: "row", marginBottom: 16 },
   themeOption: {
@@ -97,15 +97,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     padding: 8,
     borderRadius: 8,
-    backgroundColor: "#eee",
   },
   selected: {
-    backgroundColor: "#cce5ff",
     fontWeight: "bold",
   },
   input: {
     borderWidth: 1,
-    borderColor: "#ccc",
     borderRadius: 8,
     padding: 8,
     fontSize: 16,

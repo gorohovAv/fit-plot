@@ -18,16 +18,13 @@ export default function CaloriesScreen() {
   const [weight, setWeight] = useState("");
   const { entries, addEntry, getEntryByDate } = useCaloriesStore();
 
-  // Получаем тему из стора
   const theme = useSettingsStore((state) => state.theme);
-
-  // Определяем текущую палитру
   const colorScheme =
     theme === "dark"
       ? Colors.dark
       : theme === "light"
       ? Colors.light
-      : Colors.light; // Можно добавить автоопределение system, если нужно
+      : Colors.light;
 
   const today = new Date().toISOString().split("T")[0];
   const todayEntry = getEntryByDate(today);
@@ -167,7 +164,7 @@ export default function CaloriesScreen() {
             data={chartData}
             secondData={weightData}
             secondYAxisLabel="Вес (кг)"
-            secondYAxisColor="#e74c3c"
+            secondYAxisColor={colorScheme.chartLine[1]}
             width={350}
             height={250}
             margin={{ top: 20, right: 50, bottom: 40, left: 50 }}
@@ -181,14 +178,11 @@ export default function CaloriesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8f9fa",
   },
   formContainer: {
-    backgroundColor: "#ffffff",
     margin: 16,
     padding: 20,
     borderRadius: 12,
-    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
@@ -200,7 +194,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#2c3e50",
     marginBottom: 20,
     textAlign: "center",
   },
@@ -210,32 +203,25 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#34495e",
     marginBottom: 8,
   },
   input: {
     borderWidth: 1,
-    borderColor: "#ddd",
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    backgroundColor: "#ffffff",
-    color: "#2c3e50",
   },
   saveButton: {
-    backgroundColor: "#3498db",
     padding: 15,
     borderRadius: 8,
     marginTop: 8,
   },
   saveButtonText: {
-    color: "#ffffff",
     fontSize: 16,
     fontWeight: "600",
     textAlign: "center",
   },
   todayInfo: {
-    backgroundColor: "#e8f5e8",
     padding: 16,
     borderRadius: 8,
     marginTop: 16,
@@ -243,20 +229,16 @@ const styles = StyleSheet.create({
   todayTitle: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#27ae60",
     marginBottom: 8,
   },
   todayText: {
     fontSize: 14,
-    color: "#2c3e50",
     marginBottom: 4,
   },
   chartContainer: {
-    backgroundColor: "#ffffff",
     margin: 16,
     padding: 20,
     borderRadius: 12,
-    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
@@ -268,7 +250,6 @@ const styles = StyleSheet.create({
   chartTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#2c3e50",
     marginBottom: 16,
     textAlign: "center",
   },

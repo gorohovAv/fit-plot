@@ -493,21 +493,21 @@ export default function AnalyticsScreen() {
             {renderChart(
               chartData.tonnage,
               "Общий тоннаж",
-              "#c43a31",
+              themeColors.chartLine[0],
               "Дата",
               "Тоннаж"
             )}
             {renderChart(
               chartData.maxWeight,
               "Максимальный вес",
-              "#2a9d8f",
+              themeColors.chartLine[1],
               "Дата",
               "Вес"
             )}
             {renderChart(
               chartData.maxReps,
               "Максимальные повторения",
-              "#264653",
+              themeColors.chartLine[2],
               "Дата",
               "Повторения"
             )}
@@ -548,7 +548,6 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 8,
     borderWidth: 1,
-    borderColor: "#ccc",
     padding: 10,
     borderRadius: 5,
     alignItems: "center",
@@ -556,7 +555,6 @@ const styles = StyleSheet.create({
   },
   pickerButtonText: {
     fontSize: 16,
-    color: "#000",
   },
   pickerPlaceholder: {
     flex: 1,

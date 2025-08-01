@@ -176,7 +176,9 @@ export default function PlanScreen() {
               }}
               onPress={() => openModal(month)}
             >
-              <Text style={{ color: "#fff", fontSize: 24, fontWeight: "bold" }}>
+              <Text
+                style={{ color: colors.card, fontSize: 24, fontWeight: "bold" }}
+              >
                 +
               </Text>
             </TouchableOpacity>

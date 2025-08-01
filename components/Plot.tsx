@@ -37,16 +37,18 @@ const Plot: React.FC<PlotProps> = ({
   highlightZones = [],
   secondData,
   secondYAxisLabel = "Y2",
-  secondYAxisColor = "#d62728",
+  secondYAxisColor,
   width = 300,
   height = 200,
   margin = { top: 20, right: 40, bottom: 40, left: 40 },
 }) => {
-  // Получаем тему из стора и системы
   const settingsTheme = useSettingsStore((s) => s.theme);
   const systemTheme = useColorScheme();
   const theme = settingsTheme === "system" ? systemTheme : settingsTheme;
   const colors = Colors[theme || "light"];
+
+  // Используем цвет из палитры темы, если не передан
+  const secondAxisColor = secondYAxisColor || colors.chartLine[1];
 
   if (!data || data.length === 0) {
     return <View style={styles.container} />;
@@ -110,8 +112,13 @@ const Plot: React.FC<PlotProps> = ({
       .defined((d) => d.y > 0) // Игнорируем точки, где y <= 0
       .curve(d3.curveCatmullRom.alpha(0.5))(data) || "";
 
-  const mainLinePath = mainLineGenerator(data); // Используем новый генератор для основной линии
-  const additionalLinesPaths = additionalLines.map(lineGenerator); // Для дополнительных линий используем старый генератор
+  // Генератор второй линии
+  const secondLineGenerator = (data: DataPoint[]) =>
+    d3
+      .line<DataPoint>()
+      .x((d) => xScale(new Date(d.x)))
+      .y((d) => y2Scale(d.y))
+      .curve(d3.curveCatmullRom.alpha(0.5))(data) || "";
 
   // Форматирование даты
   const formatDate = (date: Date) => d3.timeFormat("%d.%m.%Y")(date);
@@ -121,227 +128,146 @@ const Plot: React.FC<PlotProps> = ({
   const maxLabels = Math.floor((innerWidth * 1.5) / minLabelGap);
   const labelStep = Math.ceil(data.length / maxLabels);
 
+  // Генерация тиков для оси Y
+  const yTicks = yScale.ticks(5);
+  // Генерация тиков для оси X
+  const xTicks = xScale.ticks(maxLabels);
+
   return (
-    <View style={{ flexDirection: "row" }}>
-      {/* Левая ось Y (первая) */}
-      <View style={{ width: margin.left }}>
-        <Svg width={margin.left} height={height}>
-          <G transform={`translate(${margin.left - 5}, ${margin.top})`}>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+      <Svg width={width} height={height}>
+        <G>
+          {/* Сетка */}
+          {yTicks.map((tick) => (
             <Line
+              key={tick}
               x1={0}
-              y1={0}
-              x2={0}
-              y2={innerHeight}
+              y1={yScale(tick)}
+              x2={innerWidth}
+              y2={yScale(tick)}
               stroke={colors.chartGrid}
-              strokeWidth={1}
+              strokeWidth={0.5}
             />
-            <Polygon points={`0,-5 -5,0 5,0`} fill={colors.icon} />
-            {yScale.ticks(5).map((tick, i) => (
-              <G key={`y-${i}`} transform={`translate(0, ${yScale(tick)})`}>
-                <Line
-                  x1={-5}
-                  x2={0}
-                  stroke={colors.chartGrid}
-                  strokeWidth={1}
-                />
-                <SvgText
-                  x={-10}
-                  y={5}
-                  textAnchor="end"
-                  fontSize={10}
-                  fill={colors.text}
-                >
-                  {tick}
-                </SvgText>
-              </G>
-            ))}
-          </G>
-        </Svg>
-      </View>
+          ))}
 
-      {/* Вторая ось Y (если есть) */}
-      {secondData && y2Scale && (
-        <View style={{ width: margin.left }}>
-          <Svg width={margin.left} height={height}>
-            <G transform={`translate(${margin.left - 5}, ${margin.top})`}>
-              <Line
-                x1={0}
-                y1={0}
-                x2={0}
-                y2={innerHeight}
-                stroke={colors.chartLine[1]}
-                strokeWidth={1}
-              />
-              <Polygon points={`0,-5 -5,0 5,0`} fill={colors.chartLine[1]} />
-              {y2Scale.ticks(5).map((tick, i) => (
-                <G key={`y2-${i}`} transform={`translate(0, ${y2Scale(tick)})`}>
-                  <Line
-                    x1={-5}
-                    x2={0}
-                    stroke={colors.chartLine[1]}
-                    strokeWidth={1}
-                  />
-                  <SvgText
-                    x={-10}
-                    y={5}
-                    textAnchor="end"
-                    fontSize={10}
-                    fill={colors.chartLine[1]}
-                  >
-                    {tick}
-                  </SvgText>
-                </G>
-              ))}
-              <SvgText
-                x={-10}
-                y={-10}
-                textAnchor="end"
-                fontSize={12}
-                fill={colors.chartLine[1]}
-              >
-                {secondYAxisLabel}
-              </SvgText>
-            </G>
-          </Svg>
-        </View>
-      )}
+          {/* Ось Y */}
+          <Line
+            x1={0}
+            y1={0}
+            x2={0}
+            y2={innerHeight}
+            stroke={colors.text}
+            strokeWidth={1}
+          />
 
-      {/* Прокручиваемая часть */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{
-          width: width * 15 + margin.left + margin.right + 100,
-        }}
-        contentOffset={{ x: 0, y: 0 }}
-      >
-        <View
-          style={[
-            styles.container,
-            { backgroundColor: colors.chartBackground },
-          ]}
-        >
-          <Svg width={width * 15} height={height}>
-            {/* Выделенные зоны */}
-            {highlightZones.map((zone, i) => {
-              const startX = xScale(new Date(zone.start));
-              const endX = xScale(new Date(zone.end));
-              return (
-                <G
-                  key={`zone-${i}`}
-                  transform={`translate(${margin.left}, ${margin.top})`}
-                >
-                  <Path
-                    d={`M${startX},0 L${endX},0 L${endX},${innerHeight} L${startX},${innerHeight} Z`}
-                    fill={zone.color}
-                    fillOpacity={0.2}
-                  />
-                </G>
-              );
-            })}
-
-            {/* Ось X */}
-            <G
-              transform={`translate(${margin.left}, ${height - margin.bottom})`}
+          {/* Подписи оси Y */}
+          {yTicks.map((tick) => (
+            <SvgText
+              key={tick}
+              x={-5}
+              y={yScale(tick) + 4}
+              fontSize={10}
+              fill={colors.text}
+              textAnchor="end"
             >
-              <Line
-                x1={0}
-                y1={0}
-                x2={innerWidth * 15}
-                y2={0}
-                stroke="#888"
-                strokeWidth={1}
-              />
-              <Polygon
-                points={`${innerWidth * 15 + 5},0 ${innerWidth * 15},-5 ${
-                  innerWidth * 15
-                },5`}
-                fill="#888"
-              />
-              {data.map((d, i) =>
-                i % labelStep === 0 ? (
-                  <G
-                    key={`x-${i}`}
-                    transform={`translate(${xScale(new Date(d.x))}, 0)`}
-                  >
-                    <Line y1={0} y2={5} stroke="#888" strokeWidth={1} />
-                    <SvgText
-                      x={0}
-                      y={35} // увеличили отступ между датой и осью
-                      textAnchor="middle"
-                      fontSize={10}
-                      fill="#888"
-                      transform={`rotate(-90, 0, 35)`}
-                    >
-                      {formatDate(new Date(d.x))}
-                    </SvgText>
-                  </G>
-                ) : null
-              )}
-            </G>
+              {tick}
+            </SvgText>
+          ))}
 
-            {/* Основная линия */}
-            <G transform={`translate(${margin.left}, ${margin.top})`}>
-              <Path
-                d={mainLinePath}
-                fill="none"
-                stroke={colors.chartLine[0]}
-                strokeWidth={2}
+          {/* Основная линия */}
+          <Path
+            d={mainLineGenerator(data) || ""}
+            fill="none"
+            stroke={colors.chartLine[0]}
+            strokeWidth={2}
+          />
+
+          {/* Вторая линия */}
+          {secondData && y2Scale && (
+            <Path
+              d={secondLineGenerator(secondData) || ""}
+              fill="none"
+              stroke={secondAxisColor}
+              strokeWidth={2}
+            />
+          )}
+
+          {/* Точки данных */}
+          {data.map((point, index) => (
+            <Circle
+              key={index}
+              cx={xScale(new Date(point.x))}
+              cy={yScale(point.y)}
+              r={3}
+              fill={colors.chartLine[0]}
+            />
+          ))}
+
+          {/* Точки второй линии */}
+          {secondData &&
+            y2Scale &&
+            secondData.map((point, index) => (
+              <Circle
+                key={`second-${index}`}
+                cx={xScale(new Date(point.x))}
+                cy={y2Scale(point.y)}
+                r={3}
+                fill={secondAxisColor}
               />
-              {data.map((d, i) => (
-                <Circle
-                  key={`point-${i}`}
-                  cx={xScale(new Date(d.x))}
-                  cy={yScale(d.y)}
-                  r={4}
-                  fill={colors.chartLine[0]}
-                />
-              ))}
-            </G>
-            {/* Вторая линия */}
-            {secondData && y2Scale && (
-              <G transform={`translate(${margin.left}, ${margin.top})`}>
-                <Path
-                  d={
-                    d3
-                      .line<DataPoint>()
-                      .x((d) => xScale(new Date(d.x)))
-                      .y((d) => y2Scale(d.y))
-                      .curve(d3.curveCatmullRom.alpha(0.5))(secondData) || ""
-                  }
-                  fill="none"
-                  stroke={colors.chartLine[1]}
-                  strokeWidth={2}
-                />
-                {secondData.map((d, i) => (
-                  <Circle
-                    key={`point2-${i}`}
-                    cx={xScale(new Date(d.x))}
-                    cy={y2Scale(d.y)}
-                    r={4}
-                    fill={colors.chartLine[1]}
-                  />
-                ))}
-              </G>
-            )}
-            {/* Дополнительные линии */}
-            {additionalLinesPaths.map((path, i) => (
-              <G
-                key={`line-${i}`}
-                transform={`translate(${margin.left}, ${margin.top})`}
-              >
-                <Path
-                  d={path}
-                  fill="none"
-                  stroke={colors.chartLine[(i + 2) % colors.chartLine.length]}
-                  strokeWidth={2}
-                />
-              </G>
             ))}
-          </Svg>
-        </View>
-      </ScrollView>
-    </View>
+
+          {/* Ось X */}
+          <Line
+            x1={0}
+            y1={innerHeight}
+            x2={innerWidth}
+            y2={innerHeight}
+            stroke={colors.text}
+            strokeWidth={1}
+          />
+
+          {/* Подписи оси X */}
+          {xTicks.map((tick) => (
+            <SvgText
+              key={tick.getTime()}
+              x={xScale(tick)}
+              y={innerHeight + 15}
+              fontSize={10}
+              fill={colors.text}
+              textAnchor="middle"
+              transform={`rotate(-45 ${xScale(tick)} ${innerHeight + 15})`}
+            >
+              {formatDate(tick)}
+            </SvgText>
+          ))}
+
+          {/* Подписи осей */}
+          <SvgText
+            x={-innerHeight / 2}
+            y={-10}
+            fontSize={12}
+            fill={colors.text}
+            textAnchor="middle"
+            transform={`rotate(-90 ${-innerHeight / 2} ${-10})`}
+          >
+            Калории
+          </SvgText>
+
+          {secondData && (
+            <SvgText
+              x={innerWidth + 10}
+              y={-innerHeight / 2}
+              fontSize={12}
+              fill={secondAxisColor}
+              textAnchor="middle"
+              transform={`rotate(90 ${innerWidth + 10} ${-innerHeight / 2})`}
+            >
+              {secondYAxisLabel}
+            </SvgText>
+          )}
+        </G>
+      </Svg>
+    </ScrollView>
   );
 };
 

@@ -16,13 +16,15 @@ export const Workout: React.FC<WorkoutProps> = ({
 }) => {
   const backgroundColor = useThemeColor({}, "background");
   const textColor = useThemeColor({}, "text");
+  const errorColor = useThemeColor({}, "error");
+
   return (
     <View style={[styles.container, { backgroundColor }]}>
       <TouchableOpacity onPress={onPress} style={styles.titleContainer}>
         <Text style={[styles.title, { color: textColor }]}>{title}</Text>
       </TouchableOpacity>
       <TouchableOpacity onPress={onDelete} style={styles.deleteButton}>
-        <MaterialIcons name="close" size={24} color="red" />
+        <MaterialIcons name="close" size={24} color={errorColor} />
       </TouchableOpacity>
     </View>
   );

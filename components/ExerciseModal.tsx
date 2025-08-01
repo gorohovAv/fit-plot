@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { EXERCISE_LIST } from "../constants/exerciseList"; // D:\Projects\fit-plot\constants\exerciseList.ts
+import { EXERCISE_LIST } from "../constants/exerciseList";
 import { MuscleGroup, ExerciseType } from "../store/store";
 import { Colors } from "../constants/Colors";
 import useSettingsStore from "../store/settingsStore";
@@ -92,7 +92,10 @@ export default function ExerciseModal({
                   keyExtractor={(item) => item.name}
                   renderItem={({ item }) => (
                     <TouchableOpacity
-                      style={styles.exerciseItem}
+                      style={[
+                        styles.exerciseItem,
+                        { borderBottomColor: themeColors.border },
+                      ]}
                       onPress={() => handleSelectExercise(item)}
                     >
                       <Text style={{ color: themeColors.text }}>
@@ -102,7 +105,10 @@ export default function ExerciseModal({
                   )}
                 />
                 <TouchableOpacity
-                  style={styles.cancelButton}
+                  style={[
+                    styles.cancelButton,
+                    { backgroundColor: themeColors.background },
+                  ]}
                   onPress={() => setShowExerciseList(false)}
                 >
                   <Text style={{ color: themeColors.text }}>Назад</Text>
@@ -271,7 +277,10 @@ export default function ExerciseModal({
                 </TouchableOpacity>
                 <View style={styles.modalButtons}>
                   <TouchableOpacity
-                    style={styles.cancelButton}
+                    style={[
+                      styles.cancelButton,
+                      { backgroundColor: themeColors.background },
+                    ]}
                     onPress={onClose}
                   >
                     <Text style={{ color: themeColors.text }}>Отмена</Text>
@@ -302,11 +311,9 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   modalContent: {
     width: "80%",
-    backgroundColor: "white",
     padding: 20,
     borderRadius: 10,
     maxHeight: "80%",
@@ -319,7 +326,6 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: "#ddd",
     borderRadius: 5,
     padding: 10,
     marginBottom: 10,
@@ -329,14 +335,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 10,
-    backgroundColor: "#f0f0f0",
     borderRadius: 5,
     marginBottom: 10,
     gap: 5,
   },
   unilateralButton: {
     padding: 10,
-    backgroundColor: "#f0f0f0",
     borderRadius: 5,
     alignItems: "center",
     marginBottom: 10,
@@ -347,7 +351,6 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     padding: 10,
-    backgroundColor: "#f0f0f0",
     borderRadius: 5,
     flex: 1,
     marginRight: 5,
@@ -356,7 +359,6 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     padding: 10,
-    backgroundColor: "#1976d2",
     borderRadius: 5,
     flex: 1,
     marginLeft: 5,
@@ -366,6 +368,5 @@ const styles = StyleSheet.create({
   exerciseItem: {
     padding: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
   },
 });

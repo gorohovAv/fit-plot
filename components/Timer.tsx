@@ -11,10 +11,10 @@ interface TimerProps {
   onEnd?: () => void; // колбэк по завершению
 }
 
-const getColor = (progress: number) => {
-  if (progress < 0.4) return "#4caf50"; // зеленый
-  if (progress < 0.7) return "#ffeb3b"; // желтый
-  return "#f44336"; // красный
+const getColor = (progress: number, themeColors: typeof Colors.light) => {
+  if (progress < 0.4) return themeColors.success;
+  if (progress < 0.7) return themeColors.warning;
+  return themeColors.error;
 };
 
 const polarToCartesian = (center: number, radius: number, angle: number) => {
@@ -103,7 +103,7 @@ const Timer: React.FC<TimerProps> = ({
 
   const progress = elapsed / duration;
   const angle = 360 * progress;
-  const color = getColor(progress);
+  const color = getColor(progress, themeColors);
 
   const center = size / 2;
   const radius = center - strokeWidth / 2;
