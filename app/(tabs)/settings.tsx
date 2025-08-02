@@ -12,6 +12,7 @@ import useSettingsStore from "@/store/settingsStore";
 import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "react-native";
 import { ImportScreen } from "@/components/ImportScreen";
+import { ExportScreen } from "@/components/ExportScreen";
 import { getTranslation } from "@/utils/localization";
 
 export default function SettingsScreen() {
@@ -29,9 +30,14 @@ export default function SettingsScreen() {
   const currentTheme = theme === "system" ? systemTheme : theme;
   const colors = Colors[currentTheme || "light"];
   const [showImport, setShowImport] = useState(false);
+  const [showExport, setShowExport] = useState(false);
 
   if (showImport) {
     return <ImportScreen onBack={() => setShowImport(false)} />;
+  }
+
+  if (showExport) {
+    return <ExportScreen onBack={() => setShowExport(false)} />;
   }
 
   return (
@@ -148,6 +154,22 @@ export default function SettingsScreen() {
           {getTranslation(language, "importData")}
         </Text>
       </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[
+          styles.exportButton,
+          {
+            borderColor: colors.border,
+            backgroundColor: colors.card,
+          },
+        ]}
+        onPress={() => setShowExport(true)}
+      >
+        <Ionicons name="upload-outline" size={20} color={colors.text} />
+        <Text style={[styles.exportButtonText, { color: colors.text }]}>
+          {getTranslation(language, "exportData")}
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -189,6 +211,20 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   importButtonText: {
+    marginLeft: 8,
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  exportButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 16,
+    marginTop: 16,
+  },
+  exportButtonText: {
     marginLeft: 8,
     fontSize: 16,
     fontWeight: "500",
