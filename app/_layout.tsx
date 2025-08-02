@@ -13,6 +13,7 @@ import { useColorScheme } from "@/hooks/useColorScheme";
 import useStore from "@/store/store";
 import useCaloriesStore from "@/store/calloriesStore";
 import useSettingsStore from "@/store/settingsStore";
+import { logAllTables } from "@/store/dbLayer";
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -34,6 +35,7 @@ export default function RootLayout() {
         await initializeFromDB();
         await initializeCaloriesFromDB();
         await initializeSettingsFromDB();
+        await logAllTables();
       } catch (error) {
         console.error("Ошибка инициализации приложения:", error);
       }

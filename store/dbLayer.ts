@@ -262,3 +262,39 @@ export const getAllSettings = async (): Promise<
   const result = await database.getAllAsync("SELECT key, value FROM settings");
   return result;
 };
+
+export const logAllTables = async () => {
+  const database = await getDatabase();
+
+  try {
+    console.log("=== ЛОГ ВСЕХ ТАБЛИЦ БАЗЫ ДАННЫХ ===");
+
+    const tables = [
+      { name: "plans", query: "SELECT * FROM plans" },
+      { name: "trainings", query: "SELECT * FROM trainings" },
+      { name: "exercises", query: "SELECT * FROM exercises" },
+      { name: "results", query: "SELECT * FROM results" },
+      { name: "calories", query: "SELECT * FROM calories" },
+      { name: "settings", query: "SELECT * FROM settings" },
+    ];
+
+    for (const table of tables) {
+      try {
+        const result = await database.getAllAsync(table.query);
+        console.log(`\n📋 Таблица: ${table.name}`);
+        console.log(`Количество записей: ${result.length}`);
+        if (result.length > 0) {
+          console.log("Данные:", JSON.stringify(result, null, 2));
+        } else {
+          console.log("Таблица пуста");
+        }
+      } catch (error) {
+        console.log(`❌ Ошибка чтения таблицы ${table.name}:`, error);
+      }
+    }
+
+    console.log("=== КОНЕЦ ЛОГА ТАБЛИЦ ===\n");
+  } catch (error) {
+    console.error("Ошибка логирования таблиц:", error);
+  }
+};

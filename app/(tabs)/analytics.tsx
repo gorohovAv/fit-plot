@@ -18,6 +18,7 @@ import useStore, {
   ExerciseType,
 } from "../../store/store";
 import useSettingsStore from "@/store/settingsStore";
+import useCaloriesStore from "@/store/calloriesStore";
 import { Colors } from "@/constants/Colors";
 import { Picker } from "@react-native-picker/picker";
 import { Circle, useFont } from "@shopify/react-native-skia";
@@ -30,6 +31,7 @@ import { v4 as uuidv4 } from "uuid";
 import { useRoute } from "@react-navigation/native";
 import AnalyticsExerciseSelector from "@/components/AnalyticsExerciseSelector";
 import { getTranslation, formatTranslation } from "@/utils/localization";
+import { logAllTables } from "@/store/dbLayer";
 
 type ChartData = {
   x: string; // Дата
@@ -89,6 +91,9 @@ export default function AnalyticsScreen() {
     theme === "system" ? Appearance.getColorScheme?.() ?? "light" : theme;
   const themeColors = Colors[colorScheme];
 
+  const settingsStore = useSettingsStore();
+  const caloriesStore = useCaloriesStore();
+
   // Хелпер для получения даты в формате YYYY-MM-DD
   const getDayString = (dateStr: string) => {
     const d = new Date(dateStr);
@@ -109,6 +114,14 @@ export default function AnalyticsScreen() {
     if (!month || !day || isNaN(Number(month)) || isNaN(Number(day))) return "";
     return `${month}-${day}`;
   };
+
+  useEffect(() => {
+    console.log("=== ЛОГ ВСЕГО СТОРА НА СТРАНИЦЕ АНАЛИТИКИ ===");
+    console.log("📊 Основной стор (plans):", JSON.stringify(plans, null, 2));
+    console.log("⚙️ Стор настроек:", JSON.stringify(settingsStore, null, 2));
+    console.log("🔥 Стор калорий:", JSON.stringify(caloriesStore, null, 2));
+    console.log("=== КОНЕЦ ЛОГА СТОРА ===\n");
+  }, [plans, settingsStore, caloriesStore]);
 
   useEffect(() => {
     // Проверяем, был ли передан exerciseId через параметры маршрута
