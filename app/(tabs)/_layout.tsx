@@ -8,10 +8,16 @@ import TabBarBackground from "@/components/ui/TabBarBackground";
 import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import useSettingsStore from "@/store/settingsStore";
+import { getTranslation } from "@/utils/localization";
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const devMode = useSettingsStore((state) => state.devMode);
+  const language = useSettingsStore((state) => state.language);
+
+  const getTabTitle = (key: string) => {
+    return getTranslation(language, key as any);
+  };
 
   return (
     <Tabs
@@ -31,7 +37,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
+          title: getTabTitle("home"),
           tabBarIcon: ({ color }) => (
             <MaterialIcons size={28} name="home" color={color} />
           ),
@@ -40,7 +46,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="callories"
         options={{
-          title: "Калории",
+          title: getTabTitle("calories"),
           tabBarIcon: ({ color }) => (
             <MaterialIcons
               size={28}
@@ -54,13 +60,13 @@ export default function TabLayout() {
         name="workout"
         options={{
           href: null,
-          title: "Workout",
+          title: getTabTitle("workout"),
         }}
       />
       <Tabs.Screen
         name="storage"
         options={{
-          title: "Storage",
+          title: getTabTitle("storage"),
           tabBarIcon: ({ color }) => (
             <MaterialIcons size={28} name="plumbing" color={color} />
           ),
@@ -70,9 +76,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="plan"
         options={{
-          title: "Plan",
+          title: getTabTitle("plan"),
           tabBarIcon: ({ color }) => (
-            <MaterialIcons size={28} name="plan" color={color} />
+            <MaterialIcons size={28} name="assignment" color={color} />
           ),
           href: null,
         }}
@@ -80,7 +86,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="analytics"
         options={{
-          title: "Analytics",
+          title: getTabTitle("analytics"),
           tabBarIcon: ({ color }) => (
             <MaterialIcons size={28} name="analytics" color={color} />
           ),
@@ -89,7 +95,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="settings"
         options={{
-          title: "Settings",
+          title: getTabTitle("settings"),
           tabBarIcon: ({ color }) => (
             <MaterialIcons size={28} name="settings" color={color} />
           ),

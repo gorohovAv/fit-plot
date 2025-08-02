@@ -13,6 +13,7 @@ import { useNavigation } from "@react-navigation/native";
 import Timer from "./Timer";
 import useSettingsStore from "../store/settingsStore";
 import { Colors } from "../constants/Colors";
+import { getTranslation } from "@/utils/localization";
 
 type MuscleGroup = string; // Пример: Определяем как строку, если нет других определений
 type ExerciseType = string; // Пример: Определяем как строку, если нет других определений
@@ -78,6 +79,7 @@ export const Exercise: React.FC<ExerciseProps> = ({
   const [showTimer, setShowTimer] = useState(false);
   const [timerKey, setTimerKey] = useState(0);
   const theme = useSettingsStore((state) => state.theme);
+  const language = useSettingsStore((state) => state.language);
   const colorScheme =
     theme === "system"
       ? typeof window !== "undefined" &&
@@ -119,8 +121,13 @@ export const Exercise: React.FC<ExerciseProps> = ({
         <Text style={[styles.name, { color: themeColors.text }]}>{name}</Text>
         <Text style={[styles.details, { color: themeColors.icon }]}>
           {muscleGroup} • {type} •{" "}
-          {unilateral ? "Одностороннее" : "Двустороннее"} •{" "}
-          {amplitude === "full" ? "Полная амплитуда" : "Неполная амплитуда"}
+          {unilateral
+            ? getTranslation(language, "unilateralExercise")
+            : getTranslation(language, "bilateralExercise")}{" "}
+          •{" "}
+          {amplitude === "full"
+            ? getTranslation(language, "fullAmplitudeExercise")
+            : getTranslation(language, "partialAmplitudeExercise")}
         </Text>
         {comment ? (
           <Text style={[styles.comment, { color: themeColors.icon }]}>
@@ -129,7 +136,6 @@ export const Exercise: React.FC<ExerciseProps> = ({
         ) : null}
       </View>
 
-      {/* Кнопки редактирования и удаления */}
       <View style={styles.actions}>
         <TouchableOpacity onPress={onEdit} style={styles.actionButton}>
           <MaterialIcons name="edit" size={20} color={themeColors.icon} />
@@ -154,7 +160,6 @@ export const Exercise: React.FC<ExerciseProps> = ({
         </TouchableOpacity>
       </View>
 
-      {/* Список результатов */}
       {exerciseResults.length > 0 && (
         <View style={styles.resultsList}>
           {exerciseResults.map((res, index) => (
@@ -165,14 +170,14 @@ export const Exercise: React.FC<ExerciseProps> = ({
                 color={themeColors.icon}
               />
               <Text style={[styles.resultText, { color: themeColors.icon }]}>
-                {res.weight} кг × {res.reps} повторений
+                {res.weight} {getTranslation(language, "kg")} × {res.reps}{" "}
+                {getTranslation(language, "reps")}
               </Text>
             </View>
           ))}
         </View>
       )}
 
-      {/* Форма ввода веса, повторений и амплитуды */}
       <View style={styles.resultForm}>
         <TextInput
           style={[
@@ -183,7 +188,7 @@ export const Exercise: React.FC<ExerciseProps> = ({
               backgroundColor: themeColors.card,
             },
           ]}
-          placeholder="Вес"
+          placeholder={getTranslation(language, "weightPlaceholder")}
           placeholderTextColor={themeColors.icon}
           keyboardType="numeric"
           value={result.weight.toString()}
@@ -201,7 +206,7 @@ export const Exercise: React.FC<ExerciseProps> = ({
               backgroundColor: themeColors.card,
             },
           ]}
-          placeholder="Повторения"
+          placeholder={getTranslation(language, "repsPlaceholder")}
           placeholderTextColor={themeColors.icon}
           keyboardType="numeric"
           value={result.reps.toString()}

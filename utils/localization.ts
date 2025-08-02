@@ -50,6 +50,60 @@ export const translations = {
     weight: "Weight",
     reps: "Reps",
 
+    // Plan Screen
+    addPlannedResult: "Add planned result",
+    exercise: "Exercise",
+    weightKg: "Weight (kg)",
+    repetitions: "Repetitions",
+    dateWithinMonth: "Date (within month)",
+    saveResult: "Save",
+    monthLabel: "MMMM YYYY",
+
+    // Workout Screen
+    editExercise: "Edit exercise",
+    addExercise: "Add exercise",
+    exerciseName: "Exercise name",
+    comment: "Comment",
+    timerDurationSec: "Timer duration (sec)",
+    muscleGroup: "Muscle group",
+    exerciseType: "Exercise type",
+    fullAmplitude: "Full amplitude",
+    partialAmplitude: "Partial amplitude",
+    unilateral: "Unilateral",
+    bilateral: "Bilateral",
+    machine: "Machine",
+    freeWeight: "Free weight",
+    ownWeight: "Own weight",
+    cables: "Cables",
+    chest: "Chest",
+    triceps: "Triceps",
+    biceps: "Biceps",
+    forearms: "Forearms",
+    delts: "Delts",
+    back: "Back",
+    glutes: "Glutes",
+    quads: "Quads",
+    hamstrings: "Hamstrings",
+    calves: "Calves",
+    abs: "Abs",
+    selectExercise: "Select exercise",
+    back: "Back",
+
+    // Plan Selector
+    choosePlan: "Choose plan",
+    addPlan: "Add plan",
+    newPlan: "New plan",
+    planName: "Plan name",
+    workoutsCount: "{count} workouts",
+
+    // Exercise Component
+    kg: "kg",
+    reps: "reps",
+    unilateralExercise: "Unilateral",
+    bilateralExercise: "Bilateral",
+    fullAmplitudeExercise: "Full amplitude",
+    partialAmplitudeExercise: "Partial amplitude",
+
     // Common
     loading: "Loading...",
     errorOccurred: "An error occurred",
@@ -58,6 +112,78 @@ export const translations = {
     delete: "Delete",
     edit: "Edit",
     close: "Close",
+
+    // Import Screen
+    pasteTextForImport: "Paste text for import:",
+    selectFile: "Select file",
+    import: "Import",
+    dataImportSuccess: "Data imported successfully",
+    dataImportError: "Failed to import data",
+    fileOpenError: "Failed to open file",
+    validationError: "Text validation failed",
+    importFormatExample: `Paste data in format:
+
+Bench press
+60x8 60x7 60x6 01.02.2025
+65x8 65x7 65x6 01.03.2025
+
+Pull-ups
+10x5 12x4 15x3 01.02.2025`,
+
+    // Import Validator
+    validationErrorTitle: "Validation error",
+    warningTitle: "Warning",
+
+    // Exercise Modal
+    chooseExercise: "Choose exercise",
+    weight: "Weight",
+    repetitions: "Repetitions",
+    timerDuration: "Timer duration (sec)",
+    chest: "Chest",
+    triceps: "Triceps",
+    biceps: "Biceps",
+    forearms: "Forearms",
+    delts: "Delts",
+    back: "Back",
+    glutes: "Glutes",
+    quads: "Quads",
+    hamstrings: "Hamstrings",
+    calves: "Calves",
+    abs: "Abs",
+    machine: "Machine",
+    freeWeight: "Free weight",
+    ownWeight: "Own weight",
+    cables: "Cables",
+    fullAmplitude: "Full amplitude",
+    partialAmplitude: "Partial amplitude",
+    unilateral: "Unilateral",
+    bilateral: "Bilateral",
+    save: "Save",
+    add: "Add",
+
+    // Exercise Component
+    kg: "kg",
+    reps: "reps",
+    unilateralExercise: "Unilateral",
+    bilateralExercise: "Bilateral",
+    fullAmplitudeExercise: "Full amplitude",
+    partialAmplitudeExercise: "Partial amplitude",
+    weightPlaceholder: "Weight",
+    repsPlaceholder: "Repetitions",
+
+    // Analytics Exercise Selector
+    selectExercises: "Select exercises",
+    cancel: "Cancel",
+    save: "Save",
+
+    // Tab Navigation
+    home: "Home",
+    calories: "Calories",
+    workout: "Workout",
+    storage: "Storage",
+    plan: "Plan",
+    analytics: "Analytics",
+    settings: "Settings",
   },
   russian: {
     // Settings
@@ -110,6 +236,60 @@ export const translations = {
     weight: "Вес",
     reps: "Повторения",
 
+    // Plan Screen
+    addPlannedResult: "Добавить плановый результат",
+    exercise: "Упражнение",
+    weightKg: "Вес (кг)",
+    repetitions: "Повторения",
+    dateWithinMonth: "Дата (в пределах месяца)",
+    saveResult: "Сохранить",
+    monthLabel: "MMMM YYYY",
+
+    // Workout Screen
+    editExercise: "Редактировать упражнение",
+    addExercise: "Добавить упражнение",
+    exerciseName: "Название упражнения",
+    comment: "Комментарий",
+    timerDurationSec: "Время таймера (сек)",
+    muscleGroup: "Группа мышц",
+    exerciseType: "Тип упражнения",
+    fullAmplitude: "Полная амплитуда",
+    partialAmplitude: "Неполная амплитуда",
+    unilateral: "Одностороннее",
+    bilateral: "Двустороннее",
+    machine: "Тренажёр",
+    freeWeight: "Свободные веса",
+    ownWeight: "Собственный вес",
+    cables: "Тросы",
+    chest: "Грудь",
+    triceps: "Трицепс",
+    biceps: "Бицепс",
+    forearms: "Предплечья",
+    delts: "Плечи",
+    back: "Спина",
+    glutes: "Ягодицы",
+    quads: "Квадрицепсы",
+    hamstrings: "Бицепс бедра",
+    calves: "Икры",
+    abs: "Пресс",
+    selectExercise: "Выбери упражнение",
+    back: "Назад",
+
+    // Plan Selector
+    choosePlan: "Выберите план",
+    addPlan: "Добавить план",
+    newPlan: "Новый план",
+    planName: "Название плана",
+    workoutsCount: "{count} тренировок",
+
+    // Exercise Component
+    kg: "кг",
+    reps: "повторений",
+    unilateralExercise: "Одностороннее",
+    bilateralExercise: "Двустороннее",
+    fullAmplitudeExercise: "Полная амплитуда",
+    partialAmplitudeExercise: "Неполная амплитуда",
+
     // Common
     loading: "Загрузка...",
     errorOccurred: "Произошла ошибка",
@@ -118,6 +298,78 @@ export const translations = {
     delete: "Удалить",
     edit: "Редактировать",
     close: "Закрыть",
+
+    // Import Screen
+    pasteTextForImport: "Вставьте текст для импорта:",
+    selectFile: "Выбрать файл",
+    import: "Импортировать",
+    dataImportSuccess: "Данные успешно импортированы",
+    dataImportError: "Не удалось импортировать данные",
+    fileOpenError: "Не удалось открыть файл",
+    validationError: "Текст не прошел валидацию",
+    importFormatExample: `Вставьте данные в формате:
+
+Жим лежа
+60х8 60х7 60х6 01.02.2025
+65х8 65х7 65х6 01.03.2025
+
+Подтягивания
+10х5 12х4 15х3 01.02.2025`,
+
+    // Import Validator
+    validationErrorTitle: "Ошибка валидации",
+    warningTitle: "Предупреждение",
+
+    // Exercise Modal
+    chooseExercise: "Выбери упражнение",
+    weight: "Вес",
+    repetitions: "Повторения",
+    timerDuration: "Время таймера (сек)",
+    chest: "Грудь",
+    triceps: "Трицепс",
+    biceps: "Бицепс",
+    forearms: "Предплечья",
+    delts: "Плечи",
+    back: "Спина",
+    glutes: "Ягодицы",
+    quads: "Квадрицепсы",
+    hamstrings: "Бицепс бедра",
+    calves: "Икры",
+    abs: "Пресс",
+    machine: "Тренажёр",
+    freeWeight: "Свободные веса",
+    ownWeight: "Собственный вес",
+    cables: "Тросы",
+    fullAmplitude: "Полная амплитуда",
+    partialAmplitude: "Неполная амплитуда",
+    unilateral: "Одностороннее",
+    bilateral: "Двустороннее",
+    save: "Сохранить",
+    add: "Добавить",
+
+    // Exercise Component
+    kg: "кг",
+    reps: "повторений",
+    unilateralExercise: "Одностороннее",
+    bilateralExercise: "Двустороннее",
+    fullAmplitudeExercise: "Полная амплитуда",
+    partialAmplitudeExercise: "Неполная амплитуда",
+    weightPlaceholder: "Вес",
+    repsPlaceholder: "Повторения",
+
+    // Analytics Exercise Selector
+    selectExercises: "Выберите упражнения",
+    cancel: "Отмена",
+    save: "Сохранить",
+
+    // Tab Navigation
+    home: "Главная",
+    calories: "Калории",
+    workout: "Тренировка",
+    storage: "Хранилище",
+    plan: "План",
+    analytics: "Аналитика",
+    settings: "Настройки",
   },
 } as const;
 

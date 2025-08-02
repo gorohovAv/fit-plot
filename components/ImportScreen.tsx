@@ -13,6 +13,8 @@ import * as DocumentPicker from "expo-document-picker";
 import { useThemeColor } from "@/hooks/useThemeColor";
 import { ImportValidator, ValidationStatus } from "./ImportValidator";
 import { validateImport, importData } from "@/utils/importUtils";
+import useSettingsStore from "@/store/settingsStore";
+import { getTranslation } from "@/utils/localization";
 
 interface ImportScreenProps {
   onBack: () => void;
@@ -29,6 +31,8 @@ export function ImportScreen({ onBack }: ImportScreenProps) {
   const textColor = useThemeColor({}, "text");
   const borderColor = useThemeColor({}, "border");
   const cardColor = useThemeColor({}, "card");
+
+  const language = useSettingsStore((state) => state.language);
 
   const handleTextChange = useCallback((text: string) => {
     setImportText(text);
@@ -62,23 +66,34 @@ export function ImportScreen({ onBack }: ImportScreenProps) {
       setImportText(text);
       handleTextChange(text);
     } catch (error) {
-      Alert.alert("Ошибка", "Не удалось открыть файл");
+      Alert.alert(
+        getTranslation(language, "error"),
+        getTranslation(language, "fileOpenError")
+      );
     }
   };
 
   const handleImport = () => {
     if (validationStatus !== "valid") {
-      Alert.alert("Ошибка", "Текст не прошел валидацию");
+      Alert.alert(
+        getTranslation(language, "error"),
+        getTranslation(language, "validationError")
+      );
       return;
     }
 
     try {
       importData(importText);
-      Alert.alert("Успех", "Данные успешно импортированы", [
-        { text: "OK", onPress: onBack },
-      ]);
+      Alert.alert(
+        getTranslation(language, "success"),
+        getTranslation(language, "dataImportSuccess"),
+        [{ text: "OK", onPress: onBack }]
+      );
     } catch (error) {
-      Alert.alert("Ошибка", "Не удалось импортировать данные");
+      Alert.alert(
+        getTranslation(language, "error"),
+        getTranslation(language, "dataImportError")
+      );
     }
   };
 
@@ -88,7 +103,9 @@ export function ImportScreen({ onBack }: ImportScreenProps) {
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={textColor} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: textColor }]}>Импорт данных</Text>
+        <Text style={[styles.title, { color: textColor }]}>
+          {getTranslation(language, "importData")}
+        </Text>
       </View>
 
       <View style={styles.validatorContainer}>
@@ -100,7 +117,7 @@ export function ImportScreen({ onBack }: ImportScreenProps) {
       </View>
 
       <Text style={[styles.label, { color: textColor }]}>
-        Вставьте текст для импорта:
+        {getTranslation(language, "pasteTextForImport")}
       </Text>
 
       <TextInput
@@ -116,14 +133,7 @@ export function ImportScreen({ onBack }: ImportScreenProps) {
         numberOfLines={10}
         value={importText}
         onChangeText={handleTextChange}
-        placeholder={`Вставьте данные в формате:
-
-Жим лежа
-60х8 60х7 60х6 01.02.2025
-65х8 65х7 65х6 01.03.2025
-
-Подтягивания
-10х5 12х4 15х3 01.02.2025`}
+        placeholder={getTranslation(language, "importFormatExample")}
         placeholderTextColor={textColor + "80"}
       />
 
@@ -133,7 +143,7 @@ export function ImportScreen({ onBack }: ImportScreenProps) {
       >
         <Ionicons name="document-outline" size={20} color={textColor} />
         <Text style={[styles.fileButtonText, { color: textColor }]}>
-          Выбрать файл
+          {getTranslation(language, "selectFile")}
         </Text>
       </TouchableOpacity>
 
@@ -148,7 +158,9 @@ export function ImportScreen({ onBack }: ImportScreenProps) {
         onPress={handleImport}
         disabled={validationStatus !== "valid"}
       >
-        <Text style={styles.importButtonText}>Импортировать</Text>
+        <Text style={styles.importButtonText}>
+          {getTranslation(language, "import")}
+        </Text>
       </TouchableOpacity>
     </ScrollView>
   );

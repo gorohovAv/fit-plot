@@ -23,6 +23,7 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import ExerciseModal from "../../components/ExerciseModal";
 import { Colors } from "../../constants/Colors";
 import useSettingsStore from "../../store/settingsStore";
+import { getTranslation } from "../../utils/localization";
 
 export default function WorkoutScreen() {
   const route = useRoute();
@@ -41,6 +42,7 @@ export default function WorkoutScreen() {
   });
   const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
   const theme = useSettingsStore((state) => state.theme);
+  const language = useSettingsStore((state) => state.language);
 
   // определяем текущую тему
   let colorScheme: "light" | "dark" = "light";

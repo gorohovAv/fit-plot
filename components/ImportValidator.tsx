@@ -2,6 +2,8 @@ import React from "react";
 import { View, StyleSheet, TouchableOpacity, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useThemeColor } from "@/hooks/useThemeColor";
+import useSettingsStore from "@/store/settingsStore";
+import { getTranslation } from "@/utils/localization";
 
 export type ValidationStatus = "empty" | "valid" | "invalid";
 
@@ -18,6 +20,7 @@ export function ImportValidator({
 }: ImportValidatorProps) {
   const backgroundColor = useThemeColor({}, "background");
   const iconColor = useThemeColor({}, "text");
+  const language = useSettingsStore((state) => state.language);
 
   const getIconName = () => {
     switch (status) {
@@ -43,9 +46,12 @@ export function ImportValidator({
 
   const handlePress = () => {
     if (status === "invalid" && errorMessage) {
-      Alert.alert("Ошибка валидации", errorMessage);
+      Alert.alert(
+        getTranslation(language, "validationErrorTitle"),
+        errorMessage
+      );
     } else if (status === "valid" && warningMessage) {
-      Alert.alert("Предупреждение", warningMessage);
+      Alert.alert(getTranslation(language, "warningTitle"), warningMessage);
     }
   };
 

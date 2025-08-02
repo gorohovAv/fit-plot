@@ -15,23 +15,19 @@ import { Picker } from "@react-native-picker/picker";
 import dayjs from "dayjs";
 import useSettingsStore from "../../store/settingsStore";
 import { Colors } from "../../constants/Colors";
+import { getTranslation } from "../../utils/localization";
 
-const SEASON_COLORS = [
-  "#A7D8FF", // зима
-  "#B6F5B6", // весна
-  "#FFF7A7", // лето
-  "#FFD6A7", // осень
-];
+const SEASON_COLORS = ["#A7D8FF", "#B6F5B6", "#FFF7A7", "#FFD6A7"];
 
 function getSeasonColor(month: number) {
-  if ([11, 0, 1].includes(month)) return SEASON_COLORS[0]; // зима
-  if ([2, 3, 4].includes(month)) return SEASON_COLORS[1]; // весна
-  if ([5, 6, 7].includes(month)) return SEASON_COLORS[2]; // лето
-  return SEASON_COLORS[3]; // осень
+  if ([11, 0, 1].includes(month)) return SEASON_COLORS[0];
+  if ([2, 3, 4].includes(month)) return SEASON_COLORS[1];
+  if ([5, 6, 7].includes(month)) return SEASON_COLORS[2];
+  return SEASON_COLORS[3];
 }
 
-function getMonthLabel(date: dayjs.Dayjs) {
-  return date.format("MMMM YYYY");
+function getMonthLabel(date: dayjs.Dayjs, language: string) {
+  return date.format(getTranslation(language as any, "monthLabel"));
 }
 
 function getMonthsRange(plannedResults: PlannedResult[]) {
@@ -43,7 +39,7 @@ function getMonthsRange(plannedResults: PlannedResult[]) {
   } else {
     start = dayjs().startOf("month");
   }
-  const end = dayjs().add(12, "month").endOf("month"); // например, показываем год вперёд
+  const end = dayjs().add(12, "month").endOf("month");
   const months = [];
   let current = start.clone();
   while (current.isBefore(end)) {
@@ -56,8 +52,8 @@ function getMonthsRange(plannedResults: PlannedResult[]) {
 export default function PlanScreen() {
   const plans = useStore((s) => s.plans);
   const addPlannedResult = useStore((s) => s.addPlannedResult);
+  const language = useSettingsStore((s) => s.language);
 
-  // Для простоты берём первый план
   const plan: Plan = plans[0];
   const allExercises = plan.trainings.flatMap((t) => t.exercises);
   const plannedResults = plan.trainings.flatMap((t) => t.plannedResults);
@@ -67,7 +63,6 @@ export default function PlanScreen() {
     [plannedResults]
   );
 
-  // Модалка
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState<dayjs.Dayjs | null>(null);
   const [selectedExerciseId, setSelectedExerciseId] = useState<string>("");
@@ -95,7 +90,6 @@ export default function PlanScreen() {
       !plannedDate
     )
       return;
-    // Находим тренировку, куда добавить результат
     const training = plan.trainings.find((t) =>
       t.exercises.some((e) => e.id === selectedExerciseId)
     );
@@ -105,7 +99,7 @@ export default function PlanScreen() {
       plannedWeight: Number(plannedWeight),
       plannedReps: Number(plannedReps),
       plannedDate,
-      amplitude: "full", // или добавить выбор
+      amplitude: "full",
     });
     closeModal();
   };
@@ -118,7 +112,7 @@ export default function PlanScreen() {
           window.matchMedia("(prefers-color-scheme: dark)").matches
           ? "dark"
           : "light"
-        : "light" // Можно заменить на react-native Appearance, если нужно
+        : "light"
       : theme;
   const colors = Colors[colorScheme];
 
@@ -132,7 +126,7 @@ export default function PlanScreen() {
           color: colors.text,
         }}
       >
-        Планирование результатов
+        {getTranslation(language, "resultsPlanning")}
       </Text>
       <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
         {months.map((month, idx) => (
@@ -161,7 +155,7 @@ export default function PlanScreen() {
                 color: colors.text,
               }}
             >
-              {getMonthLabel(month)}
+              {getMonthLabel(month, language)}
             </Text>
             <TouchableOpacity
               style={{
@@ -209,9 +203,11 @@ export default function PlanScreen() {
                 color: colors.text,
               }}
             >
-              Добавить плановый результат
+              {getTranslation(language, "addPlannedResult")}
             </Text>
-            <Text style={{ color: colors.text }}>Упражнение:</Text>
+            <Text style={{ color: colors.text }}>
+              {getTranslation(language, "exercise")}:
+            </Text>
             <Picker
               selectedValue={selectedExerciseId}
               onValueChange={setSelectedExerciseId}
@@ -221,7 +217,9 @@ export default function PlanScreen() {
                 <Picker.Item key={ex.id} label={ex.name} value={ex.id} />
               ))}
             </Picker>
-            <Text style={{ color: colors.text }}>Вес (кг):</Text>
+            <Text style={{ color: colors.text }}>
+              {getTranslation(language, "weightKg")}:
+            </Text>
             <TextInput
               value={plannedWeight}
               onChangeText={setPlannedWeight}
@@ -237,7 +235,9 @@ export default function PlanScreen() {
               }}
               placeholderTextColor={colors.icon}
             />
-            <Text style={{ color: colors.text }}>Повторения:</Text>
+            <Text style={{ color: colors.text }}>
+              {getTranslation(language, "repetitions")}:
+            </Text>
             <TextInput
               value={plannedReps}
               onChangeText={setPlannedReps}
@@ -254,7 +254,7 @@ export default function PlanScreen() {
               placeholderTextColor={colors.icon}
             />
             <Text style={{ color: colors.text }}>
-              Дата (в пределах месяца):
+              {getTranslation(language, "dateWithinMonth")}:
             </Text>
             <TextInput
               value={plannedDate}
@@ -275,12 +275,12 @@ export default function PlanScreen() {
               style={{ flexDirection: "row", justifyContent: "space-between" }}
             >
               <Button
-                title="Отмена"
+                title={getTranslation(language, "cancel")}
                 onPress={closeModal}
                 color={colors.error}
               />
               <Button
-                title="Сохранить"
+                title={getTranslation(language, "saveResult")}
                 onPress={handleSubmit}
                 color={colors.success}
               />

@@ -12,6 +12,7 @@ import {
 import useStore, { Plan } from "../store/store";
 import useSettingsStore from "../store/settingsStore";
 import { Colors } from "../constants/Colors";
+import { getTranslation, formatTranslation } from "../utils/localization";
 
 type PlanSelectorProps = {
   visible: boolean;
@@ -28,6 +29,7 @@ export const PlanSelector: React.FC<PlanSelectorProps> = ({
   const [newPlanName, setNewPlanName] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   const theme = useSettingsStore((state) => state.theme);
+  const language = useSettingsStore((state) => state.language);
   const colorScheme =
     theme === "dark"
       ? Colors.dark
@@ -72,7 +74,7 @@ export const PlanSelector: React.FC<PlanSelectorProps> = ({
           ]}
         >
           <Text style={[styles.modalTitle, { color: themeColors.text }]}>
-            Выберите план
+            {getTranslation(language, "choosePlan")}
           </Text>
 
           <FlatList
@@ -92,7 +94,9 @@ export const PlanSelector: React.FC<PlanSelectorProps> = ({
                   {item.planName}
                 </Text>
                 <Text style={[styles.planCount, { color: themeColors.icon }]}>
-                  {item.trainings.length} тренировок
+                  {formatTranslation(language, "workoutsCount", {
+                    count: item.trainings.length,
+                  })}
                 </Text>
               </TouchableOpacity>
             )}
@@ -104,7 +108,7 @@ export const PlanSelector: React.FC<PlanSelectorProps> = ({
               onPress={() => setShowAddModal(true)}
             >
               <Text style={[styles.buttonText, { color: themeColors.card }]}>
-                Добавить план
+                {getTranslation(language, "addPlan")}
               </Text>
             </TouchableOpacity>
 
@@ -116,7 +120,7 @@ export const PlanSelector: React.FC<PlanSelectorProps> = ({
               onPress={onClose}
             >
               <Text style={[styles.buttonText, { color: themeColors.text }]}>
-                Отмена
+                {getTranslation(language, "cancel")}
               </Text>
             </TouchableOpacity>
           </View>
@@ -139,7 +143,7 @@ export const PlanSelector: React.FC<PlanSelectorProps> = ({
               ]}
             >
               <Text style={[styles.addModalTitle, { color: themeColors.text }]}>
-                Новый план
+                {getTranslation(language, "newPlan")}
               </Text>
               <TextInput
                 style={[
@@ -150,7 +154,7 @@ export const PlanSelector: React.FC<PlanSelectorProps> = ({
                     backgroundColor: themeColors.card,
                   },
                 ]}
-                placeholder="Название плана"
+                placeholder={getTranslation(language, "planName")}
                 placeholderTextColor={themeColors.icon}
                 value={newPlanName}
                 onChangeText={setNewPlanName}
@@ -169,7 +173,7 @@ export const PlanSelector: React.FC<PlanSelectorProps> = ({
                       { color: themeColors.card },
                     ]}
                   >
-                    Отмена
+                    {getTranslation(language, "cancel")}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -185,7 +189,7 @@ export const PlanSelector: React.FC<PlanSelectorProps> = ({
                       { color: themeColors.card },
                     ]}
                   >
-                    Добавить
+                    {getTranslation(language, "add")}
                   </Text>
                 </TouchableOpacity>
               </View>

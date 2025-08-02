@@ -16,6 +16,7 @@ import { EXERCISE_LIST } from "../constants/exerciseList";
 import { MuscleGroup, ExerciseType } from "../store/store";
 import { Colors } from "../constants/Colors";
 import useSettingsStore from "../store/settingsStore";
+import { getTranslation } from "@/utils/localization";
 
 export default function ExerciseModal({
   visible,
@@ -34,6 +35,7 @@ export default function ExerciseModal({
   const [exercise, setExercise] = useState(initialExercise);
 
   const theme = useSettingsStore((state) => state.theme);
+  const language = useSettingsStore((state) => state.language);
   const colorScheme =
     theme === "system"
       ? typeof window !== "undefined" &&
@@ -85,7 +87,7 @@ export default function ExerciseModal({
             {showExerciseList ? (
               <>
                 <Text style={[styles.modalTitle, { color: themeColors.text }]}>
-                  Выбери упражнение
+                  {getTranslation(language, "chooseExercise")}
                 </Text>
                 <FlatList
                   data={EXERCISE_LIST}
@@ -111,7 +113,9 @@ export default function ExerciseModal({
                   ]}
                   onPress={() => setShowExerciseList(false)}
                 >
-                  <Text style={{ color: themeColors.text }}>Назад</Text>
+                  <Text style={{ color: themeColors.text }}>
+                    {getTranslation(language, "back")}
+                  </Text>
                 </TouchableOpacity>
               </>
             ) : (
@@ -127,8 +131,8 @@ export default function ExerciseModal({
                     style={[styles.modalTitle, { color: themeColors.text }]}
                   >
                     {isEdit
-                      ? "Редактировать упражнение"
-                      : "Добавить упражнение"}
+                      ? getTranslation(language, "editExercise")
+                      : getTranslation(language, "addExercise")}
                   </Text>
                   <TouchableOpacity onPress={() => setShowExerciseList(true)}>
                     <MaterialIcons
@@ -147,7 +151,7 @@ export default function ExerciseModal({
                       borderColor: themeColors.border,
                     },
                   ]}
-                  placeholder="Название упражнения"
+                  placeholder={getTranslation(language, "exerciseName")}
                   placeholderTextColor={themeColors.tabIconDefault}
                   value={exercise.name}
                   onChangeText={(text) =>
@@ -165,7 +169,7 @@ export default function ExerciseModal({
                       borderColor: themeColors.border,
                     },
                   ]}
-                  placeholder="Комментарий"
+                  placeholder={getTranslation(language, "comment")}
                   placeholderTextColor={themeColors.tabIconDefault}
                   value={exercise.comment ?? ""}
                   onChangeText={(text) =>
@@ -181,7 +185,7 @@ export default function ExerciseModal({
                       borderColor: themeColors.border,
                     },
                   ]}
-                  placeholder="Время таймера (сек)"
+                  placeholder={getTranslation(language, "timerDuration")}
                   placeholderTextColor={themeColors.tabIconDefault}
                   keyboardType="numeric"
                   value={
@@ -207,17 +211,50 @@ export default function ExerciseModal({
                   }}
                   dropdownIconColor={themeColors.icon}
                 >
-                  <Picker.Item label="Грудь" value="chest" />
-                  <Picker.Item label="Трицепс" value="triceps" />
-                  <Picker.Item label="Бицепс" value="biceps" />
-                  <Picker.Item label="Предплечья" value="forearms" />
-                  <Picker.Item label="Плечи" value="delts" />
-                  <Picker.Item label="Спина" value="back" />
-                  <Picker.Item label="Ягодицы" value="glutes" />
-                  <Picker.Item label="Квадрицепсы" value="quads" />
-                  <Picker.Item label="Бицепс бедра" value="hamstrings" />
-                  <Picker.Item label="Икры" value="calves" />
-                  <Picker.Item label="Пресс" value="abs" />
+                  <Picker.Item
+                    label={getTranslation(language, "chest")}
+                    value="chest"
+                  />
+                  <Picker.Item
+                    label={getTranslation(language, "triceps")}
+                    value="triceps"
+                  />
+                  <Picker.Item
+                    label={getTranslation(language, "biceps")}
+                    value="biceps"
+                  />
+                  <Picker.Item
+                    label={getTranslation(language, "forearms")}
+                    value="forearms"
+                  />
+                  <Picker.Item
+                    label={getTranslation(language, "delts")}
+                    value="delts"
+                  />
+                  <Picker.Item
+                    label={getTranslation(language, "back")}
+                    value="back"
+                  />
+                  <Picker.Item
+                    label={getTranslation(language, "glutes")}
+                    value="glutes"
+                  />
+                  <Picker.Item
+                    label={getTranslation(language, "quads")}
+                    value="quads"
+                  />
+                  <Picker.Item
+                    label={getTranslation(language, "hamstrings")}
+                    value="hamstrings"
+                  />
+                  <Picker.Item
+                    label={getTranslation(language, "calves")}
+                    value="calves"
+                  />
+                  <Picker.Item
+                    label={getTranslation(language, "abs")}
+                    value="abs"
+                  />
                 </Picker>
                 <Picker
                   selectedValue={exercise.type}
@@ -230,10 +267,22 @@ export default function ExerciseModal({
                   }}
                   dropdownIconColor={themeColors.icon}
                 >
-                  <Picker.Item label="Тренажёр" value="machine" />
-                  <Picker.Item label="Свободные веса" value="free weight" />
-                  <Picker.Item label="Собственный вес" value="own weight" />
-                  <Picker.Item label="Тросы" value="cables" />
+                  <Picker.Item
+                    label={getTranslation(language, "machine")}
+                    value="machine"
+                  />
+                  <Picker.Item
+                    label={getTranslation(language, "freeWeight")}
+                    value="free weight"
+                  />
+                  <Picker.Item
+                    label={getTranslation(language, "ownWeight")}
+                    value="own weight"
+                  />
+                  <Picker.Item
+                    label={getTranslation(language, "cables")}
+                    value="cables"
+                  />
                 </Picker>
                 <TouchableOpacity
                   style={[
@@ -255,8 +304,8 @@ export default function ExerciseModal({
                   />
                   <Text style={{ color: themeColors.text }}>
                     {exercise.amplitude === "full"
-                      ? "Полная амплитуда"
-                      : "Неполная амплитуда"}
+                      ? getTranslation(language, "fullAmplitude")
+                      : getTranslation(language, "partialAmplitude")}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -272,7 +321,9 @@ export default function ExerciseModal({
                   }
                 >
                   <Text style={{ color: themeColors.text }}>
-                    {exercise.unilateral ? "Одностороннее" : "Двустороннее"}
+                    {exercise.unilateral
+                      ? getTranslation(language, "unilateral")
+                      : getTranslation(language, "bilateral")}
                   </Text>
                 </TouchableOpacity>
                 <View style={styles.modalButtons}>
@@ -283,7 +334,9 @@ export default function ExerciseModal({
                     ]}
                     onPress={onClose}
                   >
-                    <Text style={{ color: themeColors.text }}>Отмена</Text>
+                    <Text style={{ color: themeColors.text }}>
+                      {getTranslation(language, "cancel")}
+                    </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[
@@ -293,7 +346,9 @@ export default function ExerciseModal({
                     onPress={() => onSubmit(exercise)}
                   >
                     <Text style={{ color: themeColors.background }}>
-                      {isEdit ? "Сохранить" : "Добавить"}
+                      {isEdit
+                        ? getTranslation(language, "save")
+                        : getTranslation(language, "add")}
                     </Text>
                   </TouchableOpacity>
                 </View>

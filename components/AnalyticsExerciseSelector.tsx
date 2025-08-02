@@ -8,9 +8,10 @@ import {
   ScrollView,
 } from "react-native";
 import { Checkbox } from "expo-checkbox";
-import { Exercise } from "../store/store"; // Убедитесь, что путь правильный
+import { Exercise } from "../store/store";
 import { Colors } from "../constants/Colors";
 import useSettingsStore from "../store/settingsStore";
+import { getTranslation } from "@/utils/localization";
 
 interface AnalyticsExerciseSelectorProps {
   isVisible: boolean;
@@ -28,11 +29,10 @@ const AnalyticsExerciseSelector: React.FC<AnalyticsExerciseSelectorProps> = ({
   onSave,
 }) => {
   const theme = useSettingsStore((state) => state.theme);
+  const language = useSettingsStore((state) => state.language);
 
-  // Определяем текущую тему
   let colorScheme: "light" | "dark" = "light";
   if (theme === "dark") colorScheme = "dark";
-  // Можно добавить поддержку system, если есть хук или контекст, сейчас только light/dark
 
   const themedStyles = getThemedStyles(Colors[colorScheme]);
 
@@ -67,7 +67,9 @@ const AnalyticsExerciseSelector: React.FC<AnalyticsExerciseSelectorProps> = ({
     >
       <View style={themedStyles.centeredView}>
         <View style={themedStyles.modalView}>
-          <Text style={themedStyles.modalTitle}>Выберите упражнения</Text>
+          <Text style={themedStyles.modalTitle}>
+            {getTranslation(language, "selectExercises")}
+          </Text>
           <ScrollView style={themedStyles.scrollView}>
             {exercises.map((exercise) => (
               <View key={exercise.id} style={themedStyles.checkboxContainer}>
@@ -89,13 +91,17 @@ const AnalyticsExerciseSelector: React.FC<AnalyticsExerciseSelectorProps> = ({
               style={[themedStyles.button, themedStyles.buttonClose]}
               onPress={onClose}
             >
-              <Text style={themedStyles.textStyle}>Отмена</Text>
+              <Text style={themedStyles.textStyle}>
+                {getTranslation(language, "cancel")}
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[themedStyles.button, themedStyles.buttonSave]}
               onPress={handleSave}
             >
-              <Text style={themedStyles.textStyle}>Сохранить</Text>
+              <Text style={themedStyles.textStyle}>
+                {getTranslation(language, "save")}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
