@@ -14,6 +14,7 @@ import useStore from "@/store/store";
 import useCaloriesStore from "@/store/calloriesStore";
 import useSettingsStore from "@/store/settingsStore";
 import { logAllTables } from "@/store/dbLayer";
+import * as stepService from "@/services/stepService";
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -36,6 +37,8 @@ export default function RootLayout() {
         await initializeCaloriesFromDB();
         await initializeSettingsFromDB();
         await logAllTables();
+
+        await stepService.initializeStepTracking();
       } catch (error) {
         console.error("Ошибка инициализации приложения:", error);
       }

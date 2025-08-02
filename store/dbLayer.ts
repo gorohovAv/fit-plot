@@ -56,6 +56,11 @@ export const initDatabase = async () => {
       key TEXT UNIQUE NOT NULL,
       value TEXT NOT NULL
     )`,
+    `CREATE TABLE IF NOT EXISTS stepsFallback (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      steps INTEGER NOT NULL,
+      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`,
   ];
 
   for (const sql of createTables) {
@@ -162,7 +167,7 @@ export const getExercisesByTraining = async (
     "SELECT * FROM exercises WHERE trainingId = ?",
     [trainingId]
   );
-  return result.map((row) => ({
+  return result.map((row: any) => ({
     ...row,
     unilateral: Boolean(row.unilateral),
   }));
@@ -200,7 +205,7 @@ export const getResultsByExercise = async (
     "SELECT * FROM results WHERE exerciseId = ? ORDER BY date DESC",
     [exerciseId]
   );
-  return result.map((row) => ({
+  return result.map((row: any) => ({
     ...row,
     isPlanned: Boolean(row.isPlanned),
   }));
@@ -263,6 +268,41 @@ export const getAllSettings = async (): Promise<
   return result;
 };
 
+// Методы для работы с шагами
+export const saveStepsFallback = async (steps: number): Promise<void> => {
+  const database = await getDatabase();
+  await database.runAsync("INSERT INTO stepsFallback (steps) VALUES (?)", [
+    steps,
+  ]);
+};
+
+export const getLatestStepsFallback = async (): Promise<number> => {
+  const database = await getDatabase();
+  const result = await database.getFirstAsync(
+    "SELECT steps FROM stepsFallback ORDER BY timestamp DESC LIMIT 1"
+  );
+  return result ? result.steps : 0;
+};
+
+export const getStepsForDate = async (date: string): Promise<number> => {
+  const database = await getDatabase();
+  const result = await database.getFirstAsync(
+    "SELECT steps FROM stepsFallback WHERE DATE(timestamp) = ? ORDER BY timestamp DESC LIMIT 1",
+    [date]
+  );
+  return result ? result.steps : 0;
+};
+
+export const clearOldStepsFallback = async (
+  daysToKeep: number = 7
+): Promise<void> => {
+  const database = await getDatabase();
+  await database.runAsync(
+    "DELETE FROM stepsFallback WHERE timestamp < datetime('now', '-? days')",
+    [daysToKeep]
+  );
+};
+
 export const logAllTables = async () => {
   const database = await getDatabase();
 
@@ -276,6 +316,7 @@ export const logAllTables = async () => {
       { name: "results", query: "SELECT * FROM results" },
       { name: "calories", query: "SELECT * FROM calories" },
       { name: "settings", query: "SELECT * FROM settings" },
+      { name: "stepsFallback", query: "SELECT * FROM stepsFallback" },
     ];
 
     for (const table of tables) {

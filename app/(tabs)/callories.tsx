@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -13,12 +13,22 @@ import useCaloriesStore from "../../store/calloriesStore";
 import useSettingsStore from "../../store/settingsStore";
 import { Colors } from "../../constants/Colors";
 import { getTranslation, formatTranslation } from "@/utils/localization";
+import { useSteps } from "../../hooks/useSteps";
+import * as stepService from "../../services/stepService";
 
 export default function CaloriesScreen() {
   const [calories, setCalories] = useState("");
   const [weight, setWeight] = useState("");
   const { entries, addEntry, getEntryByDate } = useCaloriesStore();
   const { language } = useSettingsStore();
+  const {
+    todaySteps,
+    isTracking,
+    isAvailable,
+    refreshSteps,
+    startTracking,
+    stopTracking,
+  } = useSteps();
 
   const theme = useSettingsStore((state) => state.theme);
   const colorScheme =
@@ -30,6 +40,14 @@ export default function CaloriesScreen() {
 
   const today = new Date().toISOString().split("T")[0];
   const todayEntry = getEntryByDate(today);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refreshSteps();
+    }, 10000); // обновляем каждые 10 секунд
+
+    return () => clearInterval(interval);
+  }, []);
 
   const handleSave = () => {
     const caloriesNum = parseInt(calories);
@@ -73,6 +91,14 @@ export default function CaloriesScreen() {
     );
   };
 
+  const handleStepTrackingToggle = () => {
+    if (isTracking) {
+      stopTracking();
+    } else {
+      startTracking();
+    }
+  };
+
   const sortedEntries = [...entries].sort(
     (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
   );
@@ -97,6 +123,39 @@ export default function CaloriesScreen() {
         <Text style={[styles.title, { color: colorScheme.text }]}>
           {getTranslation(language, "calories")}
         </Text>
+
+        {isAvailable && (
+          <View
+            style={[
+              styles.stepsContainer,
+              { backgroundColor: colorScheme.success + "22" },
+            ]}
+          >
+            <Text style={[styles.stepsTitle, { color: colorScheme.success }]}>
+              Шаги сегодня: {todaySteps}
+            </Text>
+            <Text style={[styles.stepsSubtitle, { color: colorScheme.text }]}>
+              Калории от шагов: {Math.round(todaySteps * 0.04)}
+            </Text>
+            <TouchableOpacity
+              style={[
+                styles.trackingButton,
+                {
+                  backgroundColor: isTracking
+                    ? colorScheme.error
+                    : colorScheme.tint,
+                },
+              ]}
+              onPress={handleStepTrackingToggle}
+            >
+              <Text
+                style={[styles.trackingButtonText, { color: colorScheme.card }]}
+              >
+                {isTracking ? "Остановить отслеживание" : "Начать отслеживание"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         <View style={styles.inputGroup}>
           <Text style={[styles.label, { color: colorScheme.text }]}>
@@ -216,6 +275,31 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 20,
     textAlign: "center",
+  },
+  stepsContainer: {
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  stepsTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 4,
+  },
+  stepsSubtitle: {
+    fontSize: 14,
+    textAlign: "center",
+    marginBottom: 12,
+  },
+  trackingButton: {
+    padding: 10,
+    borderRadius: 6,
+    alignItems: "center",
+  },
+  trackingButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
   },
   inputGroup: {
     marginBottom: 16,
