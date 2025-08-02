@@ -1,15 +1,21 @@
 import { StateCreator } from "zustand";
 import * as dbLayer from "./dbLayer";
+import { Plan, Settings, CalorieEntry, StoreState } from "./store";
 
 export interface SyncMiddleware {
-  (config: StateCreator<any>): StateCreator<any>;
+  (config: StateCreator<StoreState>): StateCreator<StoreState>;
 }
 
 export const createSyncMiddleware = (): SyncMiddleware => {
   return (config) => (set, get, api) => {
     const originalSet = set;
 
-    const syncSet = (partial: any, replace?: boolean) => {
+    const syncSet = (
+      partial:
+        | Partial<StoreState>
+        | ((state: StoreState) => Partial<StoreState>),
+      replace?: boolean
+    ) => {
       const prevState = get();
       const newState =
         typeof partial === "function" ? partial(prevState) : partial;
@@ -17,7 +23,6 @@ export const createSyncMiddleware = (): SyncMiddleware => {
 
       originalSet(partial, replace);
 
-      // Синхронизация с БД
       syncToDatabase(prevState, fullState);
     };
 
@@ -25,38 +30,35 @@ export const createSyncMiddleware = (): SyncMiddleware => {
   };
 };
 
-const syncToDatabase = async (prevState: any, newState: any) => {
+const syncToDatabase = async (prevState: StoreState, newState: StoreState) => {
   try {
-    // Проверяем, что состояния существуют
     if (!prevState || !newState) {
       console.warn("syncToDatabase: prevState или newState undefined");
       return;
     }
 
-    // Синхронизация планов
     if (newState.plans && newState.plans !== prevState.plans) {
       await syncPlans(newState.plans);
     }
 
-    // Синхронизация настроек
     if (
-      newState.theme !== prevState.theme ||
-      newState.weight !== prevState.weight ||
-      newState.devMode !== prevState.devMode
+      newState.settings &&
+      (newState.settings.theme !== prevState.settings?.theme ||
+        newState.settings.weight !== prevState.settings?.weight ||
+        newState.settings.devMode !== prevState.settings?.devMode)
     ) {
-      await syncSettings(newState);
+      await syncSettings(newState.settings);
     }
 
-    // Синхронизация калорий
-    if (newState.entries && newState.entries !== prevState.entries) {
-      await syncCalories(newState.entries);
+    if (newState.calories && newState.calories !== prevState.calories) {
+      await syncCalories(newState.calories);
     }
   } catch (error) {
     console.error("Ошибка синхронизации с БД:", error);
   }
 };
 
-const syncPlans = async (plans: any[]) => {
+const syncPlans = async (plans: Plan[]) => {
   if (!plans || !Array.isArray(plans)) {
     console.warn("syncPlans: plans не является массивом");
     return;
@@ -114,14 +116,14 @@ const syncPlans = async (plans: any[]) => {
   }
 };
 
-const syncSettings = async (settings: any) => {
+const syncSettings = async (settings: Settings) => {
   if (!settings) return;
   await dbLayer.saveSetting("theme", settings.theme ?? "system");
   await dbLayer.saveSetting("weight", (settings.weight ?? 70).toString());
   await dbLayer.saveSetting("devMode", (settings.devMode ?? false).toString());
 };
 
-const syncCalories = async (entries: any[]) => {
+const syncCalories = async (entries: CalorieEntry[]) => {
   if (!entries || !Array.isArray(entries)) return;
   for (const entry of entries) {
     if (!entry || !entry.date) continue;

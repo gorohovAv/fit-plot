@@ -9,7 +9,13 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "testBuild": "eas build -p android"
+    "testBuild": "eas build -p android",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:sync": "jest syncMiddleware.test.ts",
+    "test:calories": "jest calloriesStore.test.ts",
+    "test:store": "jest store.test.ts"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",
@@ -64,7 +70,10 @@
     "@types/react": "~19.0.10",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~9.2.0",
-    "typescript": "~5.8.3"
+    "typescript": "~5.8.3",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
+    "@types/jest": "^29.5.8"
   },
   "private": true
 }

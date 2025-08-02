@@ -9,26 +9,54 @@ export interface ExportData {
   calories: { date: string; calories: number; weight: number }[];
 }
 
+interface PlansDataRow {
+  Plan: string;
+  Training: string;
+  Exercise: string;
+  MuscleGroup: string;
+  Type: string;
+  Unilateral: string;
+  Amplitude: string;
+  Comment: string;
+  Timer: string;
+}
+
+interface ResultsDataRow {
+  Plan: string;
+  Training: string;
+  Exercise: string;
+  Weight: number;
+  Reps: number;
+  Date: string;
+  Amplitude: string;
+}
+
+interface CaloriesDataRow {
+  Date: string;
+  Calories: number;
+  Weight: number;
+}
+
 export async function exportToExcel(data: ExportData): Promise<void> {
   const workbook = XLSX.utils.book_new();
 
-  const plansData = [];
-  const resultsData = [];
-  const caloriesData = [];
+  const plansData: PlansDataRow[] = [];
+  const resultsData: ResultsDataRow[] = [];
+  const caloriesData: CaloriesDataRow[] = [];
 
   data.plans.forEach((plan) => {
     plan.trainings.forEach((training) => {
       training.exercises.forEach((exercise, index) => {
         plansData.push({
-          План: plan.planName,
-          Тренировка: training.name,
-          Упражнение: exercise.name,
-          "Группа мышц": exercise.muscleGroup,
-          Тип: exercise.type,
-          Одностороннее: exercise.unilateral ? "Да" : "Нет",
-          Амплитуда: exercise.amplitude,
-          Комментарий: exercise.comment || "",
-          "Таймер (сек)": exercise.timerDuration || "",
+          Plan: plan.planName,
+          Training: training.name,
+          Exercise: exercise.name,
+          MuscleGroup: exercise.muscleGroup,
+          Type: exercise.type,
+          Unilateral: exercise.unilateral ? "Yes" : "No",
+          Amplitude: exercise.amplitude,
+          Comment: exercise.comment || "",
+          Timer: exercise.timerDuration?.toString() || "",
         });
       });
     });
@@ -41,13 +69,13 @@ export async function exportToExcel(data: ExportData): Promise<void> {
           (ex) => ex.id === result.exerciseId
         );
         resultsData.push({
-          План: plan.planName,
-          Тренировка: training.name,
-          Упражнение: exercise?.name || "Неизвестно",
-          "Вес (кг)": result.weight,
-          Повторения: result.reps,
-          Дата: result.date,
-          Амплитуда: result.amplitude,
+          Plan: plan.planName,
+          Training: training.name,
+          Exercise: exercise?.name || "Unknown",
+          Weight: result.weight,
+          Reps: result.reps,
+          Date: result.date,
+          Amplitude: result.amplitude,
         });
       });
     });
@@ -55,9 +83,9 @@ export async function exportToExcel(data: ExportData): Promise<void> {
 
   data.calories.forEach((entry) => {
     caloriesData.push({
-      Дата: entry.date,
-      Калории: entry.calories,
-      "Вес (кг)": entry.weight,
+      Date: entry.date,
+      Calories: entry.calories,
+      Weight: entry.weight,
     });
   });
 
@@ -65,9 +93,9 @@ export async function exportToExcel(data: ExportData): Promise<void> {
   const resultsSheet = XLSX.utils.json_to_sheet(resultsData);
   const caloriesSheet = XLSX.utils.json_to_sheet(caloriesData);
 
-  XLSX.utils.book_append_sheet(workbook, plansSheet, "Планы и упражнения");
-  XLSX.utils.book_append_sheet(workbook, resultsSheet, "Результаты");
-  XLSX.utils.book_append_sheet(workbook, caloriesSheet, "Калории и вес");
+  XLSX.utils.book_append_sheet(workbook, plansSheet, "Plans and Exercises");
+  XLSX.utils.book_append_sheet(workbook, resultsSheet, "Results");
+  XLSX.utils.book_append_sheet(workbook, caloriesSheet, "Calories and Weight");
 
   const wbout = XLSX.write(workbook, { type: "base64", bookType: "xlsx" });
   const uri = FileSystem.documentDirectory + "fitplot_export.xlsx";
@@ -119,9 +147,9 @@ export function exportToText(data: ExportData): string {
   });
 
   if (data.calories.length > 0) {
-    text += "КАЛЛОРАЖ\n";
+    text += "CALORIES\n";
     data.calories.forEach((entry) => {
-      text += `${entry.weight}кг ${entry.calories} ккал ${entry.date}\n`;
+      text += `${entry.weight}kg ${entry.calories} kcal ${entry.date}\n`;
     });
   }
 

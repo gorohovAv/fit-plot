@@ -2,7 +2,6 @@ import { create } from "zustand";
 import { createSyncMiddleware, loadFromDatabase } from "./syncMiddleware";
 import * as dbLayer from "./dbLayer";
 
-// Определение новых типов
 export type MuscleGroup =
   | "chest"
   | "triceps"
@@ -14,7 +13,9 @@ export type MuscleGroup =
   | "quads"
   | "hamstrings"
   | "calves";
+
 export type ExerciseType = "machine" | "free weight" | "own weight" | "cables";
+
 export type Exercise = {
   id: string;
   name: string;
@@ -27,7 +28,7 @@ export type Exercise = {
 };
 
 export type Result = {
-  exerciseId: string; // Ссылка на упражнение
+  exerciseId: string;
   weight: number;
   reps: number;
   date: string;
@@ -45,19 +46,35 @@ export type PlannedResult = {
 export type Training = {
   id: string;
   name: string;
-  exercises: Exercise[]; // Массив упражнений
-  results: Result[]; // Массив результатов
-  plannedResults: PlannedResult[]; // Добавляем поле plannedResults
+  exercises: Exercise[];
+  results: Result[];
+  plannedResults: PlannedResult[];
 };
 
-// Добавим экспорт типа Plan
 export type Plan = {
   planName: string;
   trainings: Training[];
 };
 
-type State = {
+export type Settings = {
+  theme: string;
+  weight: number;
+  devMode: boolean;
+};
+
+export type CalorieEntry = {
+  date: string;
+  calories: number;
+  weight: number;
+};
+
+export type StoreState = {
   plans: Plan[];
+  settings?: Settings;
+  calories?: CalorieEntry[];
+};
+
+type State = StoreState & {
   addPlan: (newPlan: Plan) => void;
   addTraining: (planName: string, training: Training) => void;
   addExercise: (
@@ -91,22 +108,22 @@ const useStore = create<State>()(
   syncMiddleware((set, get) => ({
     plans: [],
     addPlan: (newPlan: Plan) =>
-      set((state) => ({ plans: [...state.plans, newPlan] })),
-    addTraining: (planName, training) =>
-      set((state) => ({
-        plans: state.plans.map((plan) =>
+      set((state: StoreState) => ({ plans: [...state.plans, newPlan] })),
+    addTraining: (planName: string, training: Training) =>
+      set((state: StoreState) => ({
+        plans: state.plans.map((plan: Plan) =>
           plan.planName === planName
             ? { ...plan, trainings: [...plan.trainings, training] }
             : plan
         ),
       })),
-    addExercise: (planName, trainingId, exercise) =>
-      set((state) => ({
-        plans: state.plans.map((plan) =>
+    addExercise: (planName: string, trainingId: string, exercise: Exercise) =>
+      set((state: StoreState) => ({
+        plans: state.plans.map((plan: Plan) =>
           plan.planName === planName
             ? {
                 ...plan,
-                trainings: plan.trainings.map((training) =>
+                trainings: plan.trainings.map((training: Training) =>
                   training.id === trainingId
                     ? {
                         ...training,
@@ -118,13 +135,13 @@ const useStore = create<State>()(
             : plan
         ),
       })),
-    addResult: (planName, trainingId, result) =>
-      set((state) => ({
-        plans: state.plans.map((plan) =>
+    addResult: (planName: string, trainingId: string, result: Result) =>
+      set((state: StoreState) => ({
+        plans: state.plans.map((plan: Plan) =>
           plan.planName === planName
             ? {
                 ...plan,
-                trainings: plan.trainings.map((training) =>
+                trainings: plan.trainings.map((training: Training) =>
                   training.id === trainingId
                     ? {
                         ...training,
@@ -136,13 +153,17 @@ const useStore = create<State>()(
             : plan
         ),
       })),
-    addPlannedResult: (planName, trainingId, plannedResult) =>
-      set((state) => ({
-        plans: state.plans.map((plan) =>
+    addPlannedResult: (
+      planName: string,
+      trainingId: string,
+      plannedResult: PlannedResult
+    ) =>
+      set((state: StoreState) => ({
+        plans: state.plans.map((plan: Plan) =>
           plan.planName === planName
             ? {
                 ...plan,
-                trainings: plan.trainings.map((training) =>
+                trainings: plan.trainings.map((training: Training) =>
                   training.id === trainingId
                     ? {
                         ...training,
@@ -157,31 +178,35 @@ const useStore = create<State>()(
             : plan
         ),
       })),
-    removeTraining: (planName, trainingId) =>
-      set((state) => ({
-        plans: state.plans.map((plan) =>
+    removeTraining: (planName: string, trainingId: string) =>
+      set((state: StoreState) => ({
+        plans: state.plans.map((plan: Plan) =>
           plan.planName === planName
             ? {
                 ...plan,
                 trainings: plan.trainings.filter(
-                  (training) => training.id !== trainingId
+                  (training: Training) => training.id !== trainingId
                 ),
               }
             : plan
         ),
       })),
-    removeExercise: (planName, trainingId, exerciseId) =>
-      set((state) => ({
-        plans: state.plans.map((plan) =>
+    removeExercise: (
+      planName: string,
+      trainingId: string,
+      exerciseId: string
+    ) =>
+      set((state: StoreState) => ({
+        plans: state.plans.map((plan: Plan) =>
           plan.planName === planName
             ? {
                 ...plan,
-                trainings: plan.trainings.map((training) =>
+                trainings: plan.trainings.map((training: Training) =>
                   training.id === trainingId
                     ? {
                         ...training,
                         exercises: training.exercises.filter(
-                          (ex) => ex.id !== exerciseId
+                          (ex: Exercise) => ex.id !== exerciseId
                         ),
                       }
                     : training
@@ -190,17 +215,21 @@ const useStore = create<State>()(
             : plan
         ),
       })),
-    updateExerciseInStore: (planName, trainingId, updatedExercise) =>
-      set((state) => ({
-        plans: state.plans.map((plan) =>
+    updateExerciseInStore: (
+      planName: string,
+      trainingId: string,
+      updatedExercise: Exercise
+    ) =>
+      set((state: StoreState) => ({
+        plans: state.plans.map((plan: Plan) =>
           plan.planName === planName
             ? {
                 ...plan,
-                trainings: plan.trainings.map((training) =>
+                trainings: plan.trainings.map((training: Training) =>
                   training.id === trainingId
                     ? {
                         ...training,
-                        exercises: training.exercises.map((ex) =>
+                        exercises: training.exercises.map((ex: Exercise) =>
                           ex.id === updatedExercise.id ? updatedExercise : ex
                         ),
                       }

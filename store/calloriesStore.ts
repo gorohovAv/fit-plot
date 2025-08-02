@@ -22,20 +22,22 @@ const syncMiddleware = createSyncMiddleware();
 const useCaloriesStore = create<CaloriesState>()(
   syncMiddleware((set, get) => ({
     entries: [],
-    addEntry: (entry) =>
-      set((state) => ({
+    addEntry: (entry: CalorieEntry) =>
+      set((state: CaloriesState) => ({
         entries: [...state.entries, entry],
       })),
-    updateEntry: (date, entry) =>
-      set((state) => ({
-        entries: state.entries.map((e) => (e.date === date ? entry : e)),
+    updateEntry: (date: string, entry: CalorieEntry) =>
+      set((state: CaloriesState) => ({
+        entries: state.entries.map((e: CalorieEntry) =>
+          e.date === date ? entry : e
+        ),
       })),
-    deleteEntry: (date) =>
-      set((state) => ({
-        entries: state.entries.filter((e) => e.date !== date),
+    deleteEntry: (date: string) =>
+      set((state: CaloriesState) => ({
+        entries: state.entries.filter((e: CalorieEntry) => e.date !== date),
       })),
-    getEntryByDate: (date) =>
-      get().entries.find((entry) => entry.date === date),
+    getEntryByDate: (date: string) =>
+      get().entries.find((entry: CalorieEntry) => entry.date === date),
     initializeFromDB: async () => {
       try {
         await dbLayer.initDatabase();
