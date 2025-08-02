@@ -29,6 +29,7 @@ import * as FileSystem from "expo-file-system";
 import { v4 as uuidv4 } from "uuid";
 import { useRoute } from "@react-navigation/native";
 import AnalyticsExerciseSelector from "@/components/AnalyticsExerciseSelector";
+import { getTranslation, formatTranslation } from "@/utils/localization";
 
 type ChartData = {
   x: string; // Дата
@@ -83,6 +84,7 @@ export default function AnalyticsScreen() {
   const font = useFont(require("../../assets/fonts/SpaceMono-Regular.ttf"));
   const route = useRoute();
   const theme = useSettingsStore((state) => state.theme);
+  const { language } = useSettingsStore();
   const colorScheme =
     theme === "system" ? Appearance.getColorScheme?.() ?? "light" : theme;
   const themeColors = Colors[colorScheme];
@@ -462,8 +464,10 @@ export default function AnalyticsScreen() {
               style={[styles.pickerButtonText, { color: themeColors.text }]}
             >
               {selectedExerciseIds.length > 0
-                ? `Выбрано: ${selectedExerciseIds.length} упражн.`
-                : "Выберите упражнения"}
+                ? formatTranslation(language, "selected", {
+                    count: selectedExerciseIds.length,
+                  })
+                : getTranslation(language, "selectExercises")}
             </Text>
           </TouchableOpacity>
         )}
@@ -492,24 +496,24 @@ export default function AnalyticsScreen() {
           <>
             {renderChart(
               chartData.tonnage,
-              "Общий тоннаж",
+              getTranslation(language, "generalTonnage"),
               themeColors.chartLine[0],
-              "Дата",
-              "Тоннаж"
+              getTranslation(language, "date"),
+              getTranslation(language, "tonnage")
             )}
             {renderChart(
               chartData.maxWeight,
-              "Максимальный вес",
+              getTranslation(language, "maxWeight"),
               themeColors.chartLine[1],
-              "Дата",
-              "Вес"
+              getTranslation(language, "date"),
+              getTranslation(language, "weight")
             )}
             {renderChart(
               chartData.maxReps,
-              "Максимальные повторения",
+              getTranslation(language, "maxReps"),
               themeColors.chartLine[2],
-              "Дата",
-              "Повторения"
+              getTranslation(language, "date"),
+              getTranslation(language, "reps")
             )}
           </>
         )

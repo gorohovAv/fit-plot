@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { createSyncMiddleware } from "./syncMiddleware";
 import * as dbLayer from "./dbLayer";
+import { Language } from "@/utils/localization";
 
 type Theme = "light" | "dark" | "system";
 
@@ -8,9 +9,11 @@ type SettingsState = {
   theme: Theme;
   weight: number;
   devMode: boolean;
+  language: Language;
   setTheme: (theme: Theme) => void;
   setWeight: (weight: number) => void;
   setDevMode: (devMode: boolean) => void;
+  setLanguage: (language: Language) => void;
   initializeFromDB: () => Promise<void>;
 };
 
@@ -21,9 +24,11 @@ const useSettingsStore = create<SettingsState>()(
     theme: "system",
     weight: 70,
     devMode: false,
-    setTheme: (theme) => set({ theme }),
-    setWeight: (weight) => set({ weight }),
-    setDevMode: (devMode) => set({ devMode }),
+    language: "russian",
+    setTheme: (theme: Theme) => set({ theme }),
+    setWeight: (weight: number) => set({ weight }),
+    setDevMode: (devMode: boolean) => set({ devMode }),
+    setLanguage: (language: Language) => set({ language }),
     initializeFromDB: async () => {
       try {
         await dbLayer.initDatabase();
@@ -47,6 +52,7 @@ const loadSettingsFromDB = async () => {
     theme: (settingsMap.theme as Theme) || "system",
     weight: parseFloat(settingsMap.weight) || 70,
     devMode: settingsMap.devMode === "true",
+    language: (settingsMap.language as Language) || "russian",
   };
 };
 

@@ -12,10 +12,19 @@ import useSettingsStore from "@/store/settingsStore";
 import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "react-native";
 import { ImportScreen } from "@/components/ImportScreen";
+import { getTranslation } from "@/utils/localization";
 
 export default function SettingsScreen() {
-  const { theme, weight, devMode, setTheme, setWeight, setDevMode } =
-    useSettingsStore();
+  const {
+    theme,
+    weight,
+    devMode,
+    language,
+    setTheme,
+    setWeight,
+    setDevMode,
+    setLanguage,
+  } = useSettingsStore();
   const systemTheme = useColorScheme();
   const currentTheme = theme === "system" ? systemTheme : theme;
   const colors = Colors[currentTheme || "light"];
@@ -27,7 +36,9 @@ export default function SettingsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Text style={[styles.label, { color: colors.text }]}>Тема</Text>
+      <Text style={[styles.label, { color: colors.text }]}>
+        {getTranslation(language, "theme")}
+      </Text>
       <View style={styles.row}>
         <Text
           style={[
@@ -40,7 +51,7 @@ export default function SettingsScreen() {
           ]}
           onPress={() => setTheme("system")}
         >
-          Системная
+          {getTranslation(language, "system")}
         </Text>
         <Text
           style={[
@@ -53,7 +64,7 @@ export default function SettingsScreen() {
           ]}
           onPress={() => setTheme("light")}
         >
-          Светлая
+          {getTranslation(language, "light")}
         </Text>
         <Text
           style={[
@@ -66,12 +77,12 @@ export default function SettingsScreen() {
           ]}
           onPress={() => setTheme("dark")}
         >
-          Тёмная
+          {getTranslation(language, "dark")}
         </Text>
       </View>
 
       <Text style={[styles.label, { color: colors.text }]}>
-        Собственный вес (кг)
+        {getTranslation(language, "weight")}
       </Text>
       <TextInput
         style={[
@@ -88,15 +99,38 @@ export default function SettingsScreen() {
           const num = parseFloat(text.replace(",", "."));
           if (!isNaN(num)) setWeight(num);
         }}
-        placeholder="Введите вес"
+        placeholder={getTranslation(language, "enterWeight")}
         placeholderTextColor={colors.icon}
       />
 
-      <View style={styles.switchRow}>
-        <Text style={[styles.label, { color: colors.text }]}>
-          Режим разработчика
+      <Text style={[styles.label, { color: colors.text }]}>Язык</Text>
+      <View style={styles.row}>
+        <Text
+          style={[
+            styles.themeOption,
+            language === "russian" && styles.selected,
+            language === "russian" && {
+              backgroundColor: colors.tabIconSelected,
+              color: colors.text,
+            },
+          ]}
+          onPress={() => setLanguage("russian")}
+        >
+          Русский
         </Text>
-        <Switch value={devMode} onValueChange={setDevMode} />
+        <Text
+          style={[
+            styles.themeOption,
+            language === "english" && styles.selected,
+            language === "english" && {
+              backgroundColor: colors.tabIconSelected,
+              color: colors.text,
+            },
+          ]}
+          onPress={() => setLanguage("english")}
+        >
+          English
+        </Text>
       </View>
 
       <TouchableOpacity
@@ -111,7 +145,7 @@ export default function SettingsScreen() {
       >
         <Ionicons name="download-outline" size={20} color={colors.text} />
         <Text style={[styles.importButtonText, { color: colors.text }]}>
-          Импорт данных
+          {getTranslation(language, "importData")}
         </Text>
       </TouchableOpacity>
     </View>

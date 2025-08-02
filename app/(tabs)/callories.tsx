@@ -12,11 +12,13 @@ import Plot from "../../components/Plot";
 import useCaloriesStore from "../../store/calloriesStore";
 import useSettingsStore from "../../store/settingsStore";
 import { Colors } from "../../constants/Colors";
+import { getTranslation, formatTranslation } from "@/utils/localization";
 
 export default function CaloriesScreen() {
   const [calories, setCalories] = useState("");
   const [weight, setWeight] = useState("");
   const { entries, addEntry, getEntryByDate } = useCaloriesStore();
+  const { language } = useSettingsStore();
 
   const theme = useSettingsStore((state) => state.theme);
   const colorScheme =
@@ -34,17 +36,26 @@ export default function CaloriesScreen() {
     const weightNum = parseFloat(weight);
 
     if (!calories || !weight) {
-      Alert.alert("Ошибка", "Заполните все поля");
+      Alert.alert(
+        getTranslation(language, "error"),
+        getTranslation(language, "fillAllFields")
+      );
       return;
     }
 
     if (isNaN(caloriesNum) || caloriesNum <= 0) {
-      Alert.alert("Ошибка", "Введите корректное количество калорий");
+      Alert.alert(
+        getTranslation(language, "error"),
+        getTranslation(language, "enterValidCalories")
+      );
       return;
     }
 
     if (isNaN(weightNum) || weightNum <= 0) {
-      Alert.alert("Ошибка", "Введите корректный вес");
+      Alert.alert(
+        getTranslation(language, "error"),
+        getTranslation(language, "enterValidWeight")
+      );
       return;
     }
 
@@ -56,7 +67,10 @@ export default function CaloriesScreen() {
 
     setCalories("");
     setWeight("");
-    Alert.alert("Успех", "Данные сохранены");
+    Alert.alert(
+      getTranslation(language, "success"),
+      getTranslation(language, "dataSaved")
+    );
   };
 
   const sortedEntries = [...entries].sort(
@@ -80,11 +94,13 @@ export default function CaloriesScreen() {
       <View
         style={[styles.formContainer, { backgroundColor: colorScheme.card }]}
       >
-        <Text style={[styles.title, { color: colorScheme.text }]}>Калории</Text>
+        <Text style={[styles.title, { color: colorScheme.text }]}>
+          {getTranslation(language, "calories")}
+        </Text>
 
         <View style={styles.inputGroup}>
           <Text style={[styles.label, { color: colorScheme.text }]}>
-            Калории за день
+            {getTranslation(language, "caloriesPerDay")}
           </Text>
           <TextInput
             style={[
@@ -97,7 +113,7 @@ export default function CaloriesScreen() {
             ]}
             value={calories}
             onChangeText={setCalories}
-            placeholder="Введите количество калорий"
+            placeholder={getTranslation(language, "enterCalories")}
             keyboardType="numeric"
             placeholderTextColor={colorScheme.icon}
           />
@@ -105,7 +121,7 @@ export default function CaloriesScreen() {
 
         <View style={styles.inputGroup}>
           <Text style={[styles.label, { color: colorScheme.text }]}>
-            Ваш вес (кг)
+            {getTranslation(language, "yourWeight")}
           </Text>
           <TextInput
             style={[
@@ -118,7 +134,7 @@ export default function CaloriesScreen() {
             ]}
             value={weight}
             onChangeText={setWeight}
-            placeholder="Введите ваш вес"
+            placeholder={getTranslation(language, "enterYourWeight")}
             keyboardType="numeric"
             placeholderTextColor={colorScheme.icon}
           />
@@ -129,7 +145,7 @@ export default function CaloriesScreen() {
           onPress={handleSave}
         >
           <Text style={[styles.saveButtonText, { color: colorScheme.card }]}>
-            Сохранить
+            {getTranslation(language, "save")}
           </Text>
         </TouchableOpacity>
 
@@ -141,13 +157,17 @@ export default function CaloriesScreen() {
             ]}
           >
             <Text style={[styles.todayTitle, { color: colorScheme.success }]}>
-              Сегодня:
+              {getTranslation(language, "today")}
             </Text>
             <Text style={[styles.todayText, { color: colorScheme.text }]}>
-              Калории: {todayEntry.calories} ккал
+              {formatTranslation(language, "caloriesValue", {
+                value: todayEntry.calories,
+              })}
             </Text>
             <Text style={[styles.todayText, { color: colorScheme.text }]}>
-              Вес: {todayEntry.weight} кг
+              {formatTranslation(language, "weightValue", {
+                value: todayEntry.weight,
+              })}
             </Text>
           </View>
         )}
@@ -158,7 +178,7 @@ export default function CaloriesScreen() {
           style={[styles.chartContainer, { backgroundColor: colorScheme.card }]}
         >
           <Text style={[styles.chartTitle, { color: colorScheme.text }]}>
-            График калорий и веса
+            {getTranslation(language, "caloriesAndWeightChart")}
           </Text>
           <Plot
             data={chartData}

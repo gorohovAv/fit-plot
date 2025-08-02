@@ -13,6 +13,7 @@ import { PlanSelector } from "../../components/PlanSelector";
 import useStore, { Plan } from "../../store/store";
 import useSettingsStore from "../../store/settingsStore";
 import { Colors } from "../../constants/Colors";
+import { getTranslation } from "@/utils/localization";
 
 type Training = {
   id: string;
@@ -31,14 +32,14 @@ export default function WorkoutPlanScreen() {
   const [showTrainingModal, setShowTrainingModal] = useState(false);
   const [trainingName, setTrainingName] = useState("");
   const theme = useSettingsStore((state) => state.theme);
+  const { language } = useSettingsStore();
 
-  // Определяем текущую палитру цветов
   const colorScheme =
     theme === "dark"
       ? Colors.dark
       : theme === "light"
       ? Colors.light
-      : Colors.light; // Можно добавить автоопределение system, если нужно
+      : Colors.light;
 
   useEffect(() => {
     if (selectedPlan) {
@@ -49,7 +50,7 @@ export default function WorkoutPlanScreen() {
         setSelectedPlan(updatedPlan);
       }
     }
-  }, [plans]); // для нормального ререндера
+  }, [plans]);
 
   const handleAddTraining = () => {
     if (!selectedPlan || !trainingName.trim()) return;
@@ -83,10 +84,12 @@ export default function WorkoutPlanScreen() {
   const TrainingModal = () => (
     <View style={modalStyles.container}>
       <View style={modalStyles.modal}>
-        <Text style={modalStyles.title}>Название тренировки</Text>
+        <Text style={modalStyles.title}>
+          {getTranslation(language, "workoutName")}
+        </Text>
         <TextInput
           style={modalStyles.input}
-          placeholder="Введите название"
+          placeholder={getTranslation(language, "enterName")}
           value={trainingName}
           onChangeText={(text) => setTrainingName(text)}
           onSubmitEditing={handleAddTraining}
@@ -100,13 +103,17 @@ export default function WorkoutPlanScreen() {
               setTrainingName("");
             }}
           >
-            <Text style={modalStyles.buttonText}>Отмена</Text>
+            <Text style={modalStyles.buttonText}>
+              {getTranslation(language, "cancel")}
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[modalStyles.button, modalStyles.confirmButton]}
             onPress={handleAddTraining}
           >
-            <Text style={modalStyles.buttonText}>Добавить</Text>
+            <Text style={modalStyles.buttonText}>
+              {getTranslation(language, "add")}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -125,7 +132,7 @@ export default function WorkoutPlanScreen() {
         }}
       >
         <Text style={[styles.planButtonText, { color: colorScheme.text }]}>
-          {selectedPlan?.planName || "Выберите план"}
+          {selectedPlan?.planName || getTranslation(language, "selectPlan")}
         </Text>
       </TouchableOpacity>
 
@@ -148,8 +155,8 @@ export default function WorkoutPlanScreen() {
         ListEmptyComponent={
           <Text style={[styles.emptyText, { color: colorScheme.text }]}>
             {selectedPlan
-              ? "Нет тренировок в плане"
-              : "Выберите план для начала"}
+              ? getTranslation(language, "noWorkoutsInPlan")
+              : getTranslation(language, "selectPlanToStart")}
           </Text>
         }
       />
@@ -160,7 +167,9 @@ export default function WorkoutPlanScreen() {
             style={[styles.addButton, { backgroundColor: colorScheme.tint }]}
             onPress={() => setShowTrainingModal(true)}
           >
-            <Text style={styles.addButtonText}>+ Добавить тренировку</Text>
+            <Text style={styles.addButtonText}>
+              {getTranslation(language, "addWorkout")}
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[
@@ -174,7 +183,7 @@ export default function WorkoutPlanScreen() {
             }
           >
             <Text style={styles.planScaleButtonText}>
-              Планирование результатов
+              {getTranslation(language, "resultsPlanning")}
             </Text>
           </TouchableOpacity>
         </>
