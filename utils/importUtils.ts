@@ -7,6 +7,7 @@ import useStore, {
   Result,
   MuscleGroup,
   ExerciseType,
+  Training,
 } from "@/store/store";
 import useCaloriesStore from "@/store/calloriesStore";
 
@@ -287,6 +288,9 @@ export function importData(text: string): void {
 
   let currentExercise = "";
   let currentDate = new Date().toISOString().split("T")[0];
+  let importedPlan: Plan | null = null;
+  let importedTraining: Training | null = null;
+  let exerciseMap = new Map<string, Exercise>();
 
   for (const line of lines) {
     const trimmedLine = line.trim();
@@ -312,18 +316,30 @@ export function importData(text: string): void {
           const reps = parseFloat(repsStr);
 
           if (!isNaN(weight) && !isNaN(reps) && weight >= 0 && reps > 0) {
-            if (store.plans.length > 0 && store.plans[0].trainings.length > 0) {
-              const training = store.plans[0].trainings[0];
-              if (training.exercises.length > 0) {
-                const exercise = training.exercises[0];
-                store.addResult(store.plans[0].planName, training.id, {
-                  exerciseId: exercise.id,
-                  weight: weight,
-                  reps: Math.round(reps),
-                  date: date,
+            if (currentExercise && importedTraining) {
+              let exercise = exerciseMap.get(currentExercise);
+              if (!exercise) {
+                exercise = {
+                  id:
+                    Date.now().toString() +
+                    Math.random().toString(36).substr(2, 9),
+                  name: currentExercise,
+                  muscleGroup: "chest",
+                  type: "free weight",
+                  unilateral: false,
                   amplitude: "full",
-                });
+                };
+                exerciseMap.set(currentExercise, exercise);
+                importedTraining.exercises.push(exercise);
               }
+
+              store.addResult(importedPlan!.planName, importedTraining.id, {
+                exerciseId: exercise.id,
+                weight: weight,
+                reps: Math.round(reps),
+                date: date,
+                amplitude: "full",
+              });
             }
           }
         }
@@ -332,18 +348,29 @@ export function importData(text: string): void {
         parseFloat(part.replace(",", ".")) > 0
       ) {
         const reps = parseFloat(part.replace(",", "."));
-        if (store.plans.length > 0 && store.plans[0].trainings.length > 0) {
-          const training = store.plans[0].trainings[0];
-          if (training.exercises.length > 0) {
-            const exercise = training.exercises[0];
-            store.addResult(store.plans[0].planName, training.id, {
-              exerciseId: exercise.id,
-              weight: 0,
-              reps: Math.round(reps),
-              date: date,
+        if (currentExercise && importedTraining) {
+          let exercise = exerciseMap.get(currentExercise);
+          if (!exercise) {
+            exercise = {
+              id:
+                Date.now().toString() + Math.random().toString(36).substr(2, 9),
+              name: currentExercise,
+              muscleGroup: "chest",
+              type: "free weight",
+              unilateral: false,
               amplitude: "full",
-            });
+            };
+            exerciseMap.set(currentExercise, exercise);
+            importedTraining.exercises.push(exercise);
           }
+
+          store.addResult(importedPlan!.planName, importedTraining.id, {
+            exerciseId: exercise.id,
+            weight: 0,
+            reps: Math.round(reps),
+            date: date,
+            amplitude: "full",
+          });
         }
       } else if (
         part.length > 0 &&
@@ -361,6 +388,25 @@ export function importData(text: string): void {
 
     if (exerciseName) {
       currentExercise = exerciseName;
+
+      if (!importedPlan) {
+        importedPlan = {
+          planName: `Импортированный план ${new Date().toLocaleDateString()}`,
+          trainings: [],
+        };
+        store.addPlan(importedPlan);
+      }
+
+      if (!importedTraining) {
+        importedTraining = {
+          id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+          name: "Импортированная тренировка",
+          exercises: [],
+          results: [],
+          plannedResults: [],
+        };
+        store.addTraining(importedPlan.planName, importedTraining);
+      }
     }
   }
 }
