@@ -191,3 +191,176 @@ export function getExportData(): ExportData {
     calories: caloriesStore.entries,
   };
 }
+
+export interface ValidationResult {
+  status: "empty" | "valid" | "invalid";
+  errorMessage?: string;
+  warningMessage?: string;
+}
+
+export function validateImport(text: string): ValidationResult {
+  if (!text.trim()) {
+    return { status: "empty" };
+  }
+
+  const lines = text.split("\n").filter((line) => line.trim());
+
+  if (lines.length === 0) {
+    return { status: "empty" };
+  }
+
+  let hasValidData = false;
+  let hasErrors = false;
+  let errorMessages: string[] = [];
+  let warningMessages: string[] = [];
+
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    if (!trimmedLine) continue;
+
+    const parts = trimmedLine.split(/\s+/);
+    let hasValidFormat = false;
+
+    for (const part of parts) {
+      if (part.includes("х") || part.includes("x")) {
+        const weightReps = part.split(/[хx]/);
+        if (weightReps.length === 2) {
+          const weightStr = weightReps[0].replace(",", ".");
+          const repsStr = weightReps[1].replace(",", ".");
+          const weight = parseFloat(weightStr);
+          const reps = parseFloat(repsStr);
+
+          if (!isNaN(weight) && !isNaN(reps) && weight >= 0 && reps > 0) {
+            hasValidFormat = true;
+            hasValidData = true;
+          }
+        }
+      } else if (
+        !isNaN(parseFloat(part.replace(",", "."))) &&
+        parseFloat(part.replace(",", ".")) > 0
+      ) {
+        hasValidFormat = true;
+        hasValidData = true;
+      } else if (part.match(/^\d{1,2}\.\d{1,2}\.\d{4}$/)) {
+        hasValidFormat = true;
+      } else if (
+        part.length > 0 &&
+        !part.match(/^\d+$/) &&
+        !part.includes("х") &&
+        !part.includes("x")
+      ) {
+        hasValidFormat = true;
+      }
+    }
+
+    if (!hasValidFormat && trimmedLine.length > 0) {
+      hasErrors = true;
+      errorMessages.push(`Неверный формат строки: ${trimmedLine}`);
+    }
+  }
+
+  if (hasErrors) {
+    return {
+      status: "invalid",
+      errorMessage: errorMessages.join("\n"),
+    };
+  }
+
+  if (hasValidData) {
+    return {
+      status: "valid",
+      warningMessage:
+        warningMessages.length > 0 ? warningMessages.join("\n") : undefined,
+    };
+  }
+
+  return {
+    status: "invalid",
+    errorMessage: "Не найдены данные для импорта",
+  };
+}
+
+export function importData(text: string): void {
+  const lines = text.split("\n").filter((line) => line.trim());
+  const store = useStore.getState();
+  const caloriesStore = useCaloriesStore.getState();
+
+  let currentExercise = "";
+  let currentDate = new Date().toISOString().split("T")[0];
+
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    if (!trimmedLine) continue;
+
+    const parts = trimmedLine.split(/\s+/);
+    let exerciseName = "";
+    let date = currentDate;
+
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i];
+
+      if (part.match(/^\d{1,2}\.\d{1,2}\.\d{4}$/)) {
+        const [day, month, year] = part.split(".");
+        date = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+        currentDate = date;
+      } else if (part.includes("х") || part.includes("x")) {
+        const weightReps = part.split(/[хx]/);
+        if (weightReps.length === 2) {
+          const weightStr = weightReps[0].replace(",", ".");
+          const repsStr = weightReps[1].replace(",", ".");
+          const weight = parseFloat(weightStr);
+          const reps = parseFloat(repsStr);
+
+          if (!isNaN(weight) && !isNaN(reps) && weight >= 0 && reps > 0) {
+            if (store.plans.length > 0 && store.plans[0].trainings.length > 0) {
+              const training = store.plans[0].trainings[0];
+              if (training.exercises.length > 0) {
+                const exercise = training.exercises[0];
+                store.addResult(store.plans[0].planName, training.id, {
+                  exerciseId: exercise.id,
+                  weight: weight,
+                  reps: Math.round(reps),
+                  date: date,
+                  amplitude: "full",
+                });
+              }
+            }
+          }
+        }
+      } else if (
+        !isNaN(parseFloat(part.replace(",", "."))) &&
+        parseFloat(part.replace(",", ".")) > 0
+      ) {
+        const reps = parseFloat(part.replace(",", "."));
+        if (store.plans.length > 0 && store.plans[0].trainings.length > 0) {
+          const training = store.plans[0].trainings[0];
+          if (training.exercises.length > 0) {
+            const exercise = training.exercises[0];
+            store.addResult(store.plans[0].planName, training.id, {
+              exerciseId: exercise.id,
+              weight: 0,
+              reps: Math.round(reps),
+              date: date,
+              amplitude: "full",
+            });
+          }
+        }
+      } else if (
+        part.length > 0 &&
+        !part.match(/^\d+$/) &&
+        !part.includes("х") &&
+        !part.includes("x")
+      ) {
+        if (!exerciseName) {
+          exerciseName = part;
+        } else {
+          exerciseName += " " + part;
+        }
+      }
+    }
+
+    if (exerciseName) {
+      currentExercise = exerciseName;
+    }
+  }
+}
