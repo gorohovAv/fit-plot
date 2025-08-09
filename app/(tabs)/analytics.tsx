@@ -116,20 +116,10 @@ export default function AnalyticsScreen() {
   };
 
   useEffect(() => {
-    console.log("=== ЛОГ ВСЕГО СТОРА НА СТРАНИЦЕ АНАЛИТИКИ ===");
-    console.log("📊 Основной стор (plans):", JSON.stringify(plans, null, 2));
-    console.log("⚙️ Стор настроек:", JSON.stringify(settingsStore, null, 2));
-    console.log("🔥 Стор калорий:", JSON.stringify(caloriesStore, null, 2));
-    console.log("=== КОНЕЦ ЛОГА СТОРА ===\n");
-  }, [plans, settingsStore, caloriesStore]);
-
-  useEffect(() => {
     // Проверяем, был ли передан exerciseId через параметры маршрута
     const params = route.params as
       | { exerciseId?: string; exerciseName?: string }
       | undefined;
-
-    console.log("[AnalyticsScreen] Получены параметры маршрута:", params);
 
     if (params?.exerciseId) {
       if (!selectedExerciseIds.includes(params.exerciseId)) {
@@ -155,11 +145,6 @@ export default function AnalyticsScreen() {
 
     allResults.sort(
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-    );
-
-    console.log(
-      "[Analytics] Результаты для графика (множественный выбор):",
-      allResults
     );
 
     if (allResults.length === 0) {
@@ -201,19 +186,6 @@ export default function AnalyticsScreen() {
       x: day,
       y: groupedByDay[day].maxReps,
     }));
-
-    console.log(
-      "[Analytics] Данные для графика тоннажа (множественный выбор):",
-      tonnageData
-    );
-    console.log(
-      "[Analytics] Данные для графика макс. веса (множественный выбор):",
-      maxWeightData
-    );
-    console.log(
-      "[Analytics] Данные для графика макс. повторений (множественный выбор):",
-      maxRepsData
-    );
 
     setChartData({
       tonnage: tonnageData,

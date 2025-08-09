@@ -318,6 +318,7 @@ export const getMaintenanceCalories = async (): Promise<number | null> => {
 };
 
 export const logAllTables = async () => {
+  /*
   const database = await getDatabase();
 
   try {
@@ -351,5 +352,5 @@ export const logAllTables = async () => {
     console.log("=== КОНЕЦ ЛОГА ТАБЛИЦ ===\n");
   } catch (error) {
     console.error("Ошибка логирования таблиц:", error);
-  }
+  }*/
 };
