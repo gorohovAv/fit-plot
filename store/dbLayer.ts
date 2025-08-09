@@ -2,7 +2,7 @@ import { openDatabaseAsync } from "expo-sqlite";
 
 let db: any = null;
 
-const getDatabase = async () => {
+export const getDatabase = async () => {
   if (!db) {
     db = await openDatabaseAsync("fitplot.db");
   }
@@ -235,6 +235,20 @@ export const getResultsByExercise = async (
     ...row,
     isPlanned: Boolean(row.isPlanned),
   }));
+};
+
+export const getResultsForExerciseIds = async (exerciseIds: string[]) => {
+  if (!exerciseIds || exerciseIds.length === 0) return [];
+  const database = await getDatabase();
+  const placeholders = exerciseIds.map(() => "?").join(",");
+  const rows = await database.getAllAsync(
+    `SELECT exerciseId, weight, reps, date, amplitude, isPlanned
+     FROM results
+     WHERE exerciseId IN (${placeholders})
+     ORDER BY date DESC`,
+    exerciseIds
+  );
+  return rows.map((r: any) => ({ ...r, isPlanned: Boolean(r.isPlanned) }));
 };
 
 // Методы для работы с калориями

@@ -431,7 +431,6 @@ export default function AnalyticsScreen() {
       );
     }
   };
-  // --- Конец функции импорта данных ---
 
   return (
     <ScrollView
@@ -455,15 +454,6 @@ export default function AnalyticsScreen() {
                 : getTranslation(language, "selectExercises")}
             </Text>
           </TouchableOpacity>
-        )}
-        {showResultsList && (
-          <MaterialIcons
-            name="cloud-upload"
-            size={24}
-            color={themeColors.icon}
-            onPress={importPlans}
-            style={styles.icon}
-          />
         )}
         <MaterialIcons
           name={showResultsList ? "bar-chart" : "list"}
