@@ -63,7 +63,33 @@ export const initDatabase = async () => {
     )`,
   ];
 
+  // Создаем таблицы
   for (const sql of createTables) {
+    await database.runAsync(sql);
+  }
+
+  // Добавляем индексы для производительности
+  const createIndexes = [
+    // Самые критичные для loadPlansFromDB()
+    `CREATE INDEX IF NOT EXISTS idx_trainings_planName ON trainings(planName)`,
+    `CREATE INDEX IF NOT EXISTS idx_exercises_trainingId ON exercises(trainingId)`,
+    `CREATE INDEX IF NOT EXISTS idx_results_exerciseId ON results(exerciseId)`,
+
+    // Для фильтрации по датам в аналитике
+    `CREATE INDEX IF NOT EXISTS idx_results_date ON results(date)`,
+
+    // Композитный индекс для самых частых запросов
+    `CREATE INDEX IF NOT EXISTS idx_results_exerciseId_date ON results(exerciseId, date)`,
+
+    // Для stepsFallback запросов
+    `CREATE INDEX IF NOT EXISTS idx_stepsFallback_timestamp ON stepsFallback(timestamp)`,
+
+    // Для поиска упражнений по группе мышц
+    `CREATE INDEX IF NOT EXISTS idx_exercises_muscleGroup ON exercises(muscleGroup)`,
+  ];
+
+  // Создаем индексы
+  for (const sql of createIndexes) {
     await database.runAsync(sql);
   }
 };
