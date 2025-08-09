@@ -55,6 +55,8 @@ export const Colors = {
     chartGrid: "#e0e0e0",
     chartBackground: "#fff",
     modalOverlay: "rgba(0, 0, 0, 0.5)",
+    chartZoneDeficit: "rgba(255, 107, 107, 0.15)",
+    chartZoneSurplus: "rgba(107, 207, 99, 0.15)",
     // Цвета для кнопок
     buttonPrimary: tintColorLight,
     buttonPrimaryText: "#fff",
@@ -98,6 +100,8 @@ export const Colors = {
     chartGrid: "#3a3f45",
     chartBackground: "#181a1b",
     modalOverlay: "rgba(0, 0, 0, 0.7)",
+    chartZoneDeficit: "rgba(255, 82, 82, 0.12)",
+    chartZoneSurplus: "rgba(76, 209, 55, 0.12)",
     // Цвета для кнопок
     buttonPrimary: tintColorDark,
     buttonPrimaryText: "#151718",

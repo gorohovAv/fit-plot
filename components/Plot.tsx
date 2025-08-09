@@ -7,6 +7,7 @@ import Svg, {
   G,
   Text as SvgText,
   Circle,
+  Rect,
 } from "react-native-svg";
 import * as d3 from "d3";
 import { useMemo } from "react";
@@ -140,7 +141,23 @@ const Plot: React.FC<PlotProps> = ({
     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
       <Svg width={width} height={height}>
         <G transform={`translate(${margin.left}, ${margin.top})`}>
-          {/* Сетка */}
+          {highlightZones.map((z, idx) => {
+            const x1 = xScale(new Date(z.start));
+            const x2 = xScale(new Date(z.end));
+            const x = Math.max(0, Math.min(x1, x2));
+            const w = Math.max(0, Math.abs(x2 - x1));
+            if (!isFinite(x) || !isFinite(w) || w === 0) return null;
+            return (
+              <Rect
+                key={`zone-${idx}`}
+                x={x}
+                y={0}
+                width={w}
+                height={innerHeight}
+                fill={z.color}
+              />
+            );
+          })}
           {yTicks.map((tick) => (
             <Line
               key={tick}

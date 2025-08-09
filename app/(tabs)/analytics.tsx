@@ -216,7 +216,6 @@ export default function AnalyticsScreen() {
     xLabel: string,
     yLabel: string
   ) => {
-    // Оставляем только валидные точки
     const filteredData = data.filter(
       (item) =>
         item.x &&
@@ -225,7 +224,6 @@ export default function AnalyticsScreen() {
         !item.x.includes("undefined")
     );
 
-    // Подготовка данных для дополнительных линий
     const additionalLinesData: DataPoint[][] = [];
     selectedExerciseIds.forEach((id) => {
       const exerciseResults = plans
@@ -251,7 +249,6 @@ export default function AnalyticsScreen() {
 
         const sortedDaysForExercise = Object.keys(groupedForExercise).sort();
 
-        // В зависимости от типа графика, формируем данные
         if (title.includes("тоннаж")) {
           additionalLinesData.push(
             sortedDaysForExercise.map((day) => ({
@@ -277,6 +274,61 @@ export default function AnalyticsScreen() {
       }
     });
 
+    const buildHighlightZones = () => {
+      if (!caloriesStore.maintenanceCalories || filteredData.length === 0)
+        return [];
+      const start = new Date(filteredData[0].x);
+      const end = new Date(filteredData[filteredData.length - 1].x);
+
+      const startOfWeek = (d: Date) => {
+        const nd = new Date(d);
+        const day = nd.getDay();
+        const diff = (day + 6) % 7;
+        nd.setDate(nd.getDate() - diff);
+        nd.setHours(0, 0, 0, 0);
+        return nd;
+      };
+      const addDays = (d: Date, n: number) => {
+        const nd = new Date(d);
+        nd.setDate(nd.getDate() + n);
+        return nd;
+      };
+
+      const zones: { start: string; end: string; color: string }[] = [];
+      let wStart = startOfWeek(start);
+      while (wStart <= end) {
+        const wEnd = addDays(wStart, 6);
+        let sum = 0;
+        let cnt = 0;
+        for (
+          let d = new Date(wStart);
+          d <= wEnd && d <= end;
+          d = addDays(d, 1)
+        ) {
+          const key = getDayString(d.toISOString());
+          const entry = caloriesStore.getEntryByDate(key);
+          if (entry) {
+            sum += entry.calories;
+            cnt += 1;
+          }
+        }
+        if (cnt > 0) {
+          const avg = sum / cnt;
+          const color =
+            avg < caloriesStore.maintenanceCalories
+              ? themeColors.chartZoneDeficit
+              : themeColors.chartZoneSurplus;
+          const zs = getDayString(wStart.toISOString());
+          const ze = getDayString((wEnd > end ? end : wEnd).toISOString());
+          zones.push({ start: zs, end: ze, color });
+        }
+        wStart = addDays(wStart, 7);
+      }
+      return zones;
+    };
+
+    const highlightZones = buildHighlightZones();
+
     return (
       <View
         style={[styles.chartContainer, { backgroundColor: themeColors.card }]}
@@ -287,6 +339,7 @@ export default function AnalyticsScreen() {
         <Plot
           data={filteredData}
           additionalLines={additionalLinesData}
+          highlightZones={highlightZones}
           width={350}
           height={220}
           margin={{ top: 20, right: 20, bottom: 40, left: 40 }}
@@ -295,7 +348,6 @@ export default function AnalyticsScreen() {
       </View>
     );
   };
-
   // --- Функция импорта данных ---
   const importPlans = async () => {
     try {
