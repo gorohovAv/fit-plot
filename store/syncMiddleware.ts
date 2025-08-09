@@ -53,6 +53,13 @@ const syncToDatabase = async (prevState: StoreState, newState: StoreState) => {
     if (newState.calories && newState.calories !== prevState.calories) {
       await syncCalories(newState.calories);
     }
+
+    // Добавляем синхронизацию maintenance calories
+    if (newState.maintenanceCalories !== prevState.maintenanceCalories) {
+      if (newState.maintenanceCalories !== null) {
+        await dbLayer.saveMaintenanceCalories(newState.maintenanceCalories);
+      }
+    }
   } catch (error) {
     console.error("Ошибка синхронизации с БД:", error);
   }
@@ -136,8 +143,9 @@ export const loadFromDatabase = async () => {
     const plans = await loadPlansFromDB();
     const settings = await loadSettingsFromDB();
     const calories = await loadCaloriesFromDB();
+    const maintenanceCalories = await dbLayer.getMaintenanceCalories();
 
-    return { plans, settings, calories };
+    return { plans, settings, calories, maintenanceCalories };
   } catch (error) {
     console.error("Ошибка загрузки из БД:", error);
     return null;

@@ -29,6 +29,7 @@ type PlotProps = {
   width?: number;
   height?: number;
   margin?: { top: number; right: number; bottom: number; left: number };
+  fixedYRange?: number; // фиксированный диапазон для Y оси
 };
 
 const Plot: React.FC<PlotProps> = ({
@@ -40,7 +41,8 @@ const Plot: React.FC<PlotProps> = ({
   secondYAxisColor,
   width = 300,
   height = 200,
-  margin = { top: 20, right: 40, bottom: 40, left: 40 },
+  margin = { top: 20, right: 60, bottom: 60, left: 60 }, // увеличили отступы
+  fixedYRange,
 }) => {
   const settingsTheme = useSettingsStore((s) => s.theme);
   const systemTheme = useColorScheme();
@@ -57,18 +59,20 @@ const Plot: React.FC<PlotProps> = ({
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
 
-  // Диапазон Y для первого набора
-  const yDomain = [
-    Math.min(0, d3.min(data, (d) => d.y) ?? 0),
-    d3.max(data, (d) => d.y) ?? 0,
-  ];
+  // Диапазон Y для первого набора с запасом
+  const yMin = Math.min(0, d3.min(data, (d) => d.y) ?? 0);
+  const yMax = d3.max(data, (d) => d.y) ?? 0;
+  const yPadding = (yMax - yMin) * 0.1; // 10% запас
+  const yDomain = [yMin - yPadding, yMax + yPadding];
 
-  // Диапазон Y для второго набора
+  // Диапазон Y для второго набора с запасом
   const y2Domain = secondData
-    ? [
-        Math.min(0, d3.min(secondData, (d) => d.y) ?? 0),
-        d3.max(secondData, (d) => d.y) ?? 0,
-      ]
+    ? (() => {
+        const y2Min = Math.min(0, d3.min(secondData, (d) => d.y) ?? 0);
+        const y2Max = d3.max(secondData, (d) => d.y) ?? 0;
+        const y2Padding = (y2Max - y2Min) * 0.1;
+        return [y2Min - y2Padding, y2Max + y2Padding];
+      })()
     : undefined;
 
   // Масштабирование для оси X
@@ -78,7 +82,7 @@ const Plot: React.FC<PlotProps> = ({
       d3.min(data, (d) => new Date(d.x)) as Date,
       d3.max(data, (d) => new Date(d.x)) as Date,
     ])
-    .range([0, innerWidth * 1.5])
+    .range([0, innerWidth])
     .nice();
 
   // Масштабирование для оси Y
@@ -95,14 +99,6 @@ const Plot: React.FC<PlotProps> = ({
         .range([innerHeight, 0])
     : undefined;
 
-  // Генератор линий
-  const lineGenerator = (data: DataPoint[]) =>
-    d3
-      .line<DataPoint>()
-      .x((d) => xScale(new Date(d.x)))
-      .y((d) => yScale(d.y))
-      .curve(d3.curveCatmullRom.alpha(0.5))(data) || "";
-
   // Генератор основной линии, игнорирующий нулевые значения
   const mainLineGenerator = (data: DataPoint[]) =>
     d3
@@ -112,31 +108,38 @@ const Plot: React.FC<PlotProps> = ({
       .defined((d) => d.y > 0) // Игнорируем точки, где y <= 0
       .curve(d3.curveCatmullRom.alpha(0.5))(data) || "";
 
-  // Генератор второй линии
-  const secondLineGenerator = (data: DataPoint[]) =>
+  // Генератор дополнительных линий
+  const additionalLineGenerator = (data: DataPoint[]) =>
     d3
       .line<DataPoint>()
       .x((d) => xScale(new Date(d.x)))
-      .y((d) => y2Scale(d.y))
+      .y((d) => yScale(d.y))
       .curve(d3.curveCatmullRom.alpha(0.5))(data) || "";
 
-  // Форматирование даты
-  const formatDate = (date: Date) => d3.timeFormat("%d.%m.%Y")(date);
+  // Генератор второй линии
+  const secondLineGenerator = (data: DataPoint[]) =>
+    y2Scale
+      ? d3
+          .line<DataPoint>()
+          .x((d) => xScale(new Date(d.x)))
+          .y((d) => y2Scale(d.y))
+          .curve(d3.curveCatmullRom.alpha(0.5))(data) || ""
+      : "";
 
-  // Вычисление индексов для меток X (максимальное расстояние)
-  const minLabelGap = 50; // px
-  const maxLabels = Math.floor((innerWidth * 1.5) / minLabelGap);
-  const labelStep = Math.ceil(data.length / maxLabels);
+  // Форматирование даты
+  const formatDate = (date: Date) => d3.timeFormat("%d.%m")(date);
 
   // Генерация тиков для оси Y
   const yTicks = yScale.ticks(5);
+  const y2Ticks = y2Scale ? y2Scale.ticks(5) : [];
+
   // Генерация тиков для оси X
-  const xTicks = xScale.ticks(maxLabels);
+  const xTicks = xScale.ticks(Math.min(6, data.length));
 
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
       <Svg width={width} height={height}>
-        <G>
+        <G transform={`translate(${margin.left}, ${margin.top})`}>
           {/* Сетка */}
           {yTicks.map((tick) => (
             <Line
@@ -150,7 +153,21 @@ const Plot: React.FC<PlotProps> = ({
             />
           ))}
 
-          {/* Ось Y */}
+          {/* Вертикальные линии сетки для X */}
+          {xTicks.map((tick) => (
+            <Line
+              key={tick.getTime()}
+              x1={xScale(tick)}
+              y1={0}
+              x2={xScale(tick)}
+              y2={innerHeight}
+              stroke={colors.chartGrid}
+              strokeWidth={0.5}
+              opacity={0.3}
+            />
+          ))}
+
+          {/* Ось Y левая */}
           <Line
             x1={0}
             y1={0}
@@ -160,19 +177,47 @@ const Plot: React.FC<PlotProps> = ({
             strokeWidth={1}
           />
 
-          {/* Подписи оси Y */}
+          {/* Ось Y правая (для второй оси) */}
+          {secondData && (
+            <Line
+              x1={innerWidth}
+              y1={0}
+              x2={innerWidth}
+              y2={innerHeight}
+              stroke={secondAxisColor}
+              strokeWidth={1}
+            />
+          )}
+
+          {/* Подписи левой оси Y */}
           {yTicks.map((tick) => (
             <SvgText
               key={tick}
-              x={-5}
+              x={-10}
               y={yScale(tick) + 4}
               fontSize={10}
               fill={colors.text}
               textAnchor="end"
             >
-              {tick}
+              {Math.round(tick)}
             </SvgText>
           ))}
+
+          {/* Подписи правой оси Y */}
+          {secondData &&
+            y2Scale &&
+            y2Ticks.map((tick) => (
+              <SvgText
+                key={`y2-${tick}`}
+                x={innerWidth + 10}
+                y={y2Scale(tick) + 4}
+                fontSize={10}
+                fill={secondAxisColor}
+                textAnchor="start"
+              >
+                {Math.round(tick)}
+              </SvgText>
+            ))}
 
           {/* Основная линия */}
           <Path
@@ -181,6 +226,17 @@ const Plot: React.FC<PlotProps> = ({
             stroke={colors.chartLine[0]}
             strokeWidth={2}
           />
+
+          {/* Дополнительные линии */}
+          {additionalLines.map((lineData, index) => (
+            <Path
+              key={`additional-${index}`}
+              d={additionalLineGenerator(lineData) || ""}
+              fill="none"
+              stroke={colors.chartLine[(index + 1) % colors.chartLine.length]}
+              strokeWidth={2}
+            />
+          ))}
 
           {/* Вторая линия */}
           {secondData && y2Scale && (
@@ -192,16 +248,33 @@ const Plot: React.FC<PlotProps> = ({
             />
           )}
 
-          {/* Точки данных */}
-          {data.map((point, index) => (
-            <Circle
-              key={index}
-              cx={xScale(new Date(point.x))}
-              cy={yScale(point.y)}
-              r={3}
-              fill={colors.chartLine[0]}
-            />
-          ))}
+          {/* Точки основных данных */}
+          {data
+            .filter((point) => point.y > 0)
+            .map((point, index) => (
+              <Circle
+                key={index}
+                cx={xScale(new Date(point.x))}
+                cy={yScale(point.y)}
+                r={3}
+                fill={colors.chartLine[0]}
+              />
+            ))}
+
+          {/* Точки дополнительных линий */}
+          {additionalLines.map((lineData, lineIndex) =>
+            lineData.map((point, pointIndex) => (
+              <Circle
+                key={`additional-point-${lineIndex}-${pointIndex}`}
+                cx={xScale(new Date(point.x))}
+                cy={yScale(point.y)}
+                r={3}
+                fill={
+                  colors.chartLine[(lineIndex + 1) % colors.chartLine.length]
+                }
+              />
+            ))
+          )}
 
           {/* Точки второй линии */}
           {secondData &&
@@ -226,16 +299,28 @@ const Plot: React.FC<PlotProps> = ({
             strokeWidth={1}
           />
 
+          {/* Засечки на оси X */}
+          {xTicks.map((tick) => (
+            <Line
+              key={`tick-${tick.getTime()}`}
+              x1={xScale(tick)}
+              y1={innerHeight}
+              x2={xScale(tick)}
+              y2={innerHeight + 5}
+              stroke={colors.text}
+              strokeWidth={1}
+            />
+          ))}
+
           {/* Подписи оси X */}
           {xTicks.map((tick) => (
             <SvgText
               key={tick.getTime()}
               x={xScale(tick)}
-              y={innerHeight + 15}
+              y={innerHeight + 20}
               fontSize={10}
               fill={colors.text}
               textAnchor="middle"
-              transform={`rotate(-45 ${xScale(tick)} ${innerHeight + 15})`}
             >
               {formatDate(tick)}
             </SvgText>
@@ -243,24 +328,24 @@ const Plot: React.FC<PlotProps> = ({
 
           {/* Подписи осей */}
           <SvgText
-            x={-innerHeight / 2}
-            y={-10}
+            x={-35}
+            y={innerHeight / 2}
             fontSize={12}
             fill={colors.text}
             textAnchor="middle"
-            transform={`rotate(-90 ${-innerHeight / 2} ${-10})`}
+            transform={`rotate(-90 ${-35} ${innerHeight / 2})`}
           >
             Калории
           </SvgText>
 
           {secondData && (
             <SvgText
-              x={innerWidth + 10}
-              y={-innerHeight / 2}
+              x={innerWidth + 35}
+              y={innerHeight / 2}
               fontSize={12}
               fill={secondAxisColor}
               textAnchor="middle"
-              transform={`rotate(90 ${innerWidth + 10} ${-innerHeight / 2})`}
+              transform={`rotate(90 ${innerWidth + 35} ${innerHeight / 2})`}
             >
               {secondYAxisLabel}
             </SvgText>

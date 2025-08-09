@@ -10,10 +10,12 @@ type CalorieEntry = {
 
 type CaloriesState = {
   entries: CalorieEntry[];
+  maintenanceCalories: number | null;
   addEntry: (entry: CalorieEntry) => void;
   updateEntry: (date: string, entry: CalorieEntry) => void;
   deleteEntry: (date: string) => void;
   getEntryByDate: (date: string) => CalorieEntry | undefined;
+  setMaintenanceCalories: (calories: number) => void;
   initializeFromDB: () => Promise<void>;
 };
 
@@ -22,6 +24,7 @@ const syncMiddleware = createSyncMiddleware();
 const useCaloriesStore = create<CaloriesState>()(
   syncMiddleware((set, get) => ({
     entries: [],
+    maintenanceCalories: null,
     addEntry: (entry: CalorieEntry) =>
       set((state: CaloriesState) => ({
         entries: [...state.entries, entry],
@@ -38,11 +41,14 @@ const useCaloriesStore = create<CaloriesState>()(
       })),
     getEntryByDate: (date: string) =>
       get().entries.find((entry: CalorieEntry) => entry.date === date),
+    setMaintenanceCalories: (calories: number) =>
+      set({ maintenanceCalories: calories }),
     initializeFromDB: async () => {
       try {
         await dbLayer.initDatabase();
         const entries = await dbLayer.getCalorieEntries();
-        set({ entries });
+        const maintenanceCalories = await dbLayer.getMaintenanceCalories();
+        set({ entries, maintenanceCalories });
       } catch (error) {
         console.error("Ошибка инициализации калорий из БД:", error);
       }

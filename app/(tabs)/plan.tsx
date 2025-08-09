@@ -5,10 +5,10 @@ import {
   TouchableOpacity,
   Modal,
   TextInput,
-  FlatList,
-  Button,
+  ScrollView,
   Platform,
 } from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
 import useStore from "../../store/store";
 import { Exercise, PlannedResult, Plan } from "../../store/store";
 import { Picker } from "@react-native-picker/picker";
@@ -17,36 +17,270 @@ import useSettingsStore from "../../store/settingsStore";
 import { Colors } from "../../constants/Colors";
 import { getTranslation } from "../../utils/localization";
 
-const SEASON_COLORS = ["#A7D8FF", "#B6F5B6", "#FFF7A7", "#FFD6A7"];
+// Цвета сезонов для светлой темы
+const SEASON_COLORS_LIGHT = {
+  winter: "#A7D8FF", // Зимний голубой
+  spring: "#B6F5B6", // Весенний зеленый
+  summer: "#FFF7A7", // Летний желтый
+  autumn: "#FFD6A7", // Осенний оранжевый
+};
 
-function getSeasonColor(month: number) {
-  if ([11, 0, 1].includes(month)) return SEASON_COLORS[0];
-  if ([2, 3, 4].includes(month)) return SEASON_COLORS[1];
-  if ([5, 6, 7].includes(month)) return SEASON_COLORS[2];
-  return SEASON_COLORS[3];
+// Цвета сезонов для темной темы
+const SEASON_COLORS_DARK = {
+  winter: "#4A90E2", // Темный зимний голубой
+  spring: "#7ED321", // Темный весенний зеленый
+  summer: "#F5A623", // Темный летний желтый
+  autumn: "#D0743C", // Темный осенний оранжевый
+};
+
+// Material Icons для сезонов
+const SEASON_ICONS = {
+  winter: "ac-unit" as const,
+  spring: "local-florist" as const,
+  summer: "wb-sunny" as const,
+  autumn: "nature" as const,
+};
+
+// Названия сезонов
+const SEASON_NAMES = {
+  winter: { english: "Winter", russian: "Зима" },
+  spring: { english: "Spring", russian: "Весна" },
+  summer: { english: "Summer", russian: "Лето" },
+  autumn: { english: "Autumn", russian: "Осень" },
+};
+
+function getSeason(month: number): keyof typeof SEASON_COLORS_LIGHT {
+  if ([11, 0, 1].includes(month)) return "winter";
+  if ([2, 3, 4].includes(month)) return "spring";
+  if ([5, 6, 7].includes(month)) return "summer";
+  return "autumn";
 }
 
-function getMonthLabel(date: dayjs.Dayjs, language: string) {
-  return date.format(getTranslation(language as any, "monthLabel"));
+function getSeasonMonths(
+  season: keyof typeof SEASON_COLORS_LIGHT,
+  year: number
+) {
+  switch (season) {
+    case "winter":
+      return [11, 0, 1].map((month) =>
+        month === 11
+          ? dayjs()
+              .year(year - 1)
+              .month(month)
+          : dayjs().year(year).month(month)
+      );
+    case "spring":
+      return [2, 3, 4].map((month) => dayjs().year(year).month(month));
+    case "summer":
+      return [5, 6, 7].map((month) => dayjs().year(year).month(month));
+    case "autumn":
+      return [8, 9, 10].map((month) => dayjs().year(year).month(month));
+  }
 }
 
-function getMonthsRange(plannedResults: PlannedResult[]) {
-  let start: dayjs.Dayjs;
-  if (plannedResults.length > 0) {
-    start = dayjs(plannedResults.map((r) => r.plannedDate).sort()[0]).startOf(
-      "month"
-    );
-  } else {
-    start = dayjs().startOf("month");
-  }
-  const end = dayjs().add(12, "month").endOf("month");
-  const months = [];
-  let current = start.clone();
-  while (current.isBefore(end)) {
-    months.push(current.clone());
-    current = current.add(1, "month");
-  }
-  return months;
+function getSeasonsData(plannedResults: PlannedResult[]) {
+  const currentYear = dayjs().year();
+  const nextYear = currentYear + 1;
+
+  const seasons = [];
+  const seasonKeys: (keyof typeof SEASON_COLORS_LIGHT)[] = [
+    "winter",
+    "spring",
+    "summer",
+    "autumn",
+  ];
+
+  // Добавляем текущий и следующий год
+  [currentYear, nextYear].forEach((year) => {
+    seasonKeys.forEach((season) => {
+      const months = getSeasonMonths(season, year);
+      const seasonResults = plannedResults.filter((result) => {
+        const resultDate = dayjs(result.plannedDate);
+        return months.some(
+          (month) =>
+            resultDate.year() === month.year() &&
+            resultDate.month() === month.month()
+        );
+      });
+
+      seasons.push({
+        season,
+        year,
+        months,
+        results: seasonResults,
+        id: `${season}-${year}`,
+      });
+    });
+  });
+
+  return seasons;
+}
+
+interface SeasonZoneProps {
+  season: keyof typeof SEASON_COLORS_LIGHT;
+  year: number;
+  results: PlannedResult[];
+  allExercises: Exercise[];
+  colors: any;
+  language: string;
+  isDark: boolean;
+  onAddResult: (season: keyof typeof SEASON_COLORS_LIGHT, year: number) => void;
+}
+
+function SeasonZone({
+  season,
+  year,
+  results,
+  allExercises,
+  colors,
+  language,
+  isDark,
+  onAddResult,
+}: SeasonZoneProps) {
+  const seasonName =
+    SEASON_NAMES[season][language as "english" | "russian"] ||
+    SEASON_NAMES[season].english;
+  const seasonColors = isDark ? SEASON_COLORS_DARK : SEASON_COLORS_LIGHT;
+  const seasonColor = seasonColors[season];
+
+  return (
+    <View style={{ marginBottom: 32 }}>
+      {/* Баннер сезона */}
+      <View
+        style={{
+          backgroundColor: seasonColor,
+          borderRadius: 16,
+          padding: 20,
+          marginBottom: 16,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.15,
+          shadowRadius: 4,
+          elevation: 3,
+        }}
+      >
+        <View style={{ flex: 1 }}>
+          <Text
+            style={{
+              fontSize: 28,
+              fontWeight: "bold",
+              color: isDark ? "#fff" : "#333",
+              marginBottom: 4,
+            }}
+          >
+            {seasonName} {year}
+          </Text>
+        </View>
+        <MaterialIcons
+          name={SEASON_ICONS[season]}
+          size={48}
+          color={isDark ? "#fff" : "#333"}
+        />
+      </View>
+
+      {/* Список планируемых результатов */}
+      <View style={{ paddingHorizontal: 4 }}>
+        {results.length > 0 ? (
+          results.map((result, index) => {
+            const exercise = allExercises.find(
+              (ex) => ex.id === result.exerciseId
+            );
+            return (
+              <View
+                key={`${result.exerciseId}-${result.plannedDate}-${index}`}
+                style={{
+                  backgroundColor: colors.card,
+                  borderRadius: 12,
+                  padding: 16,
+                  marginBottom: 8,
+                  borderLeftWidth: 4,
+                  borderLeftColor: seasonColor,
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 2,
+                  elevation: 2,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: "600",
+                    color: colors.text,
+                    marginBottom: 4,
+                  }}
+                >
+                  {exercise?.name || "Unknown Exercise"}
+                </Text>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <Text style={{ color: colors.textSecondary, fontSize: 14 }}>
+                    {result.plannedWeight}{" "}
+                    {getTranslation(language as any, "kg")} ×{" "}
+                    {result.plannedReps}{" "}
+                    {getTranslation(language as any, "reps")}
+                  </Text>
+                  <Text style={{ color: colors.textSecondary, fontSize: 14 }}>
+                    {dayjs(result.plannedDate).format("DD.MM.YYYY")}
+                  </Text>
+                </View>
+              </View>
+            );
+          })
+        ) : (
+          <Text
+            style={{
+              color: colors.textSecondary,
+              fontStyle: "italic",
+              textAlign: "center",
+              marginBottom: 16,
+            }}
+          >
+            {language === "russian"
+              ? "Нет запланированных результатов"
+              : "No planned results"}
+          </Text>
+        )}
+
+        {/* Кнопка добавления */}
+        <TouchableOpacity
+          style={{
+            backgroundColor: colors.tint,
+            borderRadius: 12,
+            padding: 16,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            marginTop: 8,
+          }}
+          onPress={() => onAddResult(season, year)}
+        >
+          <MaterialIcons
+            name="add"
+            size={20}
+            color={colors.buttonPrimaryText}
+          />
+          <Text
+            style={{
+              color: colors.buttonPrimaryText,
+              fontSize: 16,
+              fontWeight: "600",
+              marginLeft: 8,
+            }}
+          >
+            {getTranslation(language as any, "addPlannedResult")}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
 }
 
 export default function PlanScreen() {
@@ -55,45 +289,57 @@ export default function PlanScreen() {
   const language = useSettingsStore((s) => s.language);
 
   const plan: Plan = plans[0];
-  const allExercises = plan.trainings.flatMap((t) => t.exercises);
-  const plannedResults = plan.trainings.flatMap((t) => t.plannedResults);
+  const allExercises = plan?.trainings.flatMap((t) => t.exercises) || [];
+  const plannedResults = plan?.trainings.flatMap((t) => t.plannedResults) || [];
 
-  const months = useMemo(
-    () => getMonthsRange(plannedResults),
+  const seasonsData = useMemo(
+    () => getSeasonsData(plannedResults),
     [plannedResults]
   );
 
   const [modalVisible, setModalVisible] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState<dayjs.Dayjs | null>(null);
+  const [selectedSeason, setSelectedSeason] = useState<
+    keyof typeof SEASON_COLORS_LIGHT | null
+  >(null);
+  const [selectedYear, setSelectedYear] = useState<number>(0);
   const [selectedExerciseId, setSelectedExerciseId] = useState<string>("");
   const [plannedWeight, setPlannedWeight] = useState<string>("");
   const [plannedReps, setPlannedReps] = useState<string>("");
   const [plannedDate, setPlannedDate] = useState<string>("");
 
-  const openModal = (month: dayjs.Dayjs) => {
-    setSelectedMonth(month);
+  const openModal = (
+    season: keyof typeof SEASON_COLORS_LIGHT,
+    year: number
+  ) => {
+    setSelectedSeason(season);
+    setSelectedYear(year);
     setModalVisible(true);
     setSelectedExerciseId(allExercises[0]?.id || "");
     setPlannedWeight("");
     setPlannedReps("");
-    setPlannedDate(month.startOf("month").format("YYYY-MM-DD"));
+
+    // Устанавливаем дату на первый месяц сезона
+    const seasonMonths = getSeasonMonths(season, year);
+    setPlannedDate(seasonMonths[0].format("YYYY-MM-DD"));
   };
 
   const closeModal = () => setModalVisible(false);
 
   const handleSubmit = () => {
     if (
-      !selectedMonth ||
+      !selectedSeason ||
       !selectedExerciseId ||
       !plannedWeight ||
       !plannedReps ||
       !plannedDate
     )
       return;
+
     const training = plan.trainings.find((t) =>
       t.exercises.some((e) => e.id === selectedExerciseId)
     );
     if (!training) return;
+
     addPlannedResult(plan.planName, training.id, {
       exerciseId: selectedExerciseId,
       plannedWeight: Number(plannedWeight),
@@ -115,109 +361,140 @@ export default function PlanScreen() {
         : "light"
       : theme;
   const colors = Colors[colorScheme];
+  const isDark = colorScheme === "dark";
 
-  return (
-    <View style={{ flex: 1, padding: 16, backgroundColor: colors.background }}>
-      <Text
+  if (!plan) {
+    return (
+      <View
         style={{
-          fontSize: 20,
-          fontWeight: "bold",
-          marginBottom: 16,
-          color: colors.text,
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: colors.background,
         }}
       >
-        {getTranslation(language, "resultsPlanning")}
-      </Text>
-      <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
-        {months.map((month, idx) => (
-          <View
-            key={month.format("YYYY-MM")}
-            style={{
-              width: 120,
-              height: 80,
-              margin: 8,
-              borderRadius: 12,
-              backgroundColor: getSeasonColor(month.month()),
-              opacity: 0.5,
-              justifyContent: "flex-end",
-              alignItems: "flex-end",
-              position: "relative",
-              borderColor: colors.border,
-              borderWidth: 1,
-            }}
-          >
-            <Text
-              style={{
-                position: "absolute",
-                left: 8,
-                top: 8,
-                fontWeight: "bold",
-                color: colors.text,
-              }}
-            >
-              {getMonthLabel(month, language)}
-            </Text>
-            <TouchableOpacity
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 16,
-                backgroundColor: colors.tint,
-                opacity: 0.8,
-                justifyContent: "center",
-                alignItems: "center",
-                margin: 8,
-              }}
-              onPress={() => openModal(month)}
-            >
-              <Text
-                style={{ color: colors.card, fontSize: 24, fontWeight: "bold" }}
-              >
-                +
-              </Text>
-            </TouchableOpacity>
-          </View>
-        ))}
+        <Text style={{ color: colors.text, fontSize: 16 }}>
+          {getTranslation(language, "selectPlanToStart")}
+        </Text>
       </View>
+    );
+  }
+
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <ScrollView contentContainerStyle={{ padding: 16 }}>
+        <Text
+          style={{
+            fontSize: 24,
+            fontWeight: "bold",
+            marginBottom: 24,
+            color: colors.text,
+          }}
+        >
+          {getTranslation(language, "resultsPlanning")}
+        </Text>
+
+        {seasonsData.map((seasonData) => (
+          <SeasonZone
+            key={seasonData.id}
+            season={seasonData.season}
+            year={seasonData.year}
+            results={seasonData.results}
+            allExercises={allExercises}
+            colors={colors}
+            language={language}
+            isDark={isDark}
+            onAddResult={openModal}
+          />
+        ))}
+      </ScrollView>
+
+      {/* Модальное окно для добавления результата */}
       <Modal visible={modalVisible} transparent animationType="slide">
         <View
           style={{
             flex: 1,
             justifyContent: "center",
             alignItems: "center",
-            backgroundColor: "rgba(0,0,0,0.3)",
+            backgroundColor: colors.modalOverlay,
           }}
         >
           <View
             style={{
               backgroundColor: colors.card,
-              padding: 20,
-              borderRadius: 12,
-              width: 300,
+              padding: 24,
+              borderRadius: 16,
+              width: "90%",
+              maxWidth: 400,
             }}
           >
             <Text
               style={{
+                fontSize: 18,
                 fontWeight: "bold",
-                marginBottom: 8,
+                marginBottom: 16,
                 color: colors.text,
+                textAlign: "center",
               }}
             >
               {getTranslation(language, "addPlannedResult")}
             </Text>
-            <Text style={{ color: colors.text }}>
+
+            {selectedSeason && (
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: 16,
+                }}
+              >
+                <MaterialIcons
+                  name={SEASON_ICONS[selectedSeason]}
+                  size={24}
+                  color={colors.textSecondary}
+                  style={{ marginRight: 8 }}
+                />
+                <Text
+                  style={{
+                    color: colors.textSecondary,
+                    fontSize: 16,
+                  }}
+                >
+                  {
+                    SEASON_NAMES[selectedSeason][
+                      language as "english" | "russian"
+                    ]
+                  }{" "}
+                  {selectedYear}
+                </Text>
+              </View>
+            )}
+
+            <Text style={{ color: colors.text, marginBottom: 8 }}>
               {getTranslation(language, "exercise")}:
             </Text>
-            <Picker
-              selectedValue={selectedExerciseId}
-              onValueChange={setSelectedExerciseId}
-              style={{ width: "100%", color: colors.text }}
+            <View
+              style={{
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: 8,
+                marginBottom: 16,
+                backgroundColor: colors.inputBackground,
+              }}
             >
-              {allExercises.map((ex) => (
-                <Picker.Item key={ex.id} label={ex.name} value={ex.id} />
-              ))}
-            </Picker>
-            <Text style={{ color: colors.text }}>
+              <Picker
+                selectedValue={selectedExerciseId}
+                onValueChange={setSelectedExerciseId}
+                style={{ color: colors.text }}
+              >
+                {allExercises.map((ex) => (
+                  <Picker.Item key={ex.id} label={ex.name} value={ex.id} />
+                ))}
+              </Picker>
+            </View>
+
+            <Text style={{ color: colors.text, marginBottom: 8 }}>
               {getTranslation(language, "weightKg")}:
             </Text>
             <TextInput
@@ -227,15 +504,16 @@ export default function PlanScreen() {
               style={{
                 borderWidth: 1,
                 borderColor: colors.border,
-                marginBottom: 8,
-                borderRadius: 6,
-                padding: 4,
+                marginBottom: 16,
+                borderRadius: 8,
+                padding: 12,
                 color: colors.text,
-                backgroundColor: colors.background,
+                backgroundColor: colors.inputBackground,
               }}
-              placeholderTextColor={colors.icon}
+              placeholderTextColor={colors.placeholderText}
             />
-            <Text style={{ color: colors.text }}>
+
+            <Text style={{ color: colors.text, marginBottom: 8 }}>
               {getTranslation(language, "repetitions")}:
             </Text>
             <TextInput
@@ -245,15 +523,16 @@ export default function PlanScreen() {
               style={{
                 borderWidth: 1,
                 borderColor: colors.border,
-                marginBottom: 8,
-                borderRadius: 6,
-                padding: 4,
+                marginBottom: 16,
+                borderRadius: 8,
+                padding: 12,
                 color: colors.text,
-                backgroundColor: colors.background,
+                backgroundColor: colors.inputBackground,
               }}
-              placeholderTextColor={colors.icon}
+              placeholderTextColor={colors.placeholderText}
             />
-            <Text style={{ color: colors.text }}>
+
+            <Text style={{ color: colors.text, marginBottom: 8 }}>
               {getTranslation(language, "dateWithinMonth")}:
             </Text>
             <TextInput
@@ -263,27 +542,72 @@ export default function PlanScreen() {
               style={{
                 borderWidth: 1,
                 borderColor: colors.border,
-                marginBottom: 8,
-                borderRadius: 6,
-                padding: 4,
+                marginBottom: 24,
+                borderRadius: 8,
+                padding: 12,
                 color: colors.text,
-                backgroundColor: colors.background,
+                backgroundColor: colors.inputBackground,
               }}
-              placeholderTextColor={colors.icon}
+              placeholderTextColor={colors.placeholderText}
             />
+
             <View
               style={{ flexDirection: "row", justifyContent: "space-between" }}
             >
-              <Button
-                title={getTranslation(language, "cancel")}
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  marginRight: 8,
+                  backgroundColor: colors.buttonSecondary,
+                  padding: 12,
+                  borderRadius: 8,
+                  alignItems: "center",
+                  flexDirection: "row",
+                  justifyContent: "center",
+                }}
                 onPress={closeModal}
-                color={colors.error}
-              />
-              <Button
-                title={getTranslation(language, "saveResult")}
+              >
+                <MaterialIcons
+                  name="close"
+                  size={18}
+                  color={colors.buttonSecondaryText}
+                  style={{ marginRight: 4 }}
+                />
+                <Text
+                  style={{
+                    color: colors.buttonSecondaryText,
+                    fontWeight: "600",
+                  }}
+                >
+                  {getTranslation(language, "cancel")}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  marginLeft: 8,
+                  backgroundColor: colors.buttonSuccess,
+                  padding: 12,
+                  borderRadius: 8,
+                  alignItems: "center",
+                  flexDirection: "row",
+                  justifyContent: "center",
+                }}
                 onPress={handleSubmit}
-                color={colors.success}
-              />
+              >
+                <MaterialIcons
+                  name="check"
+                  size={18}
+                  color={colors.buttonSuccessText}
+                  style={{ marginRight: 4 }}
+                />
+                <Text
+                  style={{ color: colors.buttonSuccessText, fontWeight: "600" }}
+                >
+                  {getTranslation(language, "saveResult")}
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>

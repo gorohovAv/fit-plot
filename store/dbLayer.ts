@@ -303,6 +303,20 @@ export const clearOldStepsFallback = async (
   );
 };
 
+export const saveMaintenanceCalories = async (
+  calories: number
+): Promise<void> => {
+  await saveSetting("maintenanceCalories", calories.toString());
+};
+
+export const getMaintenanceCalories = async (): Promise<number | null> => {
+  const database = await getDatabase();
+  const result = await database.getFirstAsync(
+    "SELECT value FROM settings WHERE key = 'maintenanceCalories'"
+  );
+  return result ? parseFloat(result.value) : null;
+};
+
 export const logAllTables = async () => {
   const database = await getDatabase();
 

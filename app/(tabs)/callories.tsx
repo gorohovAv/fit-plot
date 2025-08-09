@@ -19,7 +19,16 @@ import * as stepService from "../../services/stepService";
 export default function CaloriesScreen() {
   const [calories, setCalories] = useState("");
   const [weight, setWeight] = useState("");
-  const { entries, addEntry, getEntryByDate } = useCaloriesStore();
+  const [maintenanceCaloriesInput, setMaintenanceCaloriesInput] = useState("");
+  const [isEditingMaintenance, setIsEditingMaintenance] = useState(false);
+
+  const {
+    entries,
+    addEntry,
+    getEntryByDate,
+    maintenanceCalories,
+    setMaintenanceCalories,
+  } = useCaloriesStore();
   const { language } = useSettingsStore();
   const {
     todaySteps,
@@ -40,6 +49,16 @@ export default function CaloriesScreen() {
 
   const today = new Date().toISOString().split("T")[0];
   const todayEntry = getEntryByDate(today);
+
+  // Инициализация поля maintenance calories
+  useEffect(() => {
+    if (maintenanceCalories !== null) {
+      setMaintenanceCaloriesInput(maintenanceCalories.toString());
+      setIsEditingMaintenance(false);
+    } else {
+      setIsEditingMaintenance(true);
+    }
+  }, [maintenanceCalories]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -91,6 +110,37 @@ export default function CaloriesScreen() {
     );
   };
 
+  const handleMaintenanceCaloriesSave = () => {
+    const maintenanceNum = parseInt(maintenanceCaloriesInput);
+
+    if (!maintenanceCaloriesInput) {
+      Alert.alert(
+        getTranslation(language, "error"),
+        "Введите калораж на поддержание"
+      );
+      return;
+    }
+
+    if (isNaN(maintenanceNum) || maintenanceNum <= 0) {
+      Alert.alert(
+        getTranslation(language, "error"),
+        "Введите корректный калораж на поддержание"
+      );
+      return;
+    }
+
+    setMaintenanceCalories(maintenanceNum);
+    setIsEditingMaintenance(false);
+    Alert.alert(
+      getTranslation(language, "success"),
+      "Калораж на поддержание сохранен"
+    );
+  };
+
+  const handleEditMaintenance = () => {
+    setIsEditingMaintenance(true);
+  };
+
   const handleStepTrackingToggle = () => {
     if (isTracking) {
       stopTracking();
@@ -117,6 +167,88 @@ export default function CaloriesScreen() {
     <ScrollView
       style={[styles.container, { backgroundColor: colorScheme.background }]}
     >
+      {/* Форма калорий на поддержание */}
+      <View
+        style={[styles.formContainer, { backgroundColor: colorScheme.card }]}
+      >
+        <Text style={[styles.title, { color: colorScheme.text }]}>
+          Калораж на поддержание
+        </Text>
+
+        <View style={styles.inputGroup}>
+          <Text style={[styles.label, { color: colorScheme.text }]}>
+            Калории на поддержание веса
+          </Text>
+          <View style={styles.maintenanceContainer}>
+            <TextInput
+              style={[
+                styles.input,
+                styles.maintenanceInput,
+                {
+                  backgroundColor: colorScheme.card,
+                  color: colorScheme.text,
+                  borderColor: colorScheme.border,
+                },
+                !isEditingMaintenance && styles.disabledInput,
+              ]}
+              value={maintenanceCaloriesInput}
+              onChangeText={setMaintenanceCaloriesInput}
+              placeholder="Введите калораж на поддержание"
+              keyboardType="numeric"
+              placeholderTextColor={colorScheme.icon}
+              editable={isEditingMaintenance}
+            />
+            {isEditingMaintenance ? (
+              <TouchableOpacity
+                style={[
+                  styles.actionButton,
+                  { backgroundColor: colorScheme.tint },
+                ]}
+                onPress={handleMaintenanceCaloriesSave}
+              >
+                <Text
+                  style={[styles.actionButtonText, { color: colorScheme.card }]}
+                >
+                  Сохранить
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={[
+                  styles.actionButton,
+                  { backgroundColor: colorScheme.warning },
+                ]}
+                onPress={handleEditMaintenance}
+              >
+                <Text
+                  style={[styles.actionButtonText, { color: colorScheme.card }]}
+                >
+                  Изменить
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+
+        {maintenanceCalories && (
+          <View
+            style={[
+              styles.maintenanceInfo,
+              { backgroundColor: colorScheme.success + "22" },
+            ]}
+          >
+            <Text
+              style={[
+                styles.maintenanceInfoText,
+                { color: colorScheme.success },
+              ]}
+            >
+              Калораж на поддержание: {maintenanceCalories} ккал
+            </Text>
+          </View>
+        )}
+      </View>
+
       <View
         style={[styles.formContainer, { backgroundColor: colorScheme.card }]}
       >
@@ -228,6 +360,13 @@ export default function CaloriesScreen() {
                 value: todayEntry.weight,
               })}
             </Text>
+            {maintenanceCalories && (
+              <Text style={[styles.todayText, { color: colorScheme.text }]}>
+                Отклонение от поддержания:{" "}
+                {todayEntry.calories - maintenanceCalories > 0 ? "+" : ""}
+                {todayEntry.calories - maintenanceCalories} ккал
+              </Text>
+            )}
           </View>
         )}
       </View>
@@ -314,6 +453,38 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
+  },
+  maintenanceContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  maintenanceInput: {
+    flex: 1,
+  },
+  disabledInput: {
+    opacity: 0.7,
+  },
+  actionButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 6,
+    minWidth: 80,
+  },
+  actionButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  maintenanceInfo: {
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  maintenanceInfoText: {
+    fontSize: 14,
+    fontWeight: "600",
+    textAlign: "center",
   },
   saveButton: {
     padding: 15,
