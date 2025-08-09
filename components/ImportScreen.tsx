@@ -31,6 +31,10 @@ export function ImportScreen({ onBack }: ImportScreenProps) {
   const textColor = useThemeColor({}, "text");
   const borderColor = useThemeColor({}, "border");
   const cardColor = useThemeColor({}, "card");
+  const buttonPrimary = useThemeColor({}, "buttonPrimary");
+  const buttonPrimaryText = useThemeColor({}, "buttonPrimaryText");
+  const buttonSecondary = useThemeColor({}, "buttonSecondary");
+  const placeholderColor = useThemeColor({}, "placeholderText");
 
   const language = useSettingsStore((state) => state.language);
 
@@ -134,7 +138,7 @@ export function ImportScreen({ onBack }: ImportScreenProps) {
         value={importText}
         onChangeText={handleTextChange}
         placeholder={getTranslation(language, "importFormatExample")}
-        placeholderTextColor={textColor + "80"}
+        placeholderTextColor={placeholderColor}
       />
 
       <TouchableOpacity
@@ -152,13 +156,23 @@ export function ImportScreen({ onBack }: ImportScreenProps) {
           styles.importButton,
           {
             backgroundColor:
-              validationStatus === "valid" ? "#007AFF" : "#8E8E93",
+              validationStatus === "valid" ? buttonPrimary : buttonSecondary,
           },
         ]}
         onPress={handleImport}
         disabled={validationStatus !== "valid"}
       >
-        <Text style={styles.importButtonText}>
+        <Text
+          style={[
+            styles.importButtonText,
+            {
+              color:
+                validationStatus === "valid"
+                  ? buttonPrimaryText
+                  : buttonPrimaryText,
+            },
+          ]}
+        >
           {getTranslation(language, "import")}
         </Text>
       </TouchableOpacity>
@@ -218,7 +232,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   importButtonText: {
-    color: "white",
     fontSize: 16,
     fontWeight: "bold",
   },

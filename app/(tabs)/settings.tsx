@@ -46,45 +46,87 @@ export default function SettingsScreen() {
         {getTranslation(language, "theme")}
       </Text>
       <View style={styles.row}>
-        <Text
+        <TouchableOpacity
           style={[
             styles.themeOption,
-            theme === "system" && styles.selected,
-            theme === "system" && {
-              backgroundColor: colors.tabIconSelected,
-              color: colors.text,
+            {
+              backgroundColor:
+                theme === "system"
+                  ? colors.selectorOptionSelected
+                  : colors.selectorOption,
+              borderColor: colors.border,
             },
           ]}
           onPress={() => setTheme("system")}
         >
-          {getTranslation(language, "system")}
-        </Text>
-        <Text
+          <Text
+            style={[
+              styles.themeOptionText,
+              {
+                color:
+                  theme === "system"
+                    ? colors.selectorOptionTextSelected
+                    : colors.selectorOptionText,
+              },
+            ]}
+          >
+            {getTranslation(language, "system")}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
           style={[
             styles.themeOption,
-            theme === "light" && styles.selected,
-            theme === "light" && {
-              backgroundColor: colors.tabIconSelected,
-              color: colors.text,
+            {
+              backgroundColor:
+                theme === "light"
+                  ? colors.selectorOptionSelected
+                  : colors.selectorOption,
+              borderColor: colors.border,
             },
           ]}
           onPress={() => setTheme("light")}
         >
-          {getTranslation(language, "light")}
-        </Text>
-        <Text
+          <Text
+            style={[
+              styles.themeOptionText,
+              {
+                color:
+                  theme === "light"
+                    ? colors.selectorOptionTextSelected
+                    : colors.selectorOptionText,
+              },
+            ]}
+          >
+            {getTranslation(language, "light")}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
           style={[
             styles.themeOption,
-            theme === "dark" && styles.selected,
-            theme === "dark" && {
-              backgroundColor: colors.tabIconSelected,
-              color: colors.text,
+            {
+              backgroundColor:
+                theme === "dark"
+                  ? colors.selectorOptionSelected
+                  : colors.selectorOption,
+              borderColor: colors.border,
             },
           ]}
           onPress={() => setTheme("dark")}
         >
-          {getTranslation(language, "dark")}
-        </Text>
+          <Text
+            style={[
+              styles.themeOptionText,
+              {
+                color:
+                  theme === "dark"
+                    ? colors.selectorOptionTextSelected
+                    : colors.selectorOptionText,
+              },
+            ]}
+          >
+            {getTranslation(language, "dark")}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       <Text style={[styles.label, { color: colors.text }]}>
@@ -111,32 +153,60 @@ export default function SettingsScreen() {
 
       <Text style={[styles.label, { color: colors.text }]}>Язык</Text>
       <View style={styles.row}>
-        <Text
+        <TouchableOpacity
           style={[
             styles.themeOption,
-            language === "russian" && styles.selected,
-            language === "russian" && {
-              backgroundColor: colors.tabIconSelected,
-              color: colors.text,
+            {
+              backgroundColor:
+                language === "russian"
+                  ? colors.selectorOptionSelected
+                  : colors.selectorOption,
+              borderColor: colors.border,
             },
           ]}
           onPress={() => setLanguage("russian")}
         >
-          Русский
-        </Text>
-        <Text
+          <Text
+            style={[
+              styles.themeOptionText,
+              {
+                color:
+                  language === "russian"
+                    ? colors.selectorOptionTextSelected
+                    : colors.selectorOptionText,
+              },
+            ]}
+          >
+            Русский
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
           style={[
             styles.themeOption,
-            language === "english" && styles.selected,
-            language === "english" && {
-              backgroundColor: colors.tabIconSelected,
-              color: colors.text,
+            {
+              backgroundColor:
+                language === "english"
+                  ? colors.selectorOptionSelected
+                  : colors.selectorOption,
+              borderColor: colors.border,
             },
           ]}
           onPress={() => setLanguage("english")}
         >
-          English
-        </Text>
+          <Text
+            style={[
+              styles.themeOptionText,
+              {
+                color:
+                  language === "english"
+                    ? colors.selectorOptionTextSelected
+                    : colors.selectorOptionText,
+              },
+            ]}
+          >
+            English
+          </Text>
+        </TouchableOpacity>
       </View>
 
       <TouchableOpacity
@@ -165,7 +235,7 @@ export default function SettingsScreen() {
         ]}
         onPress={() => setShowExport(true)}
       >
-        <Ionicons name="upload-outline" size={20} color={colors.text} />
+        <Ionicons name="cloud-upload-outline" size={20} color={colors.text} />
         <Text style={[styles.exportButtonText, { color: colors.text }]}>
           {getTranslation(language, "exportData")}
         </Text>
@@ -177,12 +247,18 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 24 },
   label: { fontSize: 16, marginVertical: 12 },
-  row: { flexDirection: "row", marginBottom: 16 },
+  row: { flexDirection: "row", marginBottom: 16, gap: 8 },
   themeOption: {
-    marginRight: 16,
-    fontSize: 16,
-    padding: 8,
     borderRadius: 8,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    minWidth: 80,
+    alignItems: "center",
+  },
+  themeOptionText: {
+    fontSize: 16,
+    fontWeight: "500",
   },
   selected: {
     fontWeight: "bold",

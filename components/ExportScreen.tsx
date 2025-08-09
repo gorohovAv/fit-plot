@@ -98,7 +98,7 @@ export function ExportScreen({ onBack }: ExportScreenProps) {
         onPress={() => handleExport("text")}
         disabled={isExporting}
       >
-        <Ionicons name="text-outline" size={24} color={textColor} />
+        <Ionicons name="document-text-outline" size={24} color={textColor} />
         <View style={styles.buttonContent}>
           <Text style={[styles.buttonTitle, { color: textColor }]}>
             {getTranslation(language, "exportToText")}

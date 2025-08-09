@@ -17,6 +17,7 @@ import { MuscleGroup, ExerciseType } from "../store/store";
 import { Colors } from "../constants/Colors";
 import useSettingsStore from "../store/settingsStore";
 import { getTranslation } from "@/utils/localization";
+import { useColorScheme } from "react-native";
 
 export default function ExerciseModal({
   visible,
@@ -36,15 +37,9 @@ export default function ExerciseModal({
 
   const theme = useSettingsStore((state) => state.theme);
   const language = useSettingsStore((state) => state.language);
-  const colorScheme =
-    theme === "system"
-      ? typeof window !== "undefined" &&
-        window.matchMedia &&
-        window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "dark"
-        : "light"
-      : theme;
-  const themeColors = Colors[colorScheme];
+  const systemTheme = useColorScheme();
+  const currentTheme = theme === "system" ? systemTheme : theme;
+  const themeColors = Colors[currentTheme || "light"];
 
   React.useEffect(() => {
     setExercise(initialExercise);
@@ -72,7 +67,7 @@ export default function ExerciseModal({
         <View
           style={[
             styles.modalContainer,
-            { backgroundColor: themeColors.background + "CC" },
+            { backgroundColor: themeColors.modalOverlay },
           ]}
         >
           <View
@@ -96,7 +91,10 @@ export default function ExerciseModal({
                     <TouchableOpacity
                       style={[
                         styles.exerciseItem,
-                        { borderBottomColor: themeColors.border },
+                        {
+                          borderBottomColor: themeColors.border,
+                          backgroundColor: themeColors.cardSecondary,
+                        },
                       ]}
                       onPress={() => handleSelectExercise(item)}
                     >
@@ -109,11 +107,14 @@ export default function ExerciseModal({
                 <TouchableOpacity
                   style={[
                     styles.cancelButton,
-                    { backgroundColor: themeColors.background },
+                    {
+                      backgroundColor: themeColors.buttonSecondary,
+                      borderColor: themeColors.border,
+                    },
                   ]}
                   onPress={() => setShowExerciseList(false)}
                 >
-                  <Text style={{ color: themeColors.text }}>
+                  <Text style={{ color: themeColors.buttonSecondaryText }}>
                     {getTranslation(language, "back")}
                   </Text>
                 </TouchableOpacity>
@@ -147,12 +148,12 @@ export default function ExerciseModal({
                     styles.input,
                     {
                       color: themeColors.text,
-                      backgroundColor: themeColors.background,
-                      borderColor: themeColors.border,
+                      backgroundColor: themeColors.inputBackground,
+                      borderColor: themeColors.inputBorder,
                     },
                   ]}
                   placeholder={getTranslation(language, "exerciseName")}
-                  placeholderTextColor={themeColors.tabIconDefault}
+                  placeholderTextColor={themeColors.placeholderText}
                   value={exercise.name}
                   onChangeText={(text) =>
                     setExercise({ ...exercise, name: text })
@@ -165,12 +166,12 @@ export default function ExerciseModal({
                     styles.input,
                     {
                       color: themeColors.text,
-                      backgroundColor: themeColors.background,
-                      borderColor: themeColors.border,
+                      backgroundColor: themeColors.inputBackground,
+                      borderColor: themeColors.inputBorder,
                     },
                   ]}
                   placeholder={getTranslation(language, "comment")}
-                  placeholderTextColor={themeColors.tabIconDefault}
+                  placeholderTextColor={themeColors.placeholderText}
                   value={exercise.comment ?? ""}
                   onChangeText={(text) =>
                     setExercise({ ...exercise, comment: text })
@@ -181,12 +182,12 @@ export default function ExerciseModal({
                     styles.input,
                     {
                       color: themeColors.text,
-                      backgroundColor: themeColors.background,
-                      borderColor: themeColors.border,
+                      backgroundColor: themeColors.inputBackground,
+                      borderColor: themeColors.inputBorder,
                     },
                   ]}
                   placeholder={getTranslation(language, "timerDuration")}
-                  placeholderTextColor={themeColors.tabIconDefault}
+                  placeholderTextColor={themeColors.placeholderText}
                   keyboardType="numeric"
                   value={
                     exercise.timerDuration !== undefined
@@ -200,94 +201,115 @@ export default function ExerciseModal({
                     })
                   }
                 />
-                <Picker
-                  selectedValue={exercise.muscleGroup}
-                  onValueChange={(value) =>
-                    setExercise({ ...exercise, muscleGroup: value })
-                  }
-                  style={{
-                    color: themeColors.text,
-                    backgroundColor: themeColors.background,
-                  }}
-                  dropdownIconColor={themeColors.icon}
+                <View
+                  style={[
+                    styles.pickerContainer,
+                    {
+                      backgroundColor: themeColors.inputBackground,
+                      borderColor: themeColors.inputBorder,
+                    },
+                  ]}
                 >
-                  <Picker.Item
-                    label={getTranslation(language, "chest")}
-                    value="chest"
-                  />
-                  <Picker.Item
-                    label={getTranslation(language, "triceps")}
-                    value="triceps"
-                  />
-                  <Picker.Item
-                    label={getTranslation(language, "biceps")}
-                    value="biceps"
-                  />
-                  <Picker.Item
-                    label={getTranslation(language, "forearms")}
-                    value="forearms"
-                  />
-                  <Picker.Item
-                    label={getTranslation(language, "delts")}
-                    value="delts"
-                  />
-                  <Picker.Item
-                    label={getTranslation(language, "back")}
-                    value="back"
-                  />
-                  <Picker.Item
-                    label={getTranslation(language, "glutes")}
-                    value="glutes"
-                  />
-                  <Picker.Item
-                    label={getTranslation(language, "quads")}
-                    value="quads"
-                  />
-                  <Picker.Item
-                    label={getTranslation(language, "hamstrings")}
-                    value="hamstrings"
-                  />
-                  <Picker.Item
-                    label={getTranslation(language, "calves")}
-                    value="calves"
-                  />
-                  <Picker.Item
-                    label={getTranslation(language, "abs")}
-                    value="abs"
-                  />
-                </Picker>
-                <Picker
-                  selectedValue={exercise.type}
-                  onValueChange={(value) =>
-                    setExercise({ ...exercise, type: value })
-                  }
-                  style={{
-                    color: themeColors.text,
-                    backgroundColor: themeColors.background,
-                  }}
-                  dropdownIconColor={themeColors.icon}
+                  <Picker
+                    selectedValue={exercise.muscleGroup}
+                    onValueChange={(value) =>
+                      setExercise({ ...exercise, muscleGroup: value })
+                    }
+                    style={{
+                      color: themeColors.text,
+                    }}
+                    dropdownIconColor={themeColors.icon}
+                  >
+                    <Picker.Item
+                      label={getTranslation(language, "chest")}
+                      value="chest"
+                    />
+                    <Picker.Item
+                      label={getTranslation(language, "triceps")}
+                      value="triceps"
+                    />
+                    <Picker.Item
+                      label={getTranslation(language, "biceps")}
+                      value="biceps"
+                    />
+                    <Picker.Item
+                      label={getTranslation(language, "forearms")}
+                      value="forearms"
+                    />
+                    <Picker.Item
+                      label={getTranslation(language, "delts")}
+                      value="delts"
+                    />
+                    <Picker.Item
+                      label={getTranslation(language, "back")}
+                      value="back"
+                    />
+                    <Picker.Item
+                      label={getTranslation(language, "glutes")}
+                      value="glutes"
+                    />
+                    <Picker.Item
+                      label={getTranslation(language, "quads")}
+                      value="quads"
+                    />
+                    <Picker.Item
+                      label={getTranslation(language, "hamstrings")}
+                      value="hamstrings"
+                    />
+                    <Picker.Item
+                      label={getTranslation(language, "calves")}
+                      value="calves"
+                    />
+                    <Picker.Item
+                      label={getTranslation(language, "abs")}
+                      value="abs"
+                    />
+                  </Picker>
+                </View>
+                <View
+                  style={[
+                    styles.pickerContainer,
+                    {
+                      backgroundColor: themeColors.inputBackground,
+                      borderColor: themeColors.inputBorder,
+                    },
+                  ]}
                 >
-                  <Picker.Item
-                    label={getTranslation(language, "machine")}
-                    value="machine"
-                  />
-                  <Picker.Item
-                    label={getTranslation(language, "freeWeight")}
-                    value="free weight"
-                  />
-                  <Picker.Item
-                    label={getTranslation(language, "ownWeight")}
-                    value="own weight"
-                  />
-                  <Picker.Item
-                    label={getTranslation(language, "cables")}
-                    value="cables"
-                  />
-                </Picker>
+                  <Picker
+                    selectedValue={exercise.type}
+                    onValueChange={(value) =>
+                      setExercise({ ...exercise, type: value })
+                    }
+                    style={{
+                      color: themeColors.text,
+                    }}
+                    dropdownIconColor={themeColors.icon}
+                  >
+                    <Picker.Item
+                      label={getTranslation(language, "machine")}
+                      value="machine"
+                    />
+                    <Picker.Item
+                      label={getTranslation(language, "freeWeight")}
+                      value="free weight"
+                    />
+                    <Picker.Item
+                      label={getTranslation(language, "ownWeight")}
+                      value="own weight"
+                    />
+                    <Picker.Item
+                      label={getTranslation(language, "cables")}
+                      value="cables"
+                    />
+                  </Picker>
+                </View>
                 <TouchableOpacity
                   style={[
                     styles.amplitudeButton,
-                    { backgroundColor: themeColors.background },
+                    {
+                      backgroundColor: themeColors.cardSecondary,
+                      borderColor: themeColors.border,
+                    },
                   ]}
                   onPress={() =>
                     setExercise({
@@ -311,7 +333,10 @@ export default function ExerciseModal({
                 <TouchableOpacity
                   style={[
                     styles.unilateralButton,
-                    { backgroundColor: themeColors.background },
+                    {
+                      backgroundColor: themeColors.cardSecondary,
+                      borderColor: themeColors.border,
+                    },
                   ]}
                   onPress={() =>
                     setExercise({
@@ -330,22 +355,25 @@ export default function ExerciseModal({
                   <TouchableOpacity
                     style={[
                       styles.cancelButton,
-                      { backgroundColor: themeColors.background },
+                      {
+                        backgroundColor: themeColors.buttonSecondary,
+                        borderColor: themeColors.border,
+                      },
                     ]}
                     onPress={onClose}
                   >
-                    <Text style={{ color: themeColors.text }}>
+                    <Text style={{ color: themeColors.buttonSecondaryText }}>
                       {getTranslation(language, "cancel")}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[
                       styles.submitButton,
-                      { backgroundColor: themeColors.tint },
+                      { backgroundColor: themeColors.buttonPrimary },
                     ]}
                     onPress={() => onSubmit(exercise)}
                   >
-                    <Text style={{ color: themeColors.background }}>
+                    <Text style={{ color: themeColors.buttonPrimaryText }}>
                       {isEdit
                         ? getTranslation(language, "save")
                         : getTranslation(language, "add")}
@@ -368,10 +396,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   modalContent: {
-    width: "80%",
+    width: "90%",
     padding: 20,
-    borderRadius: 10,
-    maxHeight: "80%",
+    borderRadius: 12,
+    borderWidth: 1,
+    maxHeight: "85%",
   },
   modalTitle: {
     fontSize: 20,
@@ -381,47 +410,58 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderRadius: 5,
-    padding: 10,
-    marginBottom: 10,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    fontSize: 16,
+  },
+  pickerContainer: {
+    borderWidth: 1,
+    borderRadius: 8,
+    marginBottom: 12,
+    overflow: "hidden",
   },
   amplitudeButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    padding: 10,
-    borderRadius: 5,
-    marginBottom: 10,
-    gap: 5,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 12,
+    gap: 8,
   },
   unilateralButton: {
-    padding: 10,
-    borderRadius: 5,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 12,
   },
   modalButtons: {
     flexDirection: "row",
     justifyContent: "space-between",
+    marginTop: 8,
   },
   cancelButton: {
-    padding: 10,
-    borderRadius: 5,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
     flex: 1,
-    marginRight: 5,
+    marginRight: 8,
     alignItems: "center",
-    marginTop: 10,
   },
   submitButton: {
-    padding: 10,
-    borderRadius: 5,
+    padding: 12,
+    borderRadius: 8,
     flex: 1,
-    marginLeft: 5,
+    marginLeft: 8,
     alignItems: "center",
-    marginTop: 10,
   },
   exerciseItem: {
     padding: 12,
     borderBottomWidth: 1,
+    borderRadius: 8,
+    marginBottom: 4,
   },
 });
