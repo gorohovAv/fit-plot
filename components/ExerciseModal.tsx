@@ -9,6 +9,7 @@ import {
   Platform,
   KeyboardAvoidingView,
   FlatList,
+  Pressable,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
@@ -70,6 +71,7 @@ export default function ExerciseModal({
             { backgroundColor: themeColors.modalOverlay },
           ]}
         >
+          <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
           <View
             style={[
               styles.modalContent,

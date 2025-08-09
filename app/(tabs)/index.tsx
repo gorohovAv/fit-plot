@@ -6,6 +6,7 @@ import {
   Text,
   StyleSheet,
   TextInput,
+  Pressable,
 } from "react-native";
 import { Workout } from "../../components/Workout";
 import { useNavigation } from "@react-navigation/native";
@@ -81,7 +82,7 @@ export default function WorkoutPlanScreen() {
     setSelectedPlan(updatedPlan || null);
   };
 
-  const TrainingModal = () => (
+  const TrainingModal = (onClose: () => void) => (
     <View style={modalStyles.container}>
       <View style={modalStyles.modal}>
         <Text style={modalStyles.title}>
@@ -124,6 +125,7 @@ export default function WorkoutPlanScreen() {
     <View
       style={[styles.container, { backgroundColor: colorScheme.background }]}
     >
+      <Pressable style={StyleSheet.absoluteFill} onPress={() => onClose()} />
       <TouchableOpacity
         style={[styles.planButton, { backgroundColor: colorScheme.card }]}
         onPress={() => {
