@@ -6,14 +6,18 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { HapticTab } from "@/components/HapticTab";
 import TabBarBackground from "@/components/ui/TabBarBackground";
 import { Colors } from "@/constants/Colors";
-import { useColorScheme } from "@/hooks/useColorScheme";
+import { useColorScheme as useSystemColorScheme } from "react-native";
 import useSettingsStore from "@/store/settingsStore";
 import { getTranslation } from "@/utils/localization";
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const systemColorScheme = useSystemColorScheme();
+  const theme = useSettingsStore((state) => state.theme);
   const devMode = useSettingsStore((state) => state.devMode);
   const language = useSettingsStore((state) => state.language);
+
+  const colorScheme = theme === "system" ? systemColorScheme : theme;
+  const colors = Colors[colorScheme ?? "light"];
 
   const getTabTitle = (key: string) => {
     return getTranslation(language, key as any);
@@ -23,15 +27,21 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         lazy: true,
-        tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
+        tabBarActiveTintColor: colors.tint,
+        tabBarInactiveTintColor: colors.tabIconDefault,
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
         tabBarStyle: Platform.select({
           ios: {
             position: "absolute",
+            backgroundColor: colors.card,
+            borderTopColor: colors.border,
           },
-          default: {},
+          default: {
+            backgroundColor: colors.card,
+            borderTopColor: colors.border,
+          },
         }),
       }}
     >

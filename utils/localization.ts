@@ -356,6 +356,16 @@ Pull-ups
     dataExportSuccess: "Data exported successfully",
     dataExportError: "Failed to export data",
     exporting: "Exporting...",
+
+    // Maintenance Calories
+    maintenanceCalories: "Maintenance Calories",
+    maintenanceCaloriesPerDay: "Calories to maintain weight",
+    enterMaintenanceCalories: "Enter maintenance calories",
+    maintenanceCaloriesSaved: "Maintenance calories saved",
+    enterValidMaintenanceCalories: "Enter valid maintenance calories",
+    maintenanceCaloriesValue: "Maintenance calories: {value} kcal",
+    deviationFromMaintenance: "Deviation from maintenance: {value} kcal",
+    change: "Change",
   },
   russian: {
     // Settings
@@ -554,6 +564,16 @@ Pull-ups
     dataExportSuccess: "Данные успешно экспортированы",
     dataExportError: "Не удалось экспортировать данные",
     exporting: "Экспорт...",
+
+    // Maintenance Calories
+    maintenanceCalories: "Калораж на поддержание",
+    maintenanceCaloriesPerDay: "Калории на поддержание веса",
+    enterMaintenanceCalories: "Введите калораж на поддержание",
+    maintenanceCaloriesSaved: "Калораж на поддержание сохранен",
+    enterValidMaintenanceCalories: "Введите корректный калораж на поддержание",
+    maintenanceCaloriesValue: "Калораж на поддержание: {value} ккал",
+    deviationFromMaintenance: "Отклонение от поддержания: {value} ккал",
+    change: "Изменить",
   },
 } as const;
 

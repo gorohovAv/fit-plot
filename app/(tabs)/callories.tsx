@@ -7,6 +7,8 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import Plot from "../../components/Plot";
 import useCaloriesStore from "../../store/calloriesStore";
@@ -116,7 +118,7 @@ export default function CaloriesScreen() {
     if (!maintenanceCaloriesInput) {
       Alert.alert(
         getTranslation(language, "error"),
-        "Введите калораж на поддержание"
+        getTranslation(language, "enterMaintenanceCalories")
       );
       return;
     }
@@ -124,17 +126,14 @@ export default function CaloriesScreen() {
     if (isNaN(maintenanceNum) || maintenanceNum <= 0) {
       Alert.alert(
         getTranslation(language, "error"),
-        "Введите корректный калораж на поддержание"
+        getTranslation(language, "enterValidMaintenanceCalories")
       );
       return;
     }
 
     setMaintenanceCalories(maintenanceNum);
     setIsEditingMaintenance(false);
-    Alert.alert(
-      getTranslation(language, "success"),
-      "Калораж на поддержание сохранен"
-    );
+    Alert.alert(getTranslation(language, "maintenanceCaloriesSaved"));
   };
 
   const handleEditMaintenance = () => {
@@ -164,238 +163,269 @@ export default function CaloriesScreen() {
   }));
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colorScheme.background }]}
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      {/* Форма калорий на поддержание */}
-      <View
-        style={[styles.formContainer, { backgroundColor: colorScheme.card }]}
+      <ScrollView
+        style={[styles.container, { backgroundColor: colorScheme.background }]}
+        keyboardShouldPersistTaps="handled"
       >
-        <Text style={[styles.title, { color: colorScheme.text }]}>
-          Калораж на поддержание
-        </Text>
-
-        <View style={styles.inputGroup}>
-          <Text style={[styles.label, { color: colorScheme.text }]}>
-            Калории на поддержание веса
+        {/* Форма калорий на поддержание */}
+        <View
+          style={[styles.formContainer, { backgroundColor: colorScheme.card }]}
+        >
+          <Text style={[styles.title, { color: colorScheme.text }]}>
+            {getTranslation(language, "maintenanceCalories")}
           </Text>
-          <View style={styles.maintenanceContainer}>
+
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, { color: colorScheme.text }]}>
+              {getTranslation(language, "maintenanceCaloriesPerDay")}
+            </Text>
+            <View style={styles.maintenanceContainer}>
+              <TextInput
+                style={[
+                  styles.input,
+                  styles.maintenanceInput,
+                  {
+                    backgroundColor: colorScheme.card,
+                    color: colorScheme.text,
+                    borderColor: colorScheme.border,
+                  },
+                  !isEditingMaintenance && styles.disabledInput,
+                ]}
+                value={maintenanceCaloriesInput}
+                onChangeText={setMaintenanceCaloriesInput}
+                placeholder={getTranslation(
+                  language,
+                  "enterMaintenanceCalories"
+                )}
+                keyboardType="numeric"
+                placeholderTextColor={colorScheme.icon}
+                editable={isEditingMaintenance}
+              />
+              {isEditingMaintenance ? (
+                <TouchableOpacity
+                  style={[
+                    styles.actionButton,
+                    { backgroundColor: colorScheme.tint },
+                  ]}
+                  onPress={handleMaintenanceCaloriesSave}
+                >
+                  <Text
+                    style={[
+                      styles.actionButtonText,
+                      { color: colorScheme.card },
+                    ]}
+                  >
+                    {getTranslation(language, "save")}
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={[
+                    styles.actionButton,
+                    { backgroundColor: colorScheme.warning },
+                  ]}
+                  onPress={handleEditMaintenance}
+                >
+                  <Text
+                    style={[
+                      styles.actionButtonText,
+                      { color: colorScheme.card },
+                    ]}
+                  >
+                    {getTranslation(language, "change")}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+
+          {maintenanceCalories && (
+            <View
+              style={[
+                styles.maintenanceInfo,
+                { backgroundColor: colorScheme.success + "22" },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.maintenanceInfoText,
+                  { color: colorScheme.success },
+                ]}
+              >
+                {formatTranslation(language, "maintenanceCaloriesValue", {
+                  value: maintenanceCalories,
+                })}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        <View
+          style={[styles.formContainer, { backgroundColor: colorScheme.card }]}
+        >
+          <Text style={[styles.title, { color: colorScheme.text }]}>
+            {getTranslation(language, "calories")}
+          </Text>
+
+          {isAvailable && (
+            <View
+              style={[
+                styles.stepsContainer,
+                { backgroundColor: colorScheme.success + "22" },
+              ]}
+            >
+              <Text style={[styles.stepsTitle, { color: colorScheme.success }]}>
+                Шаги сегодня: {todaySteps}
+              </Text>
+              <Text style={[styles.stepsSubtitle, { color: colorScheme.text }]}>
+                Калории от шагов: {Math.round(todaySteps * 0.04)}
+              </Text>
+              <TouchableOpacity
+                style={[
+                  styles.trackingButton,
+                  {
+                    backgroundColor: isTracking
+                      ? colorScheme.error
+                      : colorScheme.tint,
+                  },
+                ]}
+                onPress={handleStepTrackingToggle}
+              >
+                <Text
+                  style={[
+                    styles.trackingButtonText,
+                    { color: colorScheme.card },
+                  ]}
+                >
+                  {isTracking
+                    ? "Остановить отслеживание"
+                    : "Начать отслеживание"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, { color: colorScheme.text }]}>
+              {getTranslation(language, "caloriesPerDay")}
+            </Text>
             <TextInput
               style={[
                 styles.input,
-                styles.maintenanceInput,
                 {
                   backgroundColor: colorScheme.card,
                   color: colorScheme.text,
                   borderColor: colorScheme.border,
                 },
-                !isEditingMaintenance && styles.disabledInput,
               ]}
-              value={maintenanceCaloriesInput}
-              onChangeText={setMaintenanceCaloriesInput}
-              placeholder="Введите калораж на поддержание"
+              value={calories}
+              onChangeText={setCalories}
+              placeholder={getTranslation(language, "enterCalories")}
               keyboardType="numeric"
               placeholderTextColor={colorScheme.icon}
-              editable={isEditingMaintenance}
             />
-            {isEditingMaintenance ? (
-              <TouchableOpacity
-                style={[
-                  styles.actionButton,
-                  { backgroundColor: colorScheme.tint },
-                ]}
-                onPress={handleMaintenanceCaloriesSave}
-              >
-                <Text
-                  style={[styles.actionButtonText, { color: colorScheme.card }]}
-                >
-                  Сохранить
-                </Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                style={[
-                  styles.actionButton,
-                  { backgroundColor: colorScheme.warning },
-                ]}
-                onPress={handleEditMaintenance}
-              >
-                <Text
-                  style={[styles.actionButtonText, { color: colorScheme.card }]}
-                >
-                  Изменить
-                </Text>
-              </TouchableOpacity>
-            )}
           </View>
-        </View>
 
-        {maintenanceCalories && (
-          <View
-            style={[
-              styles.maintenanceInfo,
-              { backgroundColor: colorScheme.success + "22" },
-            ]}
-          >
-            <Text
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, { color: colorScheme.text }]}>
+              {getTranslation(language, "yourWeight")}
+            </Text>
+            <TextInput
               style={[
-                styles.maintenanceInfoText,
-                { color: colorScheme.success },
-              ]}
-            >
-              Калораж на поддержание: {maintenanceCalories} ккал
-            </Text>
-          </View>
-        )}
-      </View>
-
-      <View
-        style={[styles.formContainer, { backgroundColor: colorScheme.card }]}
-      >
-        <Text style={[styles.title, { color: colorScheme.text }]}>
-          {getTranslation(language, "calories")}
-        </Text>
-
-        {isAvailable && (
-          <View
-            style={[
-              styles.stepsContainer,
-              { backgroundColor: colorScheme.success + "22" },
-            ]}
-          >
-            <Text style={[styles.stepsTitle, { color: colorScheme.success }]}>
-              Шаги сегодня: {todaySteps}
-            </Text>
-            <Text style={[styles.stepsSubtitle, { color: colorScheme.text }]}>
-              Калории от шагов: {Math.round(todaySteps * 0.04)}
-            </Text>
-            <TouchableOpacity
-              style={[
-                styles.trackingButton,
+                styles.input,
                 {
-                  backgroundColor: isTracking
-                    ? colorScheme.error
-                    : colorScheme.tint,
+                  backgroundColor: colorScheme.card,
+                  color: colorScheme.text,
+                  borderColor: colorScheme.border,
                 },
               ]}
-              onPress={handleStepTrackingToggle}
-            >
-              <Text
-                style={[styles.trackingButtonText, { color: colorScheme.card }]}
-              >
-                {isTracking ? "Остановить отслеживание" : "Начать отслеживание"}
-              </Text>
-            </TouchableOpacity>
+              value={weight}
+              onChangeText={setWeight}
+              placeholder={getTranslation(language, "enterYourWeight")}
+              keyboardType="numeric"
+              placeholderTextColor={colorScheme.icon}
+            />
           </View>
-        )}
 
-        <View style={styles.inputGroup}>
-          <Text style={[styles.label, { color: colorScheme.text }]}>
-            {getTranslation(language, "caloriesPerDay")}
-          </Text>
-          <TextInput
-            style={[
-              styles.input,
-              {
-                backgroundColor: colorScheme.card,
-                color: colorScheme.text,
-                borderColor: colorScheme.border,
-              },
-            ]}
-            value={calories}
-            onChangeText={setCalories}
-            placeholder={getTranslation(language, "enterCalories")}
-            keyboardType="numeric"
-            placeholderTextColor={colorScheme.icon}
-          />
+          <TouchableOpacity
+            style={[styles.saveButton, { backgroundColor: colorScheme.tint }]}
+            onPress={handleSave}
+          >
+            <Text style={[styles.saveButtonText, { color: colorScheme.card }]}>
+              {getTranslation(language, "save")}
+            </Text>
+          </TouchableOpacity>
+
+          {todayEntry && (
+            <View
+              style={[
+                styles.todayInfo,
+                { backgroundColor: colorScheme.success + "22" },
+              ]}
+            >
+              <Text style={[styles.todayTitle, { color: colorScheme.success }]}>
+                {getTranslation(language, "today")}
+              </Text>
+              <Text style={[styles.todayText, { color: colorScheme.text }]}>
+                {formatTranslation(language, "caloriesValue", {
+                  value: todayEntry.calories,
+                })}
+              </Text>
+              <Text style={[styles.todayText, { color: colorScheme.text }]}>
+                {formatTranslation(language, "weightValue", {
+                  value: todayEntry.weight,
+                })}
+              </Text>
+              {maintenanceCalories && (
+                <Text style={[styles.todayText, { color: colorScheme.text }]}>
+                  {formatTranslation(language, "deviationFromMaintenance", {
+                    value:
+                      todayEntry.calories - maintenanceCalories > 0
+                        ? "+" + (todayEntry.calories - maintenanceCalories)
+                        : (
+                            todayEntry.calories - maintenanceCalories
+                          ).toString(),
+                  })}
+                </Text>
+              )}
+            </View>
+          )}
         </View>
 
-        <View style={styles.inputGroup}>
-          <Text style={[styles.label, { color: colorScheme.text }]}>
-            {getTranslation(language, "yourWeight")}
-          </Text>
-          <TextInput
-            style={[
-              styles.input,
-              {
-                backgroundColor: colorScheme.card,
-                color: colorScheme.text,
-                borderColor: colorScheme.border,
-              },
-            ]}
-            value={weight}
-            onChangeText={setWeight}
-            placeholder={getTranslation(language, "enterYourWeight")}
-            keyboardType="numeric"
-            placeholderTextColor={colorScheme.icon}
-          />
-        </View>
-
-        <TouchableOpacity
-          style={[styles.saveButton, { backgroundColor: colorScheme.tint }]}
-          onPress={handleSave}
-        >
-          <Text style={[styles.saveButtonText, { color: colorScheme.card }]}>
-            {getTranslation(language, "save")}
-          </Text>
-        </TouchableOpacity>
-
-        {todayEntry && (
+        {sortedEntries.length > 0 && (
           <View
             style={[
-              styles.todayInfo,
-              { backgroundColor: colorScheme.success + "22" },
+              styles.chartContainer,
+              { backgroundColor: colorScheme.card },
             ]}
           >
-            <Text style={[styles.todayTitle, { color: colorScheme.success }]}>
-              {getTranslation(language, "today")}
+            <Text style={[styles.chartTitle, { color: colorScheme.text }]}>
+              {getTranslation(language, "caloriesAndWeightChart")}
             </Text>
-            <Text style={[styles.todayText, { color: colorScheme.text }]}>
-              {formatTranslation(language, "caloriesValue", {
-                value: todayEntry.calories,
-              })}
-            </Text>
-            <Text style={[styles.todayText, { color: colorScheme.text }]}>
-              {formatTranslation(language, "weightValue", {
-                value: todayEntry.weight,
-              })}
-            </Text>
-            {maintenanceCalories && (
-              <Text style={[styles.todayText, { color: colorScheme.text }]}>
-                Отклонение от поддержания:{" "}
-                {todayEntry.calories - maintenanceCalories > 0 ? "+" : ""}
-                {todayEntry.calories - maintenanceCalories} ккал
-              </Text>
-            )}
+            <Plot
+              data={chartData}
+              secondData={weightData}
+              secondYAxisLabel="Вес (кг)"
+              secondYAxisColor={colorScheme.chartLine[1]}
+              width={350}
+              height={250}
+              margin={{ top: 20, right: 50, bottom: 40, left: 50 }}
+            />
           </View>
         )}
-      </View>
-
-      {sortedEntries.length > 0 && (
-        <View
-          style={[styles.chartContainer, { backgroundColor: colorScheme.card }]}
-        >
-          <Text style={[styles.chartTitle, { color: colorScheme.text }]}>
-            {getTranslation(language, "caloriesAndWeightChart")}
-          </Text>
-          <Plot
-            data={chartData}
-            secondData={weightData}
-            secondYAxisLabel="Вес (кг)"
-            secondYAxisColor={colorScheme.chartLine[1]}
-            width={350}
-            height={250}
-            margin={{ top: 20, right: 50, bottom: 40, left: 50 }}
-          />
-        </View>
-      )}
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    paddingBottom: 100,
   },
   formContainer: {
     margin: 16,
