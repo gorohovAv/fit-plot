@@ -18,6 +18,11 @@ import { getTranslation, formatTranslation } from "@/utils/localization";
 import { useSteps } from "../../hooks/useSteps";
 import * as stepService from "../../services/stepService";
 
+type Dataset = {
+  data: { x: string; y: number }[];
+  axisLabel: string;
+};
+
 export default function CaloriesScreen() {
   const [calories, setCalories] = useState("");
   const [weight, setWeight] = useState("");
@@ -152,15 +157,30 @@ export default function CaloriesScreen() {
     (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
   );
 
-  const chartData = sortedEntries.map((entry) => ({
-    x: entry.date,
-    y: entry.calories,
-  }));
+  const datasets: Dataset[] = [
+    {
+      data: sortedEntries.map((entry) => ({
+        x: entry.date,
+        y: entry.calories,
+      })),
+      axisLabel: "Калории",
+    },
+    {
+      data: sortedEntries.map((entry) => ({
+        x: entry.date,
+        y: entry.weight,
+      })),
+      axisLabel: "Вес (кг)",
+    },
+  ];
 
-  const weightData = sortedEntries.map((entry) => ({
-    x: entry.date,
-    y: entry.weight,
-  }));
+  const lineColors = [colorScheme.chartLine[0], colorScheme.chartLine[1]];
+
+  const axisColors = {
+    axis: colorScheme.text,
+    labels: colorScheme.text,
+    background: colorScheme.card,
+  };
 
   return (
     <KeyboardAvoidingView
@@ -407,13 +427,13 @@ export default function CaloriesScreen() {
               {getTranslation(language, "caloriesAndWeightChart")}
             </Text>
             <Plot
-              data={chartData}
-              secondData={weightData}
-              secondYAxisLabel="Вес (кг)"
-              secondYAxisColor={colorScheme.chartLine[1]}
+              datasets={datasets}
+              lineColors={lineColors}
+              axisColors={axisColors}
+              zones={[]}
               width={350}
               height={250}
-              margin={{ top: 20, right: 50, bottom: 40, left: 50 }}
+              margin={{ top: 20, right: 80, bottom: 80, left: 80 }}
             />
           </View>
         )}

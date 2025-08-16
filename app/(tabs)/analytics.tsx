@@ -38,6 +38,17 @@ type ChartData = {
   y: number; // Значение (тоннаж, вес, повторения)
 }[];
 
+type Dataset = {
+  data: ChartData;
+  axisLabel: string;
+};
+
+type Zone = {
+  startDate: string;
+  endDate: string;
+  color: string;
+};
+
 // Определяем типы для "сырых" импортированных данных (без гарантированных ID)
 type RawExercise = {
   id?: string; // ID может быть, но мы его перегенерируем
@@ -224,7 +235,13 @@ export default function AnalyticsScreen() {
         !item.x.includes("undefined")
     );
 
-    const additionalLinesData: DataPoint[][] = [];
+    const datasets: Dataset[] = [
+      {
+        data: filteredData,
+        axisLabel: yLabel,
+      },
+    ];
+
     selectedExerciseIds.forEach((id) => {
       const exerciseResults = plans
         .flatMap((plan) =>
@@ -250,31 +267,34 @@ export default function AnalyticsScreen() {
         const sortedDaysForExercise = Object.keys(groupedForExercise).sort();
 
         if (title.includes("тоннаж")) {
-          additionalLinesData.push(
-            sortedDaysForExercise.map((day) => ({
+          datasets.push({
+            data: sortedDaysForExercise.map((day) => ({
               x: day,
               y: groupedForExercise[day].tonnage,
-            }))
-          );
+            })),
+            axisLabel: yLabel,
+          });
         } else if (title.includes("Максимальный вес")) {
-          additionalLinesData.push(
-            sortedDaysForExercise.map((day) => ({
+          datasets.push({
+            data: sortedDaysForExercise.map((day) => ({
               x: day,
               y: groupedForExercise[day].maxWeight,
-            }))
-          );
+            })),
+            axisLabel: yLabel,
+          });
         } else if (title.includes("Максимальные повторения")) {
-          additionalLinesData.push(
-            sortedDaysForExercise.map((day) => ({
+          datasets.push({
+            data: sortedDaysForExercise.map((day) => ({
               x: day,
               y: groupedForExercise[day].maxReps,
-            }))
-          );
+            })),
+            axisLabel: yLabel,
+          });
         }
       }
     });
 
-    const buildHighlightZones = () => {
+    const buildHighlightZones = (): Zone[] => {
       if (!caloriesStore.maintenanceCalories || filteredData.length === 0)
         return [];
       const start = new Date(filteredData[0].x);
@@ -294,7 +314,7 @@ export default function AnalyticsScreen() {
         return nd;
       };
 
-      const zones: { start: string; end: string; color: string }[] = [];
+      const zones: Zone[] = [];
       let wStart = startOfWeek(start);
       while (wStart <= end) {
         const wEnd = addDays(wStart, 6);
@@ -320,14 +340,22 @@ export default function AnalyticsScreen() {
               : themeColors.chartZoneSurplus;
           const zs = getDayString(wStart.toISOString());
           const ze = getDayString((wEnd > end ? end : wEnd).toISOString());
-          zones.push({ start: zs, end: ze, color });
+          zones.push({ startDate: zs, endDate: ze, color });
         }
         wStart = addDays(wStart, 7);
       }
       return zones;
     };
 
-    const highlightZones = buildHighlightZones();
+    const zones = buildHighlightZones();
+
+    const lineColors = [color, ...themeColors.chartLine.slice(1)];
+
+    const axisColors = {
+      axis: themeColors.text,
+      labels: themeColors.text,
+      background: themeColors.card,
+    };
 
     return (
       <View
@@ -337,13 +365,13 @@ export default function AnalyticsScreen() {
           {title}
         </Text>
         <Plot
-          data={filteredData}
-          additionalLines={additionalLinesData}
-          highlightZones={highlightZones}
+          datasets={datasets}
+          lineColors={lineColors}
+          axisColors={axisColors}
+          zones={zones}
           width={350}
           height={220}
-          margin={{ top: 20, right: 20, bottom: 40, left: 40 }}
-          fixedYRange={100}
+          margin={{ top: 20, right: 80, bottom: 80, left: 80 }}
         />
       </View>
     );
