@@ -225,10 +225,10 @@ const loadCaloriesFromDB = async () => {
 // соберём все exerciseIds по тренировке и вытащим результаты за раз
 const getResultsForExerciseIds = async (exerciseIds: string[]) => {
   if (exerciseIds.length === 0) return [];
-  const database = (await (dbLayer as any).getDatabase?.()) ?? null;
-  // если getDatabase не экспортируется – добавьте экспорт в dbLayer
+
+  const database = await dbLayer.getDatabase();
   const placeholders = exerciseIds.map(() => "?").join(",");
-  // при желании добавьте фильтр по датам: AND date >= ?
+
   const rows = await database.getAllAsync(
     `SELECT exerciseId, weight, reps, date, amplitude, isPlanned
      FROM results
@@ -236,5 +236,6 @@ const getResultsForExerciseIds = async (exerciseIds: string[]) => {
      ORDER BY date DESC`,
     exerciseIds
   );
+
   return rows.map((r: any) => ({ ...r, isPlanned: Boolean(r.isPlanned) }));
 };
