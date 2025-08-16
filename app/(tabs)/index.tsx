@@ -82,18 +82,28 @@ export default function WorkoutPlanScreen() {
     setSelectedPlan(updatedPlan || null);
   };
 
-  const TrainingModal = (onClose: () => void) => (
-    <View style={modalStyles.container}>
-      <View style={modalStyles.modal}>
-        <Text style={modalStyles.title}>
+  const TrainingModal = () => (
+    <View
+      style={[modalStyles.container, { backgroundColor: "rgba(0, 0, 0, 0.5)" }]}
+    >
+      <View style={[modalStyles.modal, { backgroundColor: colorScheme.card }]}>
+        <Text style={[modalStyles.title, { color: colorScheme.text }]}>
           {getTranslation(language, "workoutName")}
         </Text>
         <TextInput
-          style={modalStyles.input}
+          style={[
+            modalStyles.input,
+            {
+              borderColor: colorScheme.border,
+              color: colorScheme.text,
+              backgroundColor: colorScheme.background,
+            },
+          ]}
           placeholder={getTranslation(language, "enterName")}
+          placeholderTextColor={colorScheme.textSecondary}
           value={trainingName}
           onChangeText={(text) => setTrainingName(text)}
-          onSubmitEditing={handleAddTraining}
+          onSubmitEditing={() => {}}
           blurOnSubmit={false}
         />
         <View style={modalStyles.buttons}>
@@ -125,7 +135,6 @@ export default function WorkoutPlanScreen() {
     <View
       style={[styles.container, { backgroundColor: colorScheme.background }]}
     >
-      <Pressable style={StyleSheet.absoluteFill} onPress={() => onClose()} />
       <TouchableOpacity
         style={[styles.planButton, { backgroundColor: colorScheme.card }]}
         onPress={() => {
