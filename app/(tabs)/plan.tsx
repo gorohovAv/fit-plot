@@ -82,7 +82,13 @@ function getSeasonsData(plannedResults: PlannedResult[]) {
   const currentYear = dayjs().year();
   const nextYear = currentYear + 1;
 
-  const seasons = [];
+  const seasons: Array<{
+    season: keyof typeof SEASON_COLORS_LIGHT;
+    year: number;
+    months: dayjs.Dayjs[];
+    results: PlannedResult[];
+    id: string;
+  }> = [];
   const seasonKeys: (keyof typeof SEASON_COLORS_LIGHT)[] = [
     "winter",
     "spring",
@@ -318,9 +324,9 @@ export default function PlanScreen() {
     setPlannedWeight("");
     setPlannedReps("");
 
-    // Устанавливаем дату на первый месяц сезона
     const seasonMonths = getSeasonMonths(season, year);
-    setPlannedDate(seasonMonths[0].format("YYYY-MM-DD"));
+    const firstMonth = seasonMonths[0];
+    setPlannedDate(firstMonth.format("YYYY-MM-DD"));
   };
 
   const closeModal = () => setModalVisible(false);
