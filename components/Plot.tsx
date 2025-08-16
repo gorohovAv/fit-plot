@@ -65,7 +65,8 @@ const Plot: React.FC<PlotProps> = ({
     return <View style={styles.container} />;
   }
 
-  const innerWidth = width - margin.left - margin.right;
+  const chartWidth = Math.max(width * 2, 800);
+  const innerWidth = chartWidth - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
 
   const allDataPoints = datasets.flatMap((dataset) => dataset.data);
@@ -89,13 +90,14 @@ const Plot: React.FC<PlotProps> = ({
       .range([innerHeight, 0]);
   });
 
-  const xTicks = xScale.ticks(Math.min(6, allDates.length));
+  const xTicks = xScale.ticks(Math.min(8, allDates.length));
   const yTicks = yScales.map((scale) => scale.ticks(5));
 
   const formatDate = (date: Date) => d3.timeFormat("%d.%m")(date);
 
   const linePaths = datasets.map((dataset, datasetIndex) => {
     const yScale = yScales[datasetIndex];
+
     const lineGenerator = d3
       .line<DataPoint>()
       .x((d) => xScale(new Date(d.x)))
@@ -129,13 +131,13 @@ const Plot: React.FC<PlotProps> = ({
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ width: width + 100 }}
+      contentContainerStyle={{ width: chartWidth }}
     >
-      <Canvas style={{ width: width + 100, height }}>
+      <Canvas style={{ width: chartWidth, height }}>
         <Rect
           x={0}
           y={0}
-          width={width + 100}
+          width={chartWidth}
           height={height}
           color={axisColors.background}
         />
@@ -270,16 +272,21 @@ const Plot: React.FC<PlotProps> = ({
         {datasets.map((dataset, datasetIndex) =>
           dataset.data
             .filter((point) => point.y > 0)
-            .map((point, pointIndex) => (
-              <Rect
-                key={`point-${datasetIndex}-${pointIndex}`}
-                x={xScale(new Date(point.x)) + margin.left - 2}
-                y={yScales[datasetIndex](point.y) + margin.top - 2}
-                width={4}
-                height={4}
-                color={lineColors[datasetIndex % lineColors.length]}
-              />
-            ))
+            .map((point, pointIndex) => {
+              const x = xScale(new Date(point.x));
+              const y = yScales[datasetIndex](point.y);
+
+              return (
+                <Rect
+                  key={`point-${datasetIndex}-${pointIndex}`}
+                  x={x + margin.left - 2}
+                  y={y + margin.top - 2}
+                  width={4}
+                  height={4}
+                  color={lineColors[datasetIndex % lineColors.length]}
+                />
+              );
+            })
         )}
       </Canvas>
     </ScrollView>
