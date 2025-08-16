@@ -1,19 +1,6 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { View, ScrollView, StyleSheet, Dimensions } from "react-native";
-import {
-  Canvas,
-  Path,
-  Line,
-  Text,
-  Rect,
-  useFont,
-  Skia,
-  vec,
-  useValue,
-  useComputedValue,
-  useSharedValueEffect,
-  useValueEffect,
-} from "@shopify/react-native-skia";
+import { Canvas, Path, Rect, useFont } from "@shopify/react-native-skia";
 import * as d3 from "d3";
 
 type DataPoint = {
@@ -55,13 +42,7 @@ const Plot: React.FC<PlotProps> = ({
   height = 300,
   margin = { top: 20, right: 80, bottom: 80, left: 80 },
 }) => {
-  const font = useFont(require("../assets/fonts/SpaceMono-Regular.ttf"), 10);
-  const titleFont = useFont(
-    require("../assets/fonts/SpaceMono-Regular.ttf"),
-    12
-  );
-
-  if (!datasets || datasets.length === 0 || !font || !titleFont) {
+  if (!datasets || datasets.length === 0) {
     return <View style={styles.container} />;
   }
 
@@ -79,8 +60,8 @@ const Plot: React.FC<PlotProps> = ({
     .nice();
 
   const yScales = datasets.map((dataset) => {
-    const yMin = Math.min(0, d3.min(dataset.data, (d) => d.y) ?? 0);
-    const yMax = d3.max(dataset.data, (d) => d.y) ?? 0;
+    const yMin = Math.min(0, d3.min(dataset.data, (d: DataPoint) => d.y) ?? 0);
+    const yMax = d3.max(dataset.data, (d: DataPoint) => d.y) ?? 0;
     const yPadding = (yMax - yMin) * 0.1;
     const yDomain = [yMin - yPadding, yMax + yPadding];
 
@@ -90,19 +71,14 @@ const Plot: React.FC<PlotProps> = ({
       .range([innerHeight, 0]);
   });
 
-  const xTicks = xScale.ticks(Math.min(8, allDates.length));
-  const yTicks = yScales.map((scale) => scale.ticks(5));
-
-  const formatDate = (date: Date) => d3.timeFormat("%d.%m")(date);
-
   const linePaths = datasets.map((dataset, datasetIndex) => {
     const yScale = yScales[datasetIndex];
 
     const lineGenerator = d3
       .line<DataPoint>()
-      .x((d) => xScale(new Date(d.x)))
-      .y((d) => yScale(d.y))
-      .defined((d) => d.y > 0)
+      .x((d: DataPoint) => xScale(new Date(d.x)))
+      .y((d: DataPoint) => yScale(d.y))
+      .defined((d: DataPoint) => d.y > 0)
       .curve(d3.curveCatmullRom.alpha(0.5));
 
     const pathData = lineGenerator(dataset.data) || "";
@@ -162,103 +138,6 @@ const Plot: React.FC<PlotProps> = ({
           />
         ))}
 
-        {yTicks.map((ticks, scaleIndex) =>
-          ticks.map((tick) => (
-            <Line
-              key={`grid-y-${scaleIndex}-${tick}`}
-              p1={vec(margin.left, yScales[scaleIndex](tick) + margin.top)}
-              p2={vec(
-                margin.left + innerWidth,
-                yScales[scaleIndex](tick) + margin.top
-              )}
-              color={axisColors.axis}
-              strokeWidth={0.5}
-              opacity={0.3}
-            />
-          ))
-        )}
-
-        {xTicks.map((tick) => (
-          <Line
-            key={`grid-x-${tick.getTime()}`}
-            p1={vec(xScale(tick) + margin.left, margin.top)}
-            p2={vec(xScale(tick) + margin.left, margin.top + innerHeight)}
-            color={axisColors.axis}
-            strokeWidth={0.5}
-            opacity={0.3}
-          />
-        ))}
-
-        {yScales.map((yScale, scaleIndex) => (
-          <Line
-            key={`axis-y-${scaleIndex}`}
-            p1={vec(
-              scaleIndex === 0 ? margin.left : margin.left + innerWidth,
-              margin.top
-            )}
-            p2={vec(
-              scaleIndex === 0 ? margin.left : margin.left + innerWidth,
-              margin.top + innerHeight
-            )}
-            color={axisColors.axis}
-            strokeWidth={1}
-          />
-        ))}
-
-        <Line
-          p1={vec(margin.left, margin.top + innerHeight)}
-          p2={vec(margin.left + innerWidth, margin.top + innerHeight)}
-          color={axisColors.axis}
-          strokeWidth={1}
-        />
-
-        {yTicks.map((ticks, scaleIndex) =>
-          ticks.map((tick) => (
-            <Text
-              key={`label-y-${scaleIndex}-${tick}`}
-              x={
-                scaleIndex === 0
-                  ? margin.left - 10
-                  : margin.left + innerWidth + 10
-              }
-              y={yScales[scaleIndex](tick) + margin.top + 4}
-              text={Math.round(tick).toString()}
-              font={font}
-              color={axisColors.labels}
-            />
-          ))
-        )}
-
-        {xTicks.map((tick) => (
-          <Text
-            key={`label-x-${tick.getTime()}`}
-            x={xScale(tick) + margin.left}
-            y={margin.top + innerHeight + 20}
-            text={formatDate(tick)}
-            font={font}
-            color={axisColors.labels}
-            transform={[{ rotate: -Math.PI / 2 }]}
-          />
-        ))}
-
-        {datasets.map((dataset, datasetIndex) => (
-          <Text
-            key={`axis-title-${datasetIndex}`}
-            x={
-              datasetIndex === 0
-                ? margin.left - 35
-                : margin.left + innerWidth + 35
-            }
-            y={margin.top + innerHeight / 2}
-            text={dataset.axisLabel}
-            font={titleFont}
-            color={axisColors.labels}
-            transform={[
-              { rotate: datasetIndex === 0 ? -Math.PI / 2 : Math.PI / 2 },
-            ]}
-          />
-        ))}
-
         {linePaths.map((linePath, index) => (
           <Path
             key={`line-${index}`}
@@ -268,26 +147,6 @@ const Plot: React.FC<PlotProps> = ({
             style="stroke"
           />
         ))}
-
-        {datasets.map((dataset, datasetIndex) =>
-          dataset.data
-            .filter((point) => point.y > 0)
-            .map((point, pointIndex) => {
-              const x = xScale(new Date(point.x));
-              const y = yScales[datasetIndex](point.y);
-
-              return (
-                <Rect
-                  key={`point-${datasetIndex}-${pointIndex}`}
-                  x={x + margin.left - 2}
-                  y={y + margin.top - 2}
-                  width={4}
-                  height={4}
-                  color={lineColors[datasetIndex % lineColors.length]}
-                />
-              );
-            })
-        )}
       </Canvas>
     </ScrollView>
   );
