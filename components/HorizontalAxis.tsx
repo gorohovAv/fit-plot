@@ -8,6 +8,7 @@ type HorizontalAxisProps = {
   height: number;
   margin: { top: number; right: number; bottom: number; left: number };
   color: string;
+  xScale?: d3.ScaleTime<number, number>;
 };
 
 const HorizontalAxis: React.FC<HorizontalAxisProps> = ({
@@ -16,15 +17,18 @@ const HorizontalAxis: React.FC<HorizontalAxisProps> = ({
   height,
   margin,
   color,
+  xScale: providedXScale,
 }) => {
   const innerWidth = width - margin.left - margin.right;
   const allDates = data.map((point) => new Date(point.x));
 
-  const xScale = d3
-    .scaleTime()
-    .domain([d3.min(allDates) as Date, d3.max(allDates) as Date])
-    .range([0, innerWidth])
-    .nice();
+  const xScale =
+    providedXScale ||
+    d3
+      .scaleTime()
+      .domain([d3.min(allDates) as Date, d3.max(allDates) as Date])
+      .range([0, innerWidth])
+      .nice();
 
   const tickCount = Math.floor(innerWidth / 80);
   const ticks = xScale.ticks(tickCount);
@@ -55,6 +59,7 @@ const HorizontalAxis: React.FC<HorizontalAxisProps> = ({
               {
                 left: x,
                 transform: [{ translateX: -15 }],
+                overflow: "hidden",
               },
             ]}
           >
@@ -71,6 +76,7 @@ const styles = StyleSheet.create({
   container: {
     position: "relative",
     marginTop: 10,
+    overflow: "hidden",
   },
   axisLine: {
     position: "absolute",

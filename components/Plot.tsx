@@ -116,6 +116,7 @@ const Plot: React.FC<PlotProps> = ({
         color={axisColors.labels}
         position="left"
         axisLabel={datasets[0]?.axisLabel}
+        backgroundColor={axisColors.background}
       />
 
       <VerticalAxis
@@ -125,6 +126,7 @@ const Plot: React.FC<PlotProps> = ({
         color={axisColors.labels}
         position="right"
         axisLabel={datasets[1]?.axisLabel}
+        backgroundColor={axisColors.background}
       />
 
       <View
@@ -197,11 +199,14 @@ const Plot: React.FC<PlotProps> = ({
 
       <View
         style={[
-          styles.horizontalAxisContainer,
+          styles.chartContainer,
           {
-            left: margin.left,
-            right: margin.right,
+            marginLeft: margin.left - 60,
+            marginRight: margin.right,
+            position: "absolute",
             top: margin.top + innerHeight,
+            bottom: 0,
+            overflow: "hidden",
           },
         ]}
       >
@@ -218,6 +223,7 @@ const Plot: React.FC<PlotProps> = ({
             height={height}
             margin={margin}
             color={axisColors.labels}
+            xScale={xScale}
           />
         </ScrollView>
       </View>
@@ -238,9 +244,6 @@ const styles = StyleSheet.create({
   },
   canvasContainer: {
     position: "relative",
-  },
-  horizontalAxisContainer: {
-    position: "absolute",
   },
 });
 

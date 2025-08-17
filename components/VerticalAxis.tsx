@@ -9,6 +9,7 @@ type VerticalAxisProps = {
   color: string;
   position: "left" | "right";
   axisLabel?: string;
+  backgroundColor?: string;
 };
 
 const VerticalAxis: React.FC<VerticalAxisProps> = ({
@@ -18,6 +19,7 @@ const VerticalAxis: React.FC<VerticalAxisProps> = ({
   color,
   position,
   axisLabel,
+  backgroundColor,
 }) => {
   const innerHeight = height - margin.top - margin.bottom;
   const yMin = Math.min(0, d3.min(data, (d) => d.y) ?? 0);
@@ -39,7 +41,9 @@ const VerticalAxis: React.FC<VerticalAxisProps> = ({
       : { right: 0, width: margin.right };
 
   return (
-    <View style={[styles.container, containerStyle, { height }]}>
+    <View
+      style={[styles.container, containerStyle, { height, backgroundColor }]}
+    >
       {axisLabel && (
         <Text style={[styles.axisLabel, { color }]}>{axisLabel}</Text>
       )}
@@ -102,6 +106,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 0,
     bottom: 0,
+    zIndex: 10,
   },
   axisLabel: {
     fontSize: 12,
