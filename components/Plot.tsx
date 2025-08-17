@@ -201,6 +201,7 @@ const Plot: React.FC<PlotProps> = ({
           {
             left: margin.left,
             right: margin.right,
+            top: margin.top + innerHeight,
           },
         ]}
       >
@@ -240,7 +241,6 @@ const styles = StyleSheet.create({
   },
   horizontalAxisContainer: {
     position: "absolute",
-    bottom: 0,
   },
 });
 

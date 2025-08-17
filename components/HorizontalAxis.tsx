@@ -70,6 +70,7 @@ const HorizontalAxis: React.FC<HorizontalAxisProps> = ({
 const styles = StyleSheet.create({
   container: {
     position: "relative",
+    marginTop: 10,
   },
   axisLine: {
     position: "absolute",
@@ -77,19 +78,20 @@ const styles = StyleSheet.create({
   },
   tickContainer: {
     position: "absolute",
-    bottom: 0,
+    top: 0,
     width: 30,
     alignItems: "center",
   },
   tickMark: {
     width: 1,
     height: 8,
-    marginBottom: 2,
+    marginTop: -4,
   },
   tickText: {
     fontSize: 8,
     textAlign: "center",
     transform: [{ rotate: "-90deg" }],
+    marginTop: 12,
   },
 });
 
