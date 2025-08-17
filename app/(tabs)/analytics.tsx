@@ -7,6 +7,7 @@ import {
   Alert,
   TouchableOpacity,
   Appearance,
+  ActivityIndicator,
 } from "react-native";
 import { CartesianChart, Line } from "victory-native";
 import useStore, {
@@ -86,6 +87,7 @@ export default function AnalyticsScreen() {
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
   const [autoPeriod, setAutoPeriod] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [chartData, setChartData] = useState<{
     tonnage: ChartData;
     maxWeight: ChartData;
@@ -127,82 +129,79 @@ export default function AnalyticsScreen() {
   };
 
   useEffect(() => {
-    // Проверяем, был ли передан exerciseId через параметры маршрута
-    const params = route.params as
-      | { exerciseId?: string; exerciseName?: string }
-      | undefined;
+    setIsLoading(true);
 
-    if (params?.exerciseId) {
-      if (!selectedExerciseIds.includes(params.exerciseId)) {
-        setSelectedExerciseIds((prev) => [...prev, params.exerciseId!]);
+    const processData = async () => {
+      if (selectedExerciseIds.length === 0) {
+        setChartData({ tonnage: [], maxWeight: [], maxReps: [] });
+        setIsLoading(false);
+        return;
       }
-    }
 
-    if (selectedExerciseIds.length === 0) {
-      setChartData({ tonnage: [], maxWeight: [], maxReps: [] });
-      return;
-    }
-
-    const allResults: Result[] = [];
-    selectedExerciseIds.forEach((id) => {
-      plans
-        .flatMap((plan) =>
-          plan.trainings.flatMap((training) =>
-            training.results.filter((result) => result.exerciseId === id)
+      const allResults: Result[] = [];
+      selectedExerciseIds.forEach((id) => {
+        plans
+          .flatMap((plan) =>
+            plan.trainings.flatMap((training) =>
+              training.results.filter((result) => result.exerciseId === id)
+            )
           )
-        )
-        .forEach((result) => allResults.push(result));
-    });
+          .forEach((result) => allResults.push(result));
+      });
 
-    allResults.sort(
-      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-    );
+      allResults.sort(
+        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+      );
 
-    if (allResults.length === 0) {
-      setChartData({ tonnage: [], maxWeight: [], maxReps: [] });
-      return;
-    }
-
-    if (autoPeriod) {
-      setStartDate(getDayString(allResults[0].date));
-      setEndDate(getDayString(allResults[allResults.length - 1].date));
-    }
-
-    // Группировка по дням
-    const groupedByDay = allResults.reduce((acc, result) => {
-      const day = getDayString(result.date);
-      if (!acc[day]) {
-        acc[day] = { tonnage: 0, maxWeight: 0, maxReps: 0 };
+      if (allResults.length === 0) {
+        setChartData({ tonnage: [], maxWeight: [], maxReps: [] });
+        setIsLoading(false);
+        return;
       }
-      acc[day].tonnage += result.weight * result.reps;
-      acc[day].maxWeight = Math.max(acc[day].maxWeight, result.weight);
-      acc[day].maxReps = Math.max(acc[day].maxReps, result.reps);
-      return acc;
-    }, {} as Record<string, { tonnage: number; maxWeight: number; maxReps: number }>);
 
-    // Сортируем по дате
-    const sortedDays = Object.keys(groupedByDay).sort();
+      if (autoPeriod) {
+        setStartDate(getDayString(allResults[0].date));
+        setEndDate(getDayString(allResults[allResults.length - 1].date));
+      }
 
-    const tonnageData = sortedDays.map((day) => ({
-      x: day,
-      y: groupedByDay[day].tonnage,
-    }));
+      const groupedByDay = allResults.reduce((acc, result) => {
+        const day = getDayString(result.date);
+        if (!acc[day]) {
+          acc[day] = { tonnage: 0, maxWeight: 0, maxReps: 0 };
+        }
+        acc[day].tonnage += result.weight * result.reps;
+        acc[day].maxWeight = Math.max(acc[day].maxWeight, result.weight);
+        acc[day].maxReps = Math.max(acc[day].maxReps, result.reps);
+        return acc;
+      }, {} as Record<string, { tonnage: number; maxWeight: number; maxReps: number }>);
 
-    const maxWeightData = sortedDays.map((day) => ({
-      x: day,
-      y: groupedByDay[day].maxWeight,
-    }));
+      const sortedDays = Object.keys(groupedByDay).sort();
 
-    const maxRepsData = sortedDays.map((day) => ({
-      x: day,
-      y: groupedByDay[day].maxReps,
-    }));
+      const tonnageData = sortedDays.map((day) => ({
+        x: day,
+        y: groupedByDay[day].tonnage,
+      }));
 
-    setChartData({
-      tonnage: tonnageData,
-      maxWeight: maxWeightData,
-      maxReps: maxRepsData,
-    });
+      const maxWeightData = sortedDays.map((day) => ({
+        x: day,
+        y: groupedByDay[day].maxWeight,
+      }));
+
+      const maxRepsData = sortedDays.map((day) => ({
+        x: day,
+        y: groupedByDay[day].maxReps,
+      }));
+
+      setChartData({
+        tonnage: tonnageData,
+        maxWeight: maxWeightData,
+        maxReps: maxRepsData,
+      });
+
+      setIsLoading(false);
+    };
+
+    processData();
   }, [
     selectedExerciseIds,
     startDate,
@@ -227,6 +226,24 @@ export default function AnalyticsScreen() {
     xLabel: string,
     yLabel: string
   ) => {
+    if (isLoading) {
+      return (
+        <View
+          style={[styles.chartContainer, { backgroundColor: themeColors.card }]}
+        >
+          <Text style={[styles.chartTitle, { color: themeColors.text }]}>
+            {title}
+          </Text>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={themeColors.primary} />
+            <Text style={[styles.loadingText, { color: themeColors.text }]}>
+              Загрузка данных...
+            </Text>
+          </View>
+        </View>
+      );
+    }
+
     const filteredData = data.filter(
       (item) =>
         item.x &&
@@ -633,5 +650,14 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 8,
     textAlign: "center",
+  },
+  loadingContainer: {
+    height: 220,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 14,
   },
 });

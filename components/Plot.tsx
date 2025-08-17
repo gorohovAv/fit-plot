@@ -42,7 +42,7 @@ const Plot: React.FC<PlotProps> = ({
   zones,
   width = Dimensions.get("window").width - 32,
   height = 300,
-  margin = { top: 20, right: 80, bottom: 80, left: 80 },
+  margin = { top: 20, right: 80, bottom: 100, left: 80 },
 }) => {
   if (!datasets || datasets.length === 0) {
     return <View style={styles.container} />;
@@ -105,6 +105,8 @@ const Plot: React.FC<PlotProps> = ({
     };
   });
 
+  const horizontalAxisRef = React.useRef<ScrollView>(null);
+
   return (
     <View style={styles.plotContainer}>
       <VerticalAxis
@@ -138,6 +140,16 @@ const Plot: React.FC<PlotProps> = ({
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ width: chartWidth }}
+          scrollEventThrottle={16}
+          onScroll={(event) => {
+            const scrollX = event.nativeEvent.contentOffset.x;
+            if (horizontalAxisRef.current) {
+              horizontalAxisRef.current.scrollTo({
+                x: scrollX,
+                animated: false,
+              });
+            }
+          }}
         >
           <View style={styles.canvasContainer}>
             <Canvas style={{ width: chartWidth, height }}>
@@ -193,6 +205,7 @@ const Plot: React.FC<PlotProps> = ({
         ]}
       >
         <ScrollView
+          ref={horizontalAxisRef}
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ width: chartWidth }}
@@ -220,6 +233,7 @@ const styles = StyleSheet.create({
   },
   chartContainer: {
     position: "relative",
+    minHeight: 300,
   },
   canvasContainer: {
     position: "relative",

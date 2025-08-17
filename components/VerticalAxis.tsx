@@ -44,6 +44,17 @@ const VerticalAxis: React.FC<VerticalAxisProps> = ({
         <Text style={[styles.axisLabel, { color }]}>{axisLabel}</Text>
       )}
       <View style={styles.ticksContainer}>
+        <View
+          style={[
+            styles.axisLine,
+            {
+              backgroundColor: color,
+              height: innerHeight,
+              top: margin.top,
+              [position === "left" ? "right" : "left"]: 0,
+            },
+          ]}
+        />
         {ticks.map((tick, index) => {
           const y = yScale(tick) + margin.top;
 
@@ -58,7 +69,24 @@ const VerticalAxis: React.FC<VerticalAxisProps> = ({
                 },
               ]}
             >
-              <Text style={[styles.tickText, { color }]}>
+              <View
+                style={[
+                  styles.tickMark,
+                  {
+                    backgroundColor: color,
+                    [position === "left" ? "right" : "left"]: 0,
+                  },
+                ]}
+              />
+              <Text
+                style={[
+                  styles.tickText,
+                  {
+                    color,
+                    [position === "left" ? "right" : "left"]: 8,
+                  },
+                ]}
+              >
                 {tick.toFixed(1)}
               </Text>
             </View>
@@ -85,14 +113,24 @@ const styles = StyleSheet.create({
     flex: 1,
     position: "relative",
   },
+  axisLine: {
+    position: "absolute",
+    width: 1,
+  },
   tickContainer: {
     position: "absolute",
     width: "100%",
     alignItems: "center",
   },
+  tickMark: {
+    position: "absolute",
+    width: 8,
+    height: 1,
+  },
   tickText: {
     fontSize: 10,
     textAlign: "center",
+    position: "absolute",
   },
 });
 

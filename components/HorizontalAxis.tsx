@@ -31,6 +31,18 @@ const HorizontalAxis: React.FC<HorizontalAxisProps> = ({
 
   return (
     <View style={[styles.container, { width, height: margin.bottom }]}>
+      <View
+        style={[
+          styles.axisLine,
+          {
+            backgroundColor: color,
+            width: innerWidth,
+            left: margin.left,
+            top: 0,
+          },
+        ]}
+      />
+
       {ticks.map((tick, index) => {
         const x = xScale(tick) + margin.left;
         const dateStr = d3.timeFormat("%d.%m")(tick);
@@ -46,6 +58,7 @@ const HorizontalAxis: React.FC<HorizontalAxisProps> = ({
               },
             ]}
           >
+            <View style={[styles.tickMark, { backgroundColor: color }]} />
             <Text style={[styles.tickText, { color }]}>{dateStr}</Text>
           </View>
         );
@@ -58,14 +71,23 @@ const styles = StyleSheet.create({
   container: {
     position: "relative",
   },
+  axisLine: {
+    position: "absolute",
+    height: 1,
+  },
   tickContainer: {
     position: "absolute",
     bottom: 0,
     width: 30,
     alignItems: "center",
   },
+  tickMark: {
+    width: 1,
+    height: 8,
+    marginBottom: 2,
+  },
   tickText: {
-    fontSize: 10,
+    fontSize: 8,
     textAlign: "center",
     transform: [{ rotate: "-90deg" }],
   },
