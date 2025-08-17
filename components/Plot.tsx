@@ -1,7 +1,9 @@
 import React from "react";
 import { View, ScrollView, StyleSheet, Dimensions } from "react-native";
-import { Canvas, Path, Rect, useFont } from "@shopify/react-native-skia";
+import { Canvas, Path, Rect } from "@shopify/react-native-skia";
 import * as d3 from "d3";
+import HorizontalAxis from "./HorizontalAxis";
+import VerticalAxis from "./VerticalAxis";
 
 type DataPoint = {
   x: string;
@@ -104,57 +106,127 @@ const Plot: React.FC<PlotProps> = ({
   });
 
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ width: chartWidth }}
-    >
-      <Canvas style={{ width: chartWidth, height }}>
-        <Rect
-          x={0}
-          y={0}
-          width={chartWidth}
-          height={height}
-          color={axisColors.background}
-        />
+    <View style={styles.plotContainer}>
+      <VerticalAxis
+        data={datasets[0]?.data || []}
+        height={height}
+        margin={margin}
+        color={axisColors.labels}
+        position="left"
+        axisLabel={datasets[0]?.axisLabel}
+      />
 
-        <Rect
-          x={margin.left}
-          y={margin.top}
-          width={innerWidth}
-          height={innerHeight}
-          color={axisColors.background}
-        />
+      <VerticalAxis
+        data={datasets[1]?.data || datasets[0]?.data || []}
+        height={height}
+        margin={margin}
+        color={axisColors.labels}
+        position="right"
+        axisLabel={datasets[1]?.axisLabel}
+      />
 
-        {zoneRects.map((zone, index) => (
-          <Rect
-            key={`zone-${index}`}
-            x={zone.x + margin.left}
-            y={zone.y + margin.top}
-            width={zone.width}
-            height={zone.height}
-            color={zone.color}
-            opacity={0.3}
+      <View
+        style={[
+          styles.chartContainer,
+          {
+            marginLeft: margin.left,
+            marginRight: margin.right,
+          },
+        ]}
+      >
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ width: chartWidth }}
+        >
+          <View style={styles.canvasContainer}>
+            <Canvas style={{ width: chartWidth, height }}>
+              <Rect
+                x={0}
+                y={0}
+                width={chartWidth}
+                height={height}
+                color={axisColors.background}
+              />
+
+              <Rect
+                x={margin.left}
+                y={margin.top}
+                width={innerWidth}
+                height={innerHeight}
+                color={axisColors.background}
+              />
+
+              {zoneRects.map((zone, index) => (
+                <Rect
+                  key={`zone-${index}`}
+                  x={zone.x + margin.left}
+                  y={zone.y + margin.top}
+                  width={zone.width}
+                  height={zone.height}
+                  color={zone.color}
+                  opacity={0.3}
+                />
+              ))}
+
+              {linePaths.map((linePath, index) => (
+                <Path
+                  key={`line-${index}`}
+                  path={linePath.path}
+                  color={linePath.color}
+                  strokeWidth={2}
+                  style="stroke"
+                />
+              ))}
+            </Canvas>
+          </View>
+        </ScrollView>
+      </View>
+
+      <View
+        style={[
+          styles.horizontalAxisContainer,
+          {
+            left: margin.left,
+            right: margin.right,
+          },
+        ]}
+      >
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ width: chartWidth }}
+          scrollEnabled={false}
+        >
+          <HorizontalAxis
+            data={allDataPoints}
+            width={chartWidth}
+            height={height}
+            margin={margin}
+            color={axisColors.labels}
           />
-        ))}
-
-        {linePaths.map((linePath, index) => (
-          <Path
-            key={`line-${index}`}
-            path={linePath.path}
-            color={linePath.color}
-            strokeWidth={2}
-            style="stroke"
-          />
-        ))}
-      </Canvas>
-    </ScrollView>
+        </ScrollView>
+      </View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     padding: 10,
+  },
+  plotContainer: {
+    position: "relative",
+  },
+  chartContainer: {
+    position: "relative",
+  },
+  canvasContainer: {
+    position: "relative",
+  },
+  horizontalAxisContainer: {
+    position: "absolute",
+    bottom: 0,
   },
 });
 
