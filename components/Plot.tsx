@@ -44,7 +44,16 @@ const Plot: React.FC<PlotProps> = ({
   height = 300,
   margin = { top: 20, right: 80, bottom: 100, left: 80 },
 }) => {
+  const horizontalAxisRef = React.useRef<ScrollView>(null);
+
+  console.log("=== PLOT RENDER DEBUG ===");
+  console.log("datasets:", datasets);
+  console.log("datasets.length:", datasets?.length);
+  console.log("lineColors:", lineColors);
+  console.log("lineColors.length:", lineColors?.length);
+
   if (!datasets || datasets.length === 0) {
+    console.log("No datasets, returning empty view");
     return <View style={styles.container} />;
   }
 
@@ -55,17 +64,25 @@ const Plot: React.FC<PlotProps> = ({
   const allDataPoints = datasets.flatMap((dataset) => dataset.data);
   const allDates = allDataPoints.map((point) => new Date(point.x));
 
+  console.log("allDataPoints.length:", allDataPoints.length);
+  console.log("allDates:", allDates);
+
   const xScale = d3
     .scaleTime()
     .domain([d3.min(allDates) as Date, d3.max(allDates) as Date])
     .range([0, innerWidth])
     .nice();
 
-  const yScales = datasets.map((dataset) => {
+  const yScales = datasets.map((dataset, index) => {
+    console.log(`Creating yScale for dataset ${index}:`, dataset);
     const yMin = Math.min(0, d3.min(dataset.data, (d: DataPoint) => d.y) ?? 0);
     const yMax = d3.max(dataset.data, (d: DataPoint) => d.y) ?? 0;
     const yPadding = (yMax - yMin) * 0.1;
     const yDomain = [yMin - yPadding, yMax + yPadding];
+    console.log(
+      `Dataset ${index} yMin: ${yMin}, yMax: ${yMax}, yDomain:`,
+      yDomain
+    );
 
     return d3
       .scaleLinear()
@@ -74,6 +91,7 @@ const Plot: React.FC<PlotProps> = ({
   });
 
   const linePaths = datasets.map((dataset, datasetIndex) => {
+    console.log(`Creating linePath for dataset ${datasetIndex}:`, dataset);
     const yScale = yScales[datasetIndex];
 
     const lineGenerator = d3
@@ -84,11 +102,18 @@ const Plot: React.FC<PlotProps> = ({
       .curve(d3.curveCatmullRom.alpha(0.5));
 
     const pathData = lineGenerator(dataset.data) || "";
+    const color = lineColors[datasetIndex % lineColors.length];
+    console.log(
+      `Dataset ${datasetIndex} path length: ${pathData.length}, color: ${color}`
+    );
+
     return {
       path: pathData,
-      color: lineColors[datasetIndex % lineColors.length],
+      color: color,
     };
   });
+
+  console.log("linePaths created:", linePaths.length);
 
   const zoneRects = zones.map((zone) => {
     const x1 = xScale(new Date(zone.startDate));
@@ -104,8 +129,6 @@ const Plot: React.FC<PlotProps> = ({
       color: zone.color,
     };
   });
-
-  const horizontalAxisRef = React.useRef<ScrollView>(null);
 
   return (
     <View style={styles.plotContainer}>

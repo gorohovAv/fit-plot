@@ -252,13 +252,9 @@ export default function AnalyticsScreen() {
         !item.x.includes("undefined")
     );
 
-    const datasets: Dataset[] = [
-      {
-        data: filteredData,
-        axisLabel: yLabel,
-      },
-    ];
+    const datasets: Dataset[] = [];
 
+    // Добавляем датасеты только для выбранных упражнений
     selectedExerciseIds.forEach((id) => {
       const exerciseResults = plans
         .flatMap((plan) =>
@@ -310,6 +306,14 @@ export default function AnalyticsScreen() {
         }
       }
     });
+
+    // Если нет выбранных упражнений, показываем общие данные
+    if (datasets.length === 0) {
+      datasets.push({
+        data: filteredData,
+        axisLabel: yLabel,
+      });
+    }
 
     const buildHighlightZones = (): Zone[] => {
       if (!caloriesStore.maintenanceCalories || filteredData.length === 0)
