@@ -2,16 +2,33 @@ import React, { useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Plan } from "../store/store";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { useThemeColor } from "../hooks/useThemeColor";
+import { Colors } from "../constants/Colors";
+import useSettingsStore from "../store/settingsStore";
+import { useColorScheme } from "../hooks/useColorScheme";
 
 type ResultsListProps = {
   plans: Plan[];
 };
 
+type GroupedResult = {
+  muscleGroup: string;
+  exerciseName: string;
+  date: string;
+  weight: number;
+  reps: number;
+  exerciseId: string;
+};
+
+type GroupedResults = Record<string, Record<string, GroupedResult[]>>;
+
 const ResultsList: React.FC<ResultsListProps> = ({ plans }) => {
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
     {}
   );
+  const { theme: settingsTheme } = useSettingsStore();
+  const systemTheme = useColorScheme() ?? "light";
+
+  const currentTheme = settingsTheme === "system" ? systemTheme : settingsTheme;
 
   const toggleGroup = (groupId: string) => {
     setExpandedGroups((prev) => ({
@@ -20,7 +37,7 @@ const ResultsList: React.FC<ResultsListProps> = ({ plans }) => {
     }));
   };
 
-  const groupedResults = plans
+  const groupedResults: GroupedResults = plans
     .flatMap((plan) =>
       plan.trainings.flatMap((training) =>
         training.results.map((result) => {
@@ -44,12 +61,12 @@ const ResultsList: React.FC<ResultsListProps> = ({ plans }) => {
       }
       acc[result.muscleGroup][result.exerciseName].push(result);
       return acc;
-    }, {} as Record<string, Record<string, (typeof groupedResults)[0][]>>);
+    }, {} as GroupedResults);
 
-  const backgroundColor = useThemeColor({}, "background");
-  const groupHeaderColor = useThemeColor({}, "card");
-  const textColor = useThemeColor({}, "text");
-  const resultBg = useThemeColor({}, "background");
+  const backgroundColor = Colors[currentTheme].background;
+  const groupHeaderColor = Colors[currentTheme].card;
+  const textColor = Colors[currentTheme].text;
+  const resultBg = Colors[currentTheme].background;
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
