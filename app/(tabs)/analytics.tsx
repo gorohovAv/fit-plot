@@ -107,10 +107,8 @@ export default function AnalyticsScreen() {
   const settingsStore = useSettingsStore();
   const caloriesStore = useCaloriesStore();
 
-  // Хелпер для получения даты в формате YYYY-MM-DD
   const getDayString = (dateStr: string) => {
     const d = new Date(dateStr);
-    // Корректно обрабатываем часовой пояс
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, "0");
     const day = String(d.getDate()).padStart(2, "0");
@@ -254,61 +252,17 @@ export default function AnalyticsScreen() {
 
     const datasets: Dataset[] = [];
 
-    // Добавляем датасеты только для выбранных упражнений
-    selectedExerciseIds.forEach((id) => {
-      const exerciseResults = plans
-        .flatMap((plan) =>
-          plan.trainings.flatMap((training) => training.results)
-        )
-        .filter((result) => result.exerciseId === id)
-        .sort(
-          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-        );
-
-      if (exerciseResults.length > 0) {
-        const groupedForExercise = exerciseResults.reduce((acc, result) => {
-          const day = getDayString(result.date);
-          if (!acc[day]) {
-            acc[day] = { tonnage: 0, maxWeight: 0, maxReps: 0 };
-          }
-          acc[day].tonnage += result.weight * result.reps;
-          acc[day].maxWeight = Math.max(acc[day].maxWeight, result.weight);
-          acc[day].maxReps = Math.max(acc[day].maxReps, result.reps);
-          return acc;
-        }, {} as Record<string, { tonnage: number; maxWeight: number; maxReps: number }>);
-
-        const sortedDaysForExercise = Object.keys(groupedForExercise).sort();
-
-        if (title.includes("тоннаж")) {
-          datasets.push({
-            data: sortedDaysForExercise.map((day) => ({
-              x: day,
-              y: groupedForExercise[day].tonnage,
-            })),
-            axisLabel: yLabel,
-          });
-        } else if (title.includes("Максимальный вес")) {
-          datasets.push({
-            data: sortedDaysForExercise.map((day) => ({
-              x: day,
-              y: groupedForExercise[day].maxWeight,
-            })),
-            axisLabel: yLabel,
-          });
-        } else if (title.includes("Максимальные повторения")) {
-          datasets.push({
-            data: sortedDaysForExercise.map((day) => ({
-              x: day,
-              y: groupedForExercise[day].maxReps,
-            })),
-            axisLabel: yLabel,
-          });
-        }
-      }
-    });
-
-    // Если нет выбранных упражнений, показываем общие данные
-    if (datasets.length === 0) {
+    if (title.includes("тоннаж")) {
+      datasets.push({
+        data: filteredData,
+        axisLabel: yLabel,
+      });
+    } else if (title.includes("Максимальный вес")) {
+      datasets.push({
+        data: filteredData,
+        axisLabel: yLabel,
+      });
+    } else if (title.includes("Максимальные повторения")) {
       datasets.push({
         data: filteredData,
         axisLabel: yLabel,
@@ -370,7 +324,7 @@ export default function AnalyticsScreen() {
 
     const zones = buildHighlightZones();
 
-    const lineColors = [color, ...themeColors.chartLine.slice(1)];
+    const lineColors = [color];
 
     const axisColors = {
       axis: themeColors.text,
@@ -391,8 +345,9 @@ export default function AnalyticsScreen() {
           axisColors={axisColors}
           zones={zones}
           width={350}
-          height={220}
+          height={300}
           margin={{ top: 20, right: 80, bottom: 80, left: 80 }}
+          showLegend={false}
         />
       </View>
     );

@@ -10,6 +10,7 @@ type VerticalAxisProps = {
   position: "left" | "right";
   axisLabel?: string;
   backgroundColor?: string;
+  yScale?: d3.ScaleLinear<number, number>;
 };
 
 const VerticalAxis: React.FC<VerticalAxisProps> = ({
@@ -20,20 +21,28 @@ const VerticalAxis: React.FC<VerticalAxisProps> = ({
   position,
   axisLabel,
   backgroundColor,
+  yScale,
 }) => {
   const innerHeight = height - margin.top - margin.bottom;
-  const yMin = Math.min(0, d3.min(data, (d) => d.y) ?? 0);
-  const yMax = d3.max(data, (d) => d.y) ?? 0;
-  const yPadding = (yMax - yMin) * 0.1;
-  const yDomain = [yMin - yPadding, yMax + yPadding];
 
-  const yScale = d3
-    .scaleLinear()
-    .domain(yDomain as [number, number])
-    .range([innerHeight, 0]);
+  let scale: d3.ScaleLinear<number, number>;
+
+  if (yScale) {
+    scale = yScale;
+  } else {
+    const yMin = Math.min(0, d3.min(data, (d) => d.y) ?? 0);
+    const yMax = d3.max(data, (d) => d.y) ?? 0;
+    const yPadding = (yMax - yMin) * 0.1;
+    const yDomain = [yMin - yPadding, yMax + yPadding];
+
+    scale = d3
+      .scaleLinear()
+      .domain(yDomain as [number, number])
+      .range([innerHeight, 0]);
+  }
 
   const tickCount = 5;
-  const ticks = yScale.ticks(tickCount);
+  const ticks = scale.ticks(tickCount);
 
   const containerStyle =
     position === "left"
@@ -60,7 +69,7 @@ const VerticalAxis: React.FC<VerticalAxisProps> = ({
           ]}
         />
         {ticks.map((tick, index) => {
-          const y = yScale(tick) + margin.top;
+          const y = scale(tick) + margin.top;
 
           return (
             <View

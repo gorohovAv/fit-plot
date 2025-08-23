@@ -1,5 +1,5 @@
 import React from "react";
-import { View, ScrollView, StyleSheet, Dimensions } from "react-native";
+import { View, ScrollView, StyleSheet, Dimensions, Text } from "react-native";
 import { Canvas, Path, Rect } from "@shopify/react-native-skia";
 import * as d3 from "d3";
 import HorizontalAxis from "./HorizontalAxis";
@@ -21,6 +21,11 @@ type Zone = {
   color: string;
 };
 
+type LegendItem = {
+  label: string;
+  color: string;
+};
+
 type PlotProps = {
   datasets: Dataset[];
   lineColors: string[];
@@ -33,6 +38,28 @@ type PlotProps = {
   width?: number;
   height?: number;
   margin?: { top: number; right: number; bottom: number; left: number };
+  showLegend?: boolean;
+  legendItems?: LegendItem[];
+};
+
+const Legend: React.FC<{ items: LegendItem[]; textColor: string }> = ({
+  items,
+  textColor,
+}) => {
+  if (!items || items.length === 0) return null;
+
+  return (
+    <View style={styles.legendContainer}>
+      {items.map((item, index) => (
+        <View key={index} style={styles.legendItem}>
+          <View style={[styles.legendColor, { backgroundColor: item.color }]} />
+          <Text style={[styles.legendText, { color: textColor }]}>
+            {item.label}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
 };
 
 const Plot: React.FC<PlotProps> = ({
@@ -43,6 +70,8 @@ const Plot: React.FC<PlotProps> = ({
   width = Dimensions.get("window").width - 32,
   height = 300,
   margin = { top: 20, right: 80, bottom: 100, left: 80 },
+  showLegend = false,
+  legendItems = [],
 }) => {
   const horizontalAxisRef = React.useRef<ScrollView>(null);
 
@@ -73,26 +102,22 @@ const Plot: React.FC<PlotProps> = ({
     .range([0, innerWidth])
     .nice();
 
-  const yScales = datasets.map((dataset, index) => {
-    console.log(`Creating yScale for dataset ${index}:`, dataset);
-    const yMin = Math.min(0, d3.min(dataset.data, (d: DataPoint) => d.y) ?? 0);
-    const yMax = d3.max(dataset.data, (d: DataPoint) => d.y) ?? 0;
-    const yPadding = (yMax - yMin) * 0.1;
-    const yDomain = [yMin - yPadding, yMax + yPadding];
-    console.log(
-      `Dataset ${index} yMin: ${yMin}, yMax: ${yMax}, yDomain:`,
-      yDomain
-    );
+  const allValues = datasets.flatMap((dataset) => dataset.data.map((d) => d.y));
+  const globalYMin = Math.min(0, d3.min(allValues) ?? 0);
+  const globalYMax = d3.max(allValues) ?? 0;
+  const globalYPadding = (globalYMax - globalYMin) * 0.1;
+  const globalYDomain = [
+    globalYMin - globalYPadding,
+    globalYMax + globalYPadding,
+  ];
 
-    return d3
-      .scaleLinear()
-      .domain(yDomain as [number, number])
-      .range([innerHeight, 0]);
-  });
+  const yScale = d3
+    .scaleLinear()
+    .domain(globalYDomain as [number, number])
+    .range([innerHeight, 0]);
 
   const linePaths = datasets.map((dataset, datasetIndex) => {
     console.log(`Creating linePath for dataset ${datasetIndex}:`, dataset);
-    const yScale = yScales[datasetIndex];
 
     const lineGenerator = d3
       .line<DataPoint>()
@@ -133,24 +158,28 @@ const Plot: React.FC<PlotProps> = ({
   return (
     <View style={styles.plotContainer}>
       <VerticalAxis
-        data={datasets[0]?.data || []}
+        data={allDataPoints}
         height={height}
         margin={margin}
         color={axisColors.labels}
         position="left"
         axisLabel={datasets[0]?.axisLabel}
         backgroundColor={axisColors.background}
+        yScale={yScale}
       />
 
-      <VerticalAxis
-        data={datasets[1]?.data || datasets[0]?.data || []}
-        height={height}
-        margin={margin}
-        color={axisColors.labels}
-        position="right"
-        axisLabel={datasets[1]?.axisLabel}
-        backgroundColor={axisColors.background}
-      />
+      {datasets.length > 1 && (
+        <VerticalAxis
+          data={allDataPoints}
+          height={height}
+          margin={margin}
+          color={axisColors.labels}
+          position="right"
+          axisLabel={datasets[1]?.axisLabel}
+          backgroundColor={axisColors.background}
+          yScale={yScale}
+        />
+      )}
 
       <View
         style={[
@@ -250,6 +279,10 @@ const Plot: React.FC<PlotProps> = ({
           />
         </ScrollView>
       </View>
+
+      {showLegend && legendItems.length > 0 && (
+        <Legend items={legendItems} textColor={axisColors.labels} />
+      )}
     </View>
   );
 };
@@ -267,6 +300,28 @@ const styles = StyleSheet.create({
   },
   canvasContainer: {
     position: "relative",
+  },
+  legendContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 10,
+    gap: 16,
+  },
+  legendItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  legendColor: {
+    width: 12,
+    height: 12,
+    borderRadius: 2,
+  },
+  legendText: {
+    fontSize: 12,
+    fontWeight: "500",
   },
 });
 

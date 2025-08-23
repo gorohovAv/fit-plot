@@ -432,8 +432,13 @@ export default function CaloriesScreen() {
               axisColors={axisColors}
               zones={[]}
               width={350}
-              height={250}
+              height={300}
               margin={{ top: 20, right: 80, bottom: 80, left: 80 }}
+              showLegend={true}
+              legendItems={[
+                { label: "Калории", color: lineColors[0] },
+                { label: "Вес (кг)", color: lineColors[1] },
+              ]}
             />
           </View>
         )}
