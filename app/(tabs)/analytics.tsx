@@ -250,9 +250,7 @@ export default function AnalyticsScreen() {
               x: day,
               y: groupedByDay[day].tonnage,
             })),
-            axisLabel: `${getTranslation(language, "tonnage")} - ${
-              exercise.name
-            }`,
+            axisLabel: getTranslation(language, "tonnage"), // Общая единица измерения
           });
 
           maxWeightData.push({
@@ -260,9 +258,7 @@ export default function AnalyticsScreen() {
               x: day,
               y: groupedByDay[day].maxWeight,
             })),
-            axisLabel: `${getTranslation(language, "weight")} - ${
-              exercise.name
-            }`,
+            axisLabel: getTranslation(language, "weight"), // Общая единица измерения
           });
 
           maxRepsData.push({
@@ -270,7 +266,7 @@ export default function AnalyticsScreen() {
               x: day,
               y: groupedByDay[day].maxReps,
             })),
-            axisLabel: `${getTranslation(language, "reps")} - ${exercise.name}`,
+            axisLabel: getTranslation(language, "reps"), // Общая единица измерения
           });
         }
       });
@@ -316,9 +312,7 @@ export default function AnalyticsScreen() {
                 x: day,
                 y: groupedPlannedByDay[day].tonnage,
               })),
-              axisLabel: `${getTranslation(language, "tonnage")} - ${
-                exercise.name
-              } (ПЛАН)`,
+              axisLabel: getTranslation(language, "tonnage"), // Общая единица измерения
             });
 
             plannedMaxWeightData.push({
@@ -326,9 +320,7 @@ export default function AnalyticsScreen() {
                 x: day,
                 y: groupedPlannedByDay[day].maxWeight,
               })),
-              axisLabel: `${getTranslation(language, "weight")} - ${
-                exercise.name
-              } (ПЛАН)`,
+              axisLabel: getTranslation(language, "weight"), // Общая единица измерения
             });
 
             plannedMaxRepsData.push({
@@ -336,9 +328,7 @@ export default function AnalyticsScreen() {
                 x: day,
                 y: groupedPlannedByDay[day].maxReps,
               })),
-              axisLabel: `${getTranslation(language, "reps")} - ${
-                exercise.name
-              } (ПЛАН)`,
+              axisLabel: getTranslation(language, "reps"), // Общая единица измерения
             });
           }
         }
@@ -492,10 +482,18 @@ export default function AnalyticsScreen() {
       background: themeColors.card,
     };
 
-    const legendItems = filteredDatasets.map((dataset, index) => ({
-      label: dataset.axisLabel,
-      color: lineColors[index % lineColors.length],
-    }));
+    const legendItems = filteredDatasets.map((dataset, index) => {
+      // Извлекаем имя упражнения из полной метки оси (если есть)
+      const fullLabel = dataset.axisLabel;
+      const exerciseName = fullLabel.includes(" - ")
+        ? fullLabel.split(" - ")[1]
+        : fullLabel;
+
+      return {
+        label: exerciseName,
+        color: lineColors[index % lineColors.length],
+      };
+    });
 
     return (
       <View

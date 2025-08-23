@@ -155,27 +155,35 @@ const Plot: React.FC<PlotProps> = ({
     };
   });
 
+  // Определяем уникальные единицы измерения
+  const uniqueAxisLabels = [
+    ...new Set(datasets.map((dataset) => dataset.axisLabel)),
+  ];
+  console.log("Unique axis labels:", uniqueAxisLabels);
+
   return (
     <View style={styles.plotContainer}>
+      {/* Левая ось - всегда показываем */}
       <VerticalAxis
         data={allDataPoints}
         height={height}
         margin={margin}
         color={axisColors.labels}
         position="left"
-        axisLabel={datasets[0]?.axisLabel}
+        axisLabel={uniqueAxisLabels[0] || datasets[0]?.axisLabel}
         backgroundColor={axisColors.background}
         yScale={yScale}
       />
 
-      {datasets.length > 1 && (
+      {/* Правая ось - показываем только если есть разные единицы измерения */}
+      {uniqueAxisLabels.length > 1 && (
         <VerticalAxis
           data={allDataPoints}
           height={height}
           margin={margin}
           color={axisColors.labels}
           position="right"
-          axisLabel={datasets[1]?.axisLabel}
+          axisLabel={uniqueAxisLabels[1]}
           backgroundColor={axisColors.background}
           yScale={yScale}
         />
