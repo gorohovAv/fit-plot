@@ -91,12 +91,12 @@ export default function AnalyticsScreen() {
   const [autoPeriod, setAutoPeriod] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [chartData, setChartData] = useState<{
-    tonnage: ChartData;
-    maxWeight: ChartData;
-    maxReps: ChartData;
-    plannedTonnage: ChartData;
-    plannedMaxWeight: ChartData;
-    plannedMaxReps: ChartData;
+    tonnage: Dataset[];
+    maxWeight: Dataset[];
+    maxReps: Dataset[];
+    plannedTonnage: Dataset[];
+    plannedMaxWeight: Dataset[];
+    plannedMaxReps: Dataset[];
   }>({
     tonnage: [],
     maxWeight: [],
@@ -158,7 +158,6 @@ export default function AnalyticsScreen() {
       const allResults: Result[] = [];
       const allPlannedResults: PlannedResult[] = [];
 
-      // Обрабатываем обычные результаты
       selectedExerciseIds.forEach((id) => {
         plans
           .flatMap((plan) =>
@@ -169,7 +168,6 @@ export default function AnalyticsScreen() {
           .forEach((result) => allResults.push(result));
       });
 
-      // Обрабатываем плановые результаты
       selectedPlannedIds.forEach((plannedId) => {
         const exerciseName = plannedId.replace("planned-", "");
         const exercise = exercises.find((ex) => ex.name === exerciseName);
@@ -219,65 +217,132 @@ export default function AnalyticsScreen() {
         }
       }
 
-      // Обрабатываем обычные результаты
-      const groupedByDay = allResults.reduce((acc, result) => {
-        const day = getDayString(result.date);
-        if (!acc[day]) {
-          acc[day] = { tonnage: 0, maxWeight: 0, maxReps: 0 };
-        }
-        acc[day].tonnage += result.weight * result.reps;
-        acc[day].maxWeight = Math.max(acc[day].maxWeight, result.weight);
-        acc[day].maxReps = Math.max(acc[day].maxReps, result.reps);
-        return acc;
-      }, {} as Record<string, { tonnage: number; maxWeight: number; maxReps: number }>);
+      const tonnageData: Dataset[] = [];
+      const maxWeightData: Dataset[] = [];
+      const maxRepsData: Dataset[] = [];
+      const plannedTonnageData: Dataset[] = [];
+      const plannedMaxWeightData: Dataset[] = [];
+      const plannedMaxRepsData: Dataset[] = [];
 
-      // Обрабатываем плановые результаты
-      const groupedPlannedByDay = allPlannedResults.reduce((acc, planned) => {
-        const day = getDayString(planned.plannedDate);
-        if (!acc[day]) {
-          acc[day] = { tonnage: 0, maxWeight: 0, maxReps: 0 };
-        }
-        acc[day].tonnage += planned.plannedWeight * planned.plannedReps;
-        acc[day].maxWeight = Math.max(
-          acc[day].maxWeight,
-          planned.plannedWeight
+      // Обрабатываем обычные результаты по каждому упражнению отдельно
+      selectedExerciseIds.forEach((exerciseId) => {
+        const exerciseResults = allResults.filter(
+          (r) => r.exerciseId === exerciseId
         );
-        acc[day].maxReps = Math.max(acc[day].maxReps, planned.plannedReps);
-        return acc;
-      }, {} as Record<string, { tonnage: number; maxWeight: number; maxReps: number }>);
+        const exercise = exercises.find((ex) => ex.id === exerciseId);
 
-      const sortedDays = Object.keys(groupedByDay).sort();
-      const sortedPlannedDays = Object.keys(groupedPlannedByDay).sort();
+        if (exerciseResults.length > 0 && exercise) {
+          const groupedByDay = exerciseResults.reduce((acc, result) => {
+            const day = getDayString(result.date);
+            if (!acc[day]) {
+              acc[day] = { tonnage: 0, maxWeight: 0, maxReps: 0 };
+            }
+            acc[day].tonnage += result.weight * result.reps;
+            acc[day].maxWeight = Math.max(acc[day].maxWeight, result.weight);
+            acc[day].maxReps = Math.max(acc[day].maxReps, result.reps);
+            return acc;
+          }, {} as Record<string, { tonnage: number; maxWeight: number; maxReps: number }>);
 
-      const tonnageData = sortedDays.map((day) => ({
-        x: day,
-        y: groupedByDay[day].tonnage,
-      }));
+          const sortedDays = Object.keys(groupedByDay).sort();
 
-      const maxWeightData = sortedDays.map((day) => ({
-        x: day,
-        y: groupedByDay[day].maxWeight,
-      }));
+          tonnageData.push({
+            data: sortedDays.map((day) => ({
+              x: day,
+              y: groupedByDay[day].tonnage,
+            })),
+            axisLabel: `${getTranslation(language, "tonnage")} - ${
+              exercise.name
+            }`,
+          });
 
-      const maxRepsData = sortedDays.map((day) => ({
-        x: day,
-        y: groupedByDay[day].maxReps,
-      }));
+          maxWeightData.push({
+            data: sortedDays.map((day) => ({
+              x: day,
+              y: groupedByDay[day].maxWeight,
+            })),
+            axisLabel: `${getTranslation(language, "weight")} - ${
+              exercise.name
+            }`,
+          });
 
-      const plannedTonnageData = sortedPlannedDays.map((day) => ({
-        x: day,
-        y: groupedPlannedByDay[day].tonnage,
-      }));
+          maxRepsData.push({
+            data: sortedDays.map((day) => ({
+              x: day,
+              y: groupedByDay[day].maxReps,
+            })),
+            axisLabel: `${getTranslation(language, "reps")} - ${exercise.name}`,
+          });
+        }
+      });
 
-      const plannedMaxWeightData = sortedPlannedDays.map((day) => ({
-        x: day,
-        y: groupedPlannedByDay[day].maxWeight,
-      }));
+      // Обрабатываем плановые результаты по каждому упражнению отдельно
+      selectedPlannedIds.forEach((plannedId) => {
+        const exerciseName = plannedId.replace("planned-", "");
+        const exercise = exercises.find((ex) => ex.name === exerciseName);
 
-      const plannedMaxRepsData = sortedPlannedDays.map((day) => ({
-        x: day,
-        y: groupedPlannedByDay[day].maxReps,
-      }));
+        if (exercise) {
+          const exercisePlannedResults = allPlannedResults.filter(
+            (pr) => pr.exerciseId === exercise.id
+          );
+
+          if (exercisePlannedResults.length > 0) {
+            const groupedPlannedByDay = exercisePlannedResults.reduce(
+              (acc, planned) => {
+                const day = getDayString(planned.plannedDate);
+                if (!acc[day]) {
+                  acc[day] = { tonnage: 0, maxWeight: 0, maxReps: 0 };
+                }
+                acc[day].tonnage += planned.plannedWeight * planned.plannedReps;
+                acc[day].maxWeight = Math.max(
+                  acc[day].maxWeight,
+                  planned.plannedWeight
+                );
+                acc[day].maxReps = Math.max(
+                  acc[day].maxReps,
+                  planned.plannedReps
+                );
+                return acc;
+              },
+              {} as Record<
+                string,
+                { tonnage: number; maxWeight: number; maxReps: number }
+              >
+            );
+
+            const sortedPlannedDays = Object.keys(groupedPlannedByDay).sort();
+
+            plannedTonnageData.push({
+              data: sortedPlannedDays.map((day) => ({
+                x: day,
+                y: groupedPlannedByDay[day].tonnage,
+              })),
+              axisLabel: `${getTranslation(language, "tonnage")} - ${
+                exercise.name
+              } (ПЛАН)`,
+            });
+
+            plannedMaxWeightData.push({
+              data: sortedPlannedDays.map((day) => ({
+                x: day,
+                y: groupedPlannedByDay[day].maxWeight,
+              })),
+              axisLabel: `${getTranslation(language, "weight")} - ${
+                exercise.name
+              } (ПЛАН)`,
+            });
+
+            plannedMaxRepsData.push({
+              data: sortedPlannedDays.map((day) => ({
+                x: day,
+                y: groupedPlannedByDay[day].maxReps,
+              })),
+              axisLabel: `${getTranslation(language, "reps")} - ${
+                exercise.name
+              } (ПЛАН)`,
+            });
+          }
+        }
+      });
 
       setChartData({
         tonnage: tonnageData,
@@ -315,9 +380,9 @@ export default function AnalyticsScreen() {
   );
 
   const renderChart = (
-    data: ChartData,
+    datasets: Dataset[],
     title: string,
-    color: string,
+    colors: string[],
     xLabel: string,
     yLabel: string
   ) => {
@@ -339,38 +404,36 @@ export default function AnalyticsScreen() {
       );
     }
 
-    const filteredData = data.filter(
-      (item) =>
-        item.x &&
-        typeof item.x === "string" &&
-        item.x.split("-").length === 3 &&
-        !item.x.includes("undefined")
-    );
+    if (!datasets || datasets.length === 0) {
+      return null;
+    }
 
-    const datasets: Dataset[] = [];
+    const filteredDatasets = datasets
+      .map((dataset) => ({
+        ...dataset,
+        data: dataset.data.filter(
+          (item) =>
+            item.x &&
+            typeof item.x === "string" &&
+            item.x.split("-").length === 3 &&
+            !item.x.includes("undefined")
+        ),
+      }))
+      .filter((dataset) => dataset.data.length > 0);
 
-    if (title.includes("тоннаж")) {
-      datasets.push({
-        data: filteredData,
-        axisLabel: yLabel,
-      });
-    } else if (title.includes("Максимальный вес")) {
-      datasets.push({
-        data: filteredData,
-        axisLabel: yLabel,
-      });
-    } else if (title.includes("Максимальные повторения")) {
-      datasets.push({
-        data: filteredData,
-        axisLabel: yLabel,
-      });
+    if (filteredDatasets.length === 0) {
+      return null;
     }
 
     const buildHighlightZones = (): Zone[] => {
-      if (!caloriesStore.maintenanceCalories || filteredData.length === 0)
+      if (!caloriesStore.maintenanceCalories || filteredDatasets.length === 0)
         return [];
-      const start = new Date(filteredData[0].x);
-      const end = new Date(filteredData[filteredData.length - 1].x);
+
+      const allDataPoints = filteredDatasets.flatMap((dataset) => dataset.data);
+      if (allDataPoints.length === 0) return [];
+
+      const start = new Date(allDataPoints[0].x);
+      const end = new Date(allDataPoints[allDataPoints.length - 1].x);
 
       const startOfWeek = (d: Date) => {
         const nd = new Date(d);
@@ -421,13 +484,18 @@ export default function AnalyticsScreen() {
 
     const zones = buildHighlightZones();
 
-    const lineColors = [color];
+    const lineColors = colors.slice(0, filteredDatasets.length);
 
     const axisColors = {
       axis: themeColors.text,
       labels: themeColors.text,
       background: themeColors.card,
     };
+
+    const legendItems = filteredDatasets.map((dataset, index) => ({
+      label: dataset.axisLabel,
+      color: lineColors[index % lineColors.length],
+    }));
 
     return (
       <View
@@ -437,14 +505,15 @@ export default function AnalyticsScreen() {
           {title}
         </Text>
         <Plot
-          datasets={datasets}
+          datasets={filteredDatasets}
           lineColors={lineColors}
           axisColors={axisColors}
           zones={zones}
           width={350}
           height={300}
           margin={{ top: 20, right: 80, bottom: 80, left: 80 }}
-          showLegend={false}
+          showLegend={true}
+          legendItems={legendItems}
         />
       </View>
     );
@@ -556,6 +625,7 @@ export default function AnalyticsScreen() {
             name: rawTraining.name,
             exercises: newExercises,
             results: newResults,
+            plannedResults: [], // Добавляем пустой массив плановых результатов
           });
         }
         processedPlans.push({
@@ -627,7 +697,7 @@ export default function AnalyticsScreen() {
             {renderChart(
               chartData.tonnage,
               getTranslation(language, "generalTonnage"),
-              themeColors.chartLine[0],
+              themeColors.chartLine,
               getTranslation(language, "date"),
               getTranslation(language, "tonnage")
             )}
@@ -635,14 +705,14 @@ export default function AnalyticsScreen() {
               renderChart(
                 chartData.plannedTonnage,
                 getTranslation(language, "generalTonnage") + " (ПЛАН)",
-                themeColors.chartLine[0],
+                themeColors.chartLine,
                 getTranslation(language, "date"),
                 getTranslation(language, "tonnage")
               )}
             {renderChart(
               chartData.maxWeight,
               getTranslation(language, "maxWeight"),
-              themeColors.chartLine[1],
+              themeColors.chartLine,
               getTranslation(language, "date"),
               getTranslation(language, "weight")
             )}
@@ -650,14 +720,14 @@ export default function AnalyticsScreen() {
               renderChart(
                 chartData.plannedMaxWeight,
                 getTranslation(language, "maxWeight") + " (ПЛАН)",
-                themeColors.chartLine[1],
+                themeColors.chartLine,
                 getTranslation(language, "date"),
                 getTranslation(language, "weight")
               )}
             {renderChart(
               chartData.maxReps,
               getTranslation(language, "maxReps"),
-              themeColors.chartLine[2],
+              themeColors.chartLine,
               getTranslation(language, "date"),
               getTranslation(language, "reps")
             )}
@@ -665,7 +735,7 @@ export default function AnalyticsScreen() {
               renderChart(
                 chartData.plannedMaxReps,
                 getTranslation(language, "maxReps") + " (ПЛАН)",
-                themeColors.chartLine[2],
+                themeColors.chartLine,
                 getTranslation(language, "date"),
                 getTranslation(language, "reps")
               )}
