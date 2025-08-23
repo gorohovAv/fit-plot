@@ -1,4 +1,5 @@
 import { openDatabaseAsync } from "expo-sqlite";
+import { Plan, Training, Exercise, Result, PlannedResult } from "./store";
 
 let db: any = null;
 

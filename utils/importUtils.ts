@@ -1,7 +1,7 @@
 import * as XLSX from "xlsx";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
-import useStore, {
+import {
   Plan,
   Exercise,
   Result,
@@ -9,7 +9,15 @@ import useStore, {
   ExerciseType,
   Training,
 } from "@/store/store";
-import useCaloriesStore from "@/store/calloriesStore";
+import {
+  savePlan,
+  saveTraining,
+  saveExercise,
+  saveResult,
+  saveCalorieEntry,
+  getCalorieEntries,
+  getAllPlansWithData,
+} from "@/store/dbLayer";
 
 export interface ExportData {
   plans: Plan[];
@@ -183,13 +191,13 @@ export async function exportDataToFile(
   }
 }
 
-export function getExportData(): ExportData {
-  const store = useStore.getState();
-  const caloriesStore = useCaloriesStore.getState();
+export async function getExportData(): Promise<ExportData> {
+  const plans = await getAllPlansWithData();
+  const calories = await getCalorieEntries();
 
   return {
-    plans: store.plans,
-    calories: caloriesStore.entries,
+    plans: plans,
+    calories: calories,
   };
 }
 
@@ -281,10 +289,8 @@ export function validateImport(text: string): ValidationResult {
   };
 }
 
-export function importData(text: string): void {
+export async function importData(text: string): Promise<void> {
   const lines = text.split("\n").filter((line) => line.trim());
-  const store = useStore.getState();
-  const caloriesStore = useCaloriesStore.getState();
 
   let currentExercise = "";
   let currentDate = new Date().toISOString().split("T")[0];
@@ -331,9 +337,11 @@ export function importData(text: string): void {
                 };
                 exerciseMap.set(currentExercise, exercise);
                 importedTraining.exercises.push(exercise);
+
+                await saveExercise(exercise);
               }
 
-              store.addResult(importedPlan!.planName, importedTraining.id, {
+              await saveResult({
                 exerciseId: exercise.id,
                 weight: weight,
                 reps: Math.round(reps),
@@ -362,9 +370,11 @@ export function importData(text: string): void {
             };
             exerciseMap.set(currentExercise, exercise);
             importedTraining.exercises.push(exercise);
+
+            await saveExercise(exercise);
           }
 
-          store.addResult(importedPlan!.planName, importedTraining.id, {
+          await saveResult({
             exerciseId: exercise.id,
             weight: 0,
             reps: Math.round(reps),
@@ -394,7 +404,7 @@ export function importData(text: string): void {
           planName: `Импортированный план ${new Date().toLocaleDateString()}`,
           trainings: [],
         };
-        store.addPlan(importedPlan);
+        await savePlan(importedPlan.planName);
       }
 
       if (!importedTraining) {
@@ -405,7 +415,11 @@ export function importData(text: string): void {
           results: [],
           plannedResults: [],
         };
-        store.addTraining(importedPlan.planName, importedTraining);
+        await saveTraining(
+          importedTraining.id,
+          importedPlan.planName,
+          importedTraining.name
+        );
       }
     }
   }
