@@ -17,6 +17,7 @@ import useStore, {
   Result,
   MuscleGroup,
   ExerciseType,
+  PlannedResult,
 } from "../../store/store";
 import useSettingsStore from "@/store/settingsStore";
 import useCaloriesStore from "@/store/calloriesStore";
@@ -84,6 +85,7 @@ export default function AnalyticsScreen() {
   const { plans } = useStore();
   const [selectedExercise, setSelectedExercise] = useState<string>("");
   const [selectedExerciseIds, setSelectedExerciseIds] = useState<string[]>([]);
+  const [selectedPlannedIds, setSelectedPlannedIds] = useState<string[]>([]);
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
   const [autoPeriod, setAutoPeriod] = useState<boolean>(true);
@@ -92,7 +94,17 @@ export default function AnalyticsScreen() {
     tonnage: ChartData;
     maxWeight: ChartData;
     maxReps: ChartData;
-  }>({ tonnage: [], maxWeight: [], maxReps: [] });
+    plannedTonnage: ChartData;
+    plannedMaxWeight: ChartData;
+    plannedMaxReps: ChartData;
+  }>({
+    tonnage: [],
+    maxWeight: [],
+    maxReps: [],
+    plannedTonnage: [],
+    plannedMaxWeight: [],
+    plannedMaxReps: [],
+  });
   const [showResultsList, setShowResultsList] = useState<boolean>(false);
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
 
@@ -130,13 +142,23 @@ export default function AnalyticsScreen() {
     setIsLoading(true);
 
     const processData = async () => {
-      if (selectedExerciseIds.length === 0) {
-        setChartData({ tonnage: [], maxWeight: [], maxReps: [] });
+      if (selectedExerciseIds.length === 0 && selectedPlannedIds.length === 0) {
+        setChartData({
+          tonnage: [],
+          maxWeight: [],
+          maxReps: [],
+          plannedTonnage: [],
+          plannedMaxWeight: [],
+          plannedMaxReps: [],
+        });
         setIsLoading(false);
         return;
       }
 
       const allResults: Result[] = [];
+      const allPlannedResults: PlannedResult[] = [];
+
+      // Обрабатываем обычные результаты
       selectedExerciseIds.forEach((id) => {
         plans
           .flatMap((plan) =>
@@ -147,21 +169,57 @@ export default function AnalyticsScreen() {
           .forEach((result) => allResults.push(result));
       });
 
+      // Обрабатываем плановые результаты
+      selectedPlannedIds.forEach((plannedId) => {
+        const exerciseName = plannedId.replace("planned-", "");
+        const exercise = exercises.find((ex) => ex.name === exerciseName);
+        if (exercise) {
+          plans
+            .flatMap((plan) =>
+              plan.trainings.flatMap((training) =>
+                training.plannedResults.filter(
+                  (planned) => planned.exerciseId === exercise.id
+                )
+              )
+            )
+            .forEach((planned) => allPlannedResults.push(planned));
+        }
+      });
+
       allResults.sort(
         (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
       );
 
-      if (allResults.length === 0) {
-        setChartData({ tonnage: [], maxWeight: [], maxReps: [] });
+      allPlannedResults.sort(
+        (a, b) =>
+          new Date(a.plannedDate).getTime() - new Date(b.plannedDate).getTime()
+      );
+
+      if (allResults.length === 0 && allPlannedResults.length === 0) {
+        setChartData({
+          tonnage: [],
+          maxWeight: [],
+          maxReps: [],
+          plannedTonnage: [],
+          plannedMaxWeight: [],
+          plannedMaxReps: [],
+        });
         setIsLoading(false);
         return;
       }
 
       if (autoPeriod) {
-        setStartDate(getDayString(allResults[0].date));
-        setEndDate(getDayString(allResults[allResults.length - 1].date));
+        const allDates = [
+          ...allResults.map((r) => r.date),
+          ...allPlannedResults.map((pr) => pr.plannedDate),
+        ].sort();
+        if (allDates.length > 0) {
+          setStartDate(getDayString(allDates[0]));
+          setEndDate(getDayString(allDates[allDates.length - 1]));
+        }
       }
 
+      // Обрабатываем обычные результаты
       const groupedByDay = allResults.reduce((acc, result) => {
         const day = getDayString(result.date);
         if (!acc[day]) {
@@ -173,7 +231,23 @@ export default function AnalyticsScreen() {
         return acc;
       }, {} as Record<string, { tonnage: number; maxWeight: number; maxReps: number }>);
 
+      // Обрабатываем плановые результаты
+      const groupedPlannedByDay = allPlannedResults.reduce((acc, planned) => {
+        const day = getDayString(planned.plannedDate);
+        if (!acc[day]) {
+          acc[day] = { tonnage: 0, maxWeight: 0, maxReps: 0 };
+        }
+        acc[day].tonnage += planned.plannedWeight * planned.plannedReps;
+        acc[day].maxWeight = Math.max(
+          acc[day].maxWeight,
+          planned.plannedWeight
+        );
+        acc[day].maxReps = Math.max(acc[day].maxReps, planned.plannedReps);
+        return acc;
+      }, {} as Record<string, { tonnage: number; maxWeight: number; maxReps: number }>);
+
       const sortedDays = Object.keys(groupedByDay).sort();
+      const sortedPlannedDays = Object.keys(groupedPlannedByDay).sort();
 
       const tonnageData = sortedDays.map((day) => ({
         x: day,
@@ -190,10 +264,28 @@ export default function AnalyticsScreen() {
         y: groupedByDay[day].maxReps,
       }));
 
+      const plannedTonnageData = sortedPlannedDays.map((day) => ({
+        x: day,
+        y: groupedPlannedByDay[day].tonnage,
+      }));
+
+      const plannedMaxWeightData = sortedPlannedDays.map((day) => ({
+        x: day,
+        y: groupedPlannedByDay[day].maxWeight,
+      }));
+
+      const plannedMaxRepsData = sortedPlannedDays.map((day) => ({
+        x: day,
+        y: groupedPlannedByDay[day].maxReps,
+      }));
+
       setChartData({
         tonnage: tonnageData,
         maxWeight: maxWeightData,
         maxReps: maxRepsData,
+        plannedTonnage: plannedTonnageData,
+        plannedMaxWeight: plannedMaxWeightData,
+        plannedMaxReps: plannedMaxRepsData,
       });
 
       setIsLoading(false);
@@ -202,6 +294,7 @@ export default function AnalyticsScreen() {
     processData();
   }, [
     selectedExerciseIds,
+    selectedPlannedIds,
     startDate,
     endDate,
     autoPeriod,
@@ -215,6 +308,10 @@ export default function AnalyticsScreen() {
 
   const exercises = plans.flatMap((plan) =>
     plan.trainings.flatMap((training) => training.exercises)
+  );
+
+  const plannedResults = plans.flatMap((plan) =>
+    plan.trainings.flatMap((training) => training.plannedResults)
   );
 
   const renderChart = (
@@ -503,9 +600,10 @@ export default function AnalyticsScreen() {
             <Text
               style={[styles.pickerButtonText, { color: themeColors.text }]}
             >
-              {selectedExerciseIds.length > 0
+              {selectedExerciseIds.length > 0 || selectedPlannedIds.length > 0
                 ? formatTranslation(language, "selected", {
-                    count: selectedExerciseIds.length,
+                    count:
+                      selectedExerciseIds.length + selectedPlannedIds.length,
                   })
                 : getTranslation(language, "selectExercises")}
             </Text>
@@ -523,7 +621,8 @@ export default function AnalyticsScreen() {
       {showResultsList ? (
         <ResultsList plans={plans} />
       ) : (
-        chartData.tonnage.length > 0 && (
+        (chartData.tonnage.length > 0 ||
+          chartData.plannedTonnage.length > 0) && (
           <>
             {renderChart(
               chartData.tonnage,
@@ -532,6 +631,14 @@ export default function AnalyticsScreen() {
               getTranslation(language, "date"),
               getTranslation(language, "tonnage")
             )}
+            {chartData.plannedTonnage.length > 0 &&
+              renderChart(
+                chartData.plannedTonnage,
+                getTranslation(language, "generalTonnage") + " (ПЛАН)",
+                themeColors.chartLine[0],
+                getTranslation(language, "date"),
+                getTranslation(language, "tonnage")
+              )}
             {renderChart(
               chartData.maxWeight,
               getTranslation(language, "maxWeight"),
@@ -539,6 +646,14 @@ export default function AnalyticsScreen() {
               getTranslation(language, "date"),
               getTranslation(language, "weight")
             )}
+            {chartData.plannedMaxWeight.length > 0 &&
+              renderChart(
+                chartData.plannedMaxWeight,
+                getTranslation(language, "maxWeight") + " (ПЛАН)",
+                themeColors.chartLine[1],
+                getTranslation(language, "date"),
+                getTranslation(language, "weight")
+              )}
             {renderChart(
               chartData.maxReps,
               getTranslation(language, "maxReps"),
@@ -546,6 +661,14 @@ export default function AnalyticsScreen() {
               getTranslation(language, "date"),
               getTranslation(language, "reps")
             )}
+            {chartData.plannedMaxReps.length > 0 &&
+              renderChart(
+                chartData.plannedMaxReps,
+                getTranslation(language, "maxReps") + " (ПЛАН)",
+                themeColors.chartLine[2],
+                getTranslation(language, "date"),
+                getTranslation(language, "reps")
+              )}
           </>
         )
       )}
@@ -553,10 +676,13 @@ export default function AnalyticsScreen() {
       <AnalyticsExerciseSelector
         isVisible={isModalVisible}
         exercises={exercises}
+        plannedResults={plannedResults}
         selectedExerciseIds={selectedExerciseIds}
+        selectedPlannedIds={selectedPlannedIds}
         onClose={() => setIsModalVisible(false)}
-        onSave={(newSelectedIds) => {
+        onSave={(newSelectedIds, newSelectedPlannedIds) => {
           setSelectedExerciseIds(newSelectedIds);
+          setSelectedPlannedIds(newSelectedPlannedIds);
           setIsModalVisible(false);
         }}
       />

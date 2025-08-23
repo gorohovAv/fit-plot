@@ -8,7 +8,7 @@ import {
   ScrollView,
 } from "react-native";
 import { Checkbox } from "expo-checkbox";
-import { Exercise } from "../store/store";
+import { Exercise, PlannedResult } from "../store/store";
 import { Colors } from "../constants/Colors";
 import useSettingsStore from "../store/settingsStore";
 import { getTranslation } from "@/utils/localization";
@@ -16,15 +16,19 @@ import { getTranslation } from "@/utils/localization";
 interface AnalyticsExerciseSelectorProps {
   isVisible: boolean;
   exercises: Exercise[];
+  plannedResults: PlannedResult[];
   selectedExerciseIds: string[];
+  selectedPlannedIds: string[];
   onClose: () => void;
-  onSave: (selectedIds: string[]) => void;
+  onSave: (selectedIds: string[], selectedPlannedIds: string[]) => void;
 }
 
 const AnalyticsExerciseSelector: React.FC<AnalyticsExerciseSelectorProps> = ({
   isVisible,
   exercises,
+  plannedResults,
   selectedExerciseIds,
+  selectedPlannedIds,
   onClose,
   onSave,
 }) => {
@@ -38,10 +42,13 @@ const AnalyticsExerciseSelector: React.FC<AnalyticsExerciseSelectorProps> = ({
 
   const [currentSelectedIds, setCurrentSelectedIds] =
     useState<string[]>(selectedExerciseIds);
+  const [currentSelectedPlannedIds, setCurrentSelectedPlannedIds] =
+    useState<string[]>(selectedPlannedIds);
 
   useEffect(() => {
     setCurrentSelectedIds(selectedExerciseIds);
-  }, [selectedExerciseIds]);
+    setCurrentSelectedPlannedIds(selectedPlannedIds);
+  }, [selectedExerciseIds, selectedPlannedIds]);
 
   const handleCheckboxChange = (id: string) => {
     setCurrentSelectedIds((prevSelectedIds) => {
@@ -53,10 +60,34 @@ const AnalyticsExerciseSelector: React.FC<AnalyticsExerciseSelectorProps> = ({
     });
   };
 
+  const handlePlannedCheckboxChange = (id: string) => {
+    setCurrentSelectedPlannedIds((prevSelectedIds) => {
+      if (prevSelectedIds.includes(id)) {
+        return prevSelectedIds.filter((plannedId) => plannedId !== id);
+      } else {
+        return [...prevSelectedIds, id];
+      }
+    });
+  };
+
   const handleSave = () => {
-    onSave(currentSelectedIds);
+    onSave(currentSelectedIds, currentSelectedPlannedIds);
     onClose();
   };
+
+  const getExerciseNameById = (exerciseId: string) => {
+    const exercise = exercises.find((ex) => ex.id === exerciseId);
+    return exercise ? exercise.name : "Неизвестное упражнение";
+  };
+
+  const groupedPlannedResults = plannedResults.reduce((acc, planned) => {
+    const exerciseName = getExerciseNameById(planned.exerciseId);
+    if (!acc[exerciseName]) {
+      acc[exerciseName] = [];
+    }
+    acc[exerciseName].push(planned);
+    return acc;
+  }, {} as Record<string, PlannedResult[]>);
 
   return (
     <Modal
@@ -71,6 +102,7 @@ const AnalyticsExerciseSelector: React.FC<AnalyticsExerciseSelectorProps> = ({
             {getTranslation(language, "selectExercises")}
           </Text>
           <ScrollView style={themedStyles.scrollView}>
+            <Text style={themedStyles.sectionTitle}>Упражнения</Text>
             {exercises.map((exercise) => (
               <View key={exercise.id} style={themedStyles.checkboxContainer}>
                 <Checkbox
@@ -85,6 +117,41 @@ const AnalyticsExerciseSelector: React.FC<AnalyticsExerciseSelectorProps> = ({
                 <Text style={themedStyles.checkboxLabel}>{exercise.name}</Text>
               </View>
             ))}
+
+            {Object.keys(groupedPlannedResults).length > 0 && (
+              <>
+                <Text style={themedStyles.sectionTitle}>
+                  Плановые результаты
+                </Text>
+                {Object.entries(groupedPlannedResults).map(
+                  ([exerciseName, plannedList]) => (
+                    <View
+                      key={`planned-${exerciseName}`}
+                      style={themedStyles.checkboxContainer}
+                    >
+                      <Checkbox
+                        value={currentSelectedPlannedIds.includes(
+                          `planned-${exerciseName}`
+                        )}
+                        onValueChange={() =>
+                          handlePlannedCheckboxChange(`planned-${exerciseName}`)
+                        }
+                        color={
+                          currentSelectedPlannedIds.includes(
+                            `planned-${exerciseName}`
+                          )
+                            ? Colors[colorScheme].tint
+                            : undefined
+                        }
+                      />
+                      <Text style={themedStyles.checkboxLabel}>
+                        {exerciseName} - ПЛАН
+                      </Text>
+                    </View>
+                  )
+                )}
+              </>
+            )}
           </ScrollView>
           <View style={themedStyles.buttonContainer}>
             <TouchableOpacity
@@ -142,6 +209,14 @@ function getThemedStyles(colors: typeof Colors.light) {
       fontSize: 18,
       fontWeight: "bold",
       color: colors.text,
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: "bold",
+      color: colors.text,
+      marginTop: 15,
+      marginBottom: 10,
+      alignSelf: "flex-start",
     },
     scrollView: {
       width: "100%",
