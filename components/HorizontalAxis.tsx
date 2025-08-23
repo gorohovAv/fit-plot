@@ -30,7 +30,8 @@ const HorizontalAxis: React.FC<HorizontalAxisProps> = ({
       .range([0, innerWidth])
       .nice();
 
-  const tickCount = Math.floor(innerWidth / 80);
+  // Увеличиваем количество делений для лучшего отображения
+  const tickCount = Math.max(3, Math.floor(innerWidth / 100));
   const ticks = xScale.ticks(tickCount);
 
   return (
@@ -58,8 +59,7 @@ const HorizontalAxis: React.FC<HorizontalAxisProps> = ({
               styles.tickContainer,
               {
                 left: x,
-                transform: [{ translateX: -15 }],
-                overflow: "hidden",
+                transform: [{ translateX: -20 }], // Увеличиваем отступ для лучшего позиционирования
               },
             ]}
           >
@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
   container: {
     position: "relative",
     marginTop: 10,
-    overflow: "hidden",
+    overflow: "visible", // Изменяем на visible чтобы даты не обрезались
   },
   axisLine: {
     position: "absolute",
@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
   tickContainer: {
     position: "absolute",
     top: 0,
-    width: 30,
+    width: 40, // Увеличиваем ширину контейнера
     alignItems: "center",
   },
   tickMark: {
@@ -94,10 +94,11 @@ const styles = StyleSheet.create({
     marginTop: -4,
   },
   tickText: {
-    fontSize: 8,
+    fontSize: 10, // Увеличиваем размер шрифта
     textAlign: "center",
     transform: [{ rotate: "-90deg" }],
-    marginTop: 12,
+    marginTop: 15, // Увеличиваем отступ сверху
+    width: 40, // Фиксируем ширину текста
   },
 });
 

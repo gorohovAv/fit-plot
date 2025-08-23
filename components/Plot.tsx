@@ -86,9 +86,21 @@ const Plot: React.FC<PlotProps> = ({
     return <View style={styles.container} />;
   }
 
+  // Определяем уникальные единицы измерения
+  const uniqueAxisLabels = [
+    ...new Set(datasets.map((dataset) => dataset.axisLabel)),
+  ];
+  console.log("Unique axis labels:", uniqueAxisLabels);
+
+  // Динамически настраиваем отступы в зависимости от количества осей
+  const dynamicMargin = {
+    ...margin,
+    right: uniqueAxisLabels.length > 1 ? margin.right : 20, // Уменьшаем правый отступ если нет второй оси
+  };
+
   const chartWidth = Math.max(width * 2, 800);
-  const innerWidth = chartWidth - margin.left - margin.right;
-  const innerHeight = height - margin.top - margin.bottom;
+  const innerWidth = chartWidth - dynamicMargin.left - dynamicMargin.right;
+  const innerHeight = height - dynamicMargin.top - dynamicMargin.bottom;
 
   const allDataPoints = datasets.flatMap((dataset) => dataset.data);
   const allDates = allDataPoints.map((point) => new Date(point.x));
@@ -105,7 +117,9 @@ const Plot: React.FC<PlotProps> = ({
   const allValues = datasets.flatMap((dataset) => dataset.data.map((d) => d.y));
   const globalYMin = Math.min(0, d3.min(allValues) ?? 0);
   const globalYMax = d3.max(allValues) ?? 0;
-  const globalYPadding = (globalYMax - globalYMin) * 0.1;
+
+  // Исправляем расчет максимального значения оси - добавляем 5% отступ сверху
+  const globalYPadding = (globalYMax - globalYMin) * 0.05; // Уменьшаем отступ до 5%
   const globalYDomain = [
     globalYMin - globalYPadding,
     globalYMax + globalYPadding,
@@ -155,19 +169,13 @@ const Plot: React.FC<PlotProps> = ({
     };
   });
 
-  // Определяем уникальные единицы измерения
-  const uniqueAxisLabels = [
-    ...new Set(datasets.map((dataset) => dataset.axisLabel)),
-  ];
-  console.log("Unique axis labels:", uniqueAxisLabels);
-
   return (
     <View style={styles.plotContainer}>
       {/* Левая ось - всегда показываем */}
       <VerticalAxis
         data={allDataPoints}
         height={height}
-        margin={margin}
+        margin={dynamicMargin}
         color={axisColors.labels}
         position="left"
         axisLabel={uniqueAxisLabels[0] || datasets[0]?.axisLabel}
@@ -180,7 +188,7 @@ const Plot: React.FC<PlotProps> = ({
         <VerticalAxis
           data={allDataPoints}
           height={height}
-          margin={margin}
+          margin={dynamicMargin}
           color={axisColors.labels}
           position="right"
           axisLabel={uniqueAxisLabels[1]}
@@ -193,8 +201,8 @@ const Plot: React.FC<PlotProps> = ({
         style={[
           styles.chartContainer,
           {
-            marginLeft: margin.left,
-            marginRight: margin.right,
+            marginLeft: dynamicMargin.left,
+            marginRight: dynamicMargin.right,
           },
         ]}
       >
@@ -224,8 +232,8 @@ const Plot: React.FC<PlotProps> = ({
               />
 
               <Rect
-                x={margin.left}
-                y={margin.top}
+                x={dynamicMargin.left}
+                y={dynamicMargin.top}
                 width={innerWidth}
                 height={innerHeight}
                 color={axisColors.background}
@@ -234,8 +242,8 @@ const Plot: React.FC<PlotProps> = ({
               {zoneRects.map((zone, index) => (
                 <Rect
                   key={`zone-${index}`}
-                  x={zone.x + margin.left}
-                  y={zone.y + margin.top}
+                  x={zone.x + dynamicMargin.left}
+                  y={zone.y + dynamicMargin.top}
                   width={zone.width}
                   height={zone.height}
                   color={zone.color}
@@ -261,10 +269,10 @@ const Plot: React.FC<PlotProps> = ({
         style={[
           styles.chartContainer,
           {
-            marginLeft: margin.left - 60,
-            marginRight: margin.right,
+            marginLeft: dynamicMargin.left - 60,
+            marginRight: dynamicMargin.right,
             position: "absolute",
-            top: margin.top + innerHeight,
+            top: dynamicMargin.top + innerHeight,
             bottom: 0,
             overflow: "hidden",
           },
@@ -281,7 +289,7 @@ const Plot: React.FC<PlotProps> = ({
             data={allDataPoints}
             width={chartWidth}
             height={height}
-            margin={margin}
+            margin={dynamicMargin}
             color={axisColors.labels}
             xScale={xScale}
           />
