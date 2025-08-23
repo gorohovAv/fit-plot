@@ -6,6 +6,8 @@ export interface SyncMiddleware {
   (config: StateCreator<StoreState>): StateCreator<StoreState>;
 }
 
+let isInitializing = false;
+
 export const createSyncMiddleware = (): SyncMiddleware => {
   return (config) => (set, get, api) => {
     const originalSet = set;
@@ -23,11 +25,19 @@ export const createSyncMiddleware = (): SyncMiddleware => {
 
       originalSet(partial, replace);
 
-      syncToDatabase(prevState, fullState);
+      // НЕ синхронизируем во время инициализации
+      if (!isInitializing) {
+        syncToDatabase(prevState, fullState);
+      }
     };
 
     return config(syncSet, get, api);
   };
+};
+
+// Экспортируем функции для управления флагом
+export const setInitializing = (value: boolean) => {
+  isInitializing = value;
 };
 
 const syncToDatabase = async (prevState: StoreState, newState: StoreState) => {

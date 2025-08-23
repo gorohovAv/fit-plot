@@ -209,9 +209,11 @@ export const saveResult = async (result: {
   isPlanned?: boolean;
 }): Promise<void> => {
   const database = await getDatabase();
-  await database.runAsync(
-    `INSERT INTO results (exerciseId, weight, reps, date, amplitude, isPlanned)
-     VALUES (?, ?, ?, ?, ?, ?)`,
+
+  // Проверяем, существует ли уже такой результат
+  const existing = await database.getFirstAsync(
+    `SELECT id FROM results
+     WHERE id = ? AND exerciseId = ? AND weight = ? AND reps = ? AND date = ? AND amplitude = ? AND isPlanned = ?`,
     [
       result.exerciseId,
       result.weight,
@@ -221,6 +223,22 @@ export const saveResult = async (result: {
       result.isPlanned ? 1 : 0,
     ]
   );
+
+  if (!existing) {
+    // Добавляем только если не существует
+    await database.runAsync(
+      `INSERT INTO results (exerciseId, weight, reps, date, amplitude, isPlanned)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        result.exerciseId,
+        result.weight,
+        result.reps,
+        result.date,
+        result.amplitude,
+        result.isPlanned ? 1 : 0,
+      ]
+    );
+  }
 };
 
 export const getResultsByExercise = async (
