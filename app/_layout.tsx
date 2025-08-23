@@ -10,12 +10,8 @@ import "react-native-reanimated";
 import { useEffect } from "react";
 
 import { useColorScheme } from "@/hooks/useColorScheme";
-import useStore from "@/store/store";
-import useCaloriesStore from "@/store/calloriesStore";
 import useSettingsStore from "@/store/settingsStore";
-import { logAllTables } from "@/store/dbLayer";
 import * as stepService from "@/services/stepService";
-import { setInitializing } from "@/store/syncMiddleware";
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -23,24 +19,14 @@ export default function RootLayout() {
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
 
-  const initializeFromDB = useStore((state) => state.initializeFromDB);
-  const initializeCaloriesFromDB = useCaloriesStore(
-    (state) => state.initializeFromDB
-  );
-  const initializeSettingsFromDB = useSettingsStore(
-    (state) => state.initializeFromDB
+  const initializeSettings = useSettingsStore(
+    (state) => state.initializeSettings
   );
 
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        setInitializing(true); // БЛОКИРУЕМ синхронизацию
-
-        await initializeFromDB();
-        await initializeCaloriesFromDB();
-        await initializeSettingsFromDB();
-
-        setInitializing(false); // РАЗБЛОКИРУЕМ синхронизацию
+        await initializeSettings();
       } catch (error) {
         console.error("Ошибка инициализации приложения:", error);
       }
@@ -49,12 +35,7 @@ export default function RootLayout() {
     if (loaded) {
       initializeApp();
     }
-  }, [
-    loaded,
-    initializeFromDB,
-    initializeCaloriesFromDB,
-    initializeSettingsFromDB,
-  ]);
+  }, [loaded, initializeSettings]);
 
   if (!loaded) {
     return null;

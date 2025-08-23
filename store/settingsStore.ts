@@ -1,6 +1,5 @@
 import { create } from "zustand";
-import { createSyncMiddleware } from "./syncMiddleware";
-import * as dbLayer from "./dbLayer";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Language } from "@/utils/localization";
 
 type Theme = "light" | "dark" | "system";
@@ -10,50 +9,72 @@ type SettingsState = {
   weight: number;
   devMode: boolean;
   language: Language;
-  setTheme: (theme: Theme) => void;
-  setWeight: (weight: number) => void;
-  setDevMode: (devMode: boolean) => void;
-  setLanguage: (language: Language) => void;
-  initializeFromDB: () => Promise<void>;
+  setTheme: (theme: Theme) => Promise<void>;
+  setWeight: (weight: number) => Promise<void>;
+  setDevMode: (devMode: boolean) => Promise<void>;
+  setLanguage: (language: Language) => Promise<void>;
+  initializeSettings: () => Promise<void>;
 };
 
-const syncMiddleware = createSyncMiddleware();
+const useSettingsStore = create<SettingsState>((set) => ({
+  theme: "system",
+  weight: 70,
+  devMode: false,
+  language: "russian",
 
-const useSettingsStore = create<SettingsState>()(
-  syncMiddleware((set) => ({
-    theme: "system",
-    weight: 70,
-    devMode: false,
-    language: "russian",
-    setTheme: (theme: Theme) => set({ theme }),
-    setWeight: (weight: number) => set({ weight }),
-    setDevMode: (devMode: boolean) => set({ devMode }),
-    setLanguage: (language: Language) => set({ language }),
-    initializeFromDB: async () => {
-      try {
-        await dbLayer.initDatabase();
-        const settings = await loadSettingsFromDB();
-        set(settings);
-      } catch (error) {
-        console.error("Ошибка инициализации настроек из БД:", error);
-      }
-    },
-  }))
-);
+  initializeSettings: async () => {
+    try {
+      const savedTheme = await AsyncStorage.getItem("theme");
+      const savedWeight = await AsyncStorage.getItem("weight");
+      const savedDevMode = await AsyncStorage.getItem("devMode");
+      const savedLanguage = await AsyncStorage.getItem("language");
 
-const loadSettingsFromDB = async () => {
-  const settings = await dbLayer.getAllSettings();
-  const settingsMap = settings.reduce((acc, { key, value }) => {
-    acc[key] = value;
-    return acc;
-  }, {} as Record<string, string>);
+      set({
+        theme: (savedTheme as Theme) || "system",
+        weight: savedWeight ? parseFloat(savedWeight) : 70,
+        devMode: savedDevMode === "true",
+        language: (savedLanguage as Language) || "russian",
+      });
+    } catch (error) {
+      console.error("Ошибка загрузки настроек:", error);
+    }
+  },
 
-  return {
-    theme: (settingsMap.theme as Theme) || "system",
-    weight: parseFloat(settingsMap.weight) || 70,
-    devMode: settingsMap.devMode === "true",
-    language: (settingsMap.language as Language) || "russian",
-  };
-};
+  setTheme: async (theme) => {
+    try {
+      await AsyncStorage.setItem("theme", theme);
+      set({ theme });
+    } catch (error) {
+      console.error("Ошибка сохранения темы:", error);
+    }
+  },
+
+  setWeight: async (weight) => {
+    try {
+      await AsyncStorage.setItem("weight", weight.toString());
+      set({ weight });
+    } catch (error) {
+      console.error("Ошибка сохранения веса:", error);
+    }
+  },
+
+  setDevMode: async (devMode) => {
+    try {
+      await AsyncStorage.setItem("devMode", devMode.toString());
+      set({ devMode });
+    } catch (error) {
+      console.error("Ошибка сохранения режима разработчика:", error);
+    }
+  },
+
+  setLanguage: async (language) => {
+    try {
+      await AsyncStorage.setItem("language", language);
+      set({ language });
+    } catch (error) {
+      console.error("Ошибка сохранения языка:", error);
+    }
+  },
+}));
 
 export default useSettingsStore;

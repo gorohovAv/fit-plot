@@ -20,7 +20,6 @@ import useStore, {
   PlannedResult,
 } from "../../store/store";
 import useSettingsStore from "@/store/settingsStore";
-import useCaloriesStore from "@/store/calloriesStore";
 import { Colors } from "@/constants/Colors";
 import { Picker } from "@react-native-picker/picker";
 import { Circle, useFont } from "@shopify/react-native-skia";
@@ -33,11 +32,11 @@ import { v4 as uuidv4 } from "uuid";
 import { useRoute } from "@react-navigation/native";
 import AnalyticsExerciseSelector from "@/components/AnalyticsExerciseSelector";
 import { getTranslation, formatTranslation } from "@/utils/localization";
-import { logAllTables } from "@/store/dbLayer";
+import * as dbLayer from "@/store/dbLayer";
 
 type ChartData = {
-  x: string; // Дата
-  y: number; // Значение (тоннаж, вес, повторения)
+  x: string;
+  y: number;
 }[];
 
 type Dataset = {
@@ -51,9 +50,8 @@ type Zone = {
   color: string;
 };
 
-// Определяем типы для "сырых" импортированных данных (без гарантированных ID)
 type RawExercise = {
-  id?: string; // ID может быть, но мы его перегенерируем
+  id?: string;
   name: string;
   muscleGroup: MuscleGroup;
   type: ExerciseType;
@@ -62,7 +60,7 @@ type RawExercise = {
 };
 
 type RawResult = {
-  exerciseId: string; // Этот ID будет ссылаться на исходный ID из JSON
+  exerciseId: string;
   weight: number;
   reps: number;
   date: string;
@@ -70,7 +68,7 @@ type RawResult = {
 };
 
 type RawTraining = {
-  id?: string; // ID может быть, но мы его перегенерируем
+  id?: string;
   name: string;
   exercises: RawExercise[];
   results: RawResult[];
@@ -82,7 +80,7 @@ type RawPlan = {
 };
 
 export default function AnalyticsScreen() {
-  const { plans } = useStore();
+  const [plans, setPlans] = useState<Plan[]>([]);
   const [selectedExercise, setSelectedExercise] = useState<string>("");
   const [selectedExerciseIds, setSelectedExerciseIds] = useState<string[]>([]);
   const [selectedPlannedIds, setSelectedPlannedIds] = useState<string[]>([]);
@@ -116,8 +114,19 @@ export default function AnalyticsScreen() {
     theme === "system" ? Appearance.getColorScheme?.() ?? "light" : theme;
   const themeColors = Colors[colorScheme];
 
-  const settingsStore = useSettingsStore();
-  const caloriesStore = useCaloriesStore();
+  useEffect(() => {
+    loadPlans();
+  }, []);
+
+  const loadPlans = async () => {
+    try {
+      await dbLayer.initDatabase();
+      const loadedPlans = await dbLayer.getAllPlansWithData();
+      setPlans(loadedPlans);
+    } catch (error) {
+      console.error("Ошибка загрузки планов:", error);
+    }
+  };
 
   const getDayString = (dateStr: string) => {
     const d = new Date(dateStr);
@@ -127,13 +136,11 @@ export default function AnalyticsScreen() {
     return `${year}-${month}-${day}`;
   };
 
-  // Хелпер для красивого отображения на графике (MM-DD)
   const formatLabel = (dayStr: string) => {
     if (!dayStr || typeof dayStr !== "string") return "";
     const parts = dayStr.split("-");
     if (parts.length !== 3) return "";
     const [, month, day] = parts;
-    // Проверяем, что month и day существуют и это числа
     if (!month || !day || isNaN(Number(month)) || isNaN(Number(day))) return "";
     return `${month}-${day}`;
   };
@@ -160,27 +167,33 @@ export default function AnalyticsScreen() {
 
       selectedExerciseIds.forEach((id) => {
         plans
-          .flatMap((plan) =>
-            plan.trainings.flatMap((training) =>
-              training.results.filter((result) => result.exerciseId === id)
+          .flatMap((plan: Plan) =>
+            plan.trainings.flatMap((training: Training) =>
+              training.results.filter(
+                (result: Result) => result.exerciseId === id
+              )
             )
           )
-          .forEach((result) => allResults.push(result));
+          .forEach((result: Result) => allResults.push(result));
       });
 
       selectedPlannedIds.forEach((plannedId) => {
         const exerciseName = plannedId.replace("planned-", "");
-        const exercise = exercises.find((ex) => ex.name === exerciseName);
+        const exercise = exercises.find(
+          (ex: Exercise) => ex.name === exerciseName
+        );
         if (exercise) {
           plans
-            .flatMap((plan) =>
-              plan.trainings.flatMap((training) =>
+            .flatMap((plan: Plan) =>
+              plan.trainings.flatMap((training: Training) =>
                 training.plannedResults.filter(
-                  (planned) => planned.exerciseId === exercise.id
+                  (planned: PlannedResult) => planned.exerciseId === exercise.id
                 )
               )
             )
-            .forEach((planned) => allPlannedResults.push(planned));
+            .forEach((planned: PlannedResult) =>
+              allPlannedResults.push(planned)
+            );
         }
       });
 
@@ -224,12 +237,11 @@ export default function AnalyticsScreen() {
       const plannedMaxWeightData: Dataset[] = [];
       const plannedMaxRepsData: Dataset[] = [];
 
-      // Обрабатываем обычные результаты по каждому упражнению отдельно
       selectedExerciseIds.forEach((exerciseId) => {
         const exerciseResults = allResults.filter(
           (r) => r.exerciseId === exerciseId
         );
-        const exercise = exercises.find((ex) => ex.id === exerciseId);
+        const exercise = exercises.find((ex: Exercise) => ex.id === exerciseId);
 
         if (exerciseResults.length > 0 && exercise) {
           const groupedByDay = exerciseResults.reduce((acc, result) => {
@@ -250,7 +262,7 @@ export default function AnalyticsScreen() {
               x: day,
               y: groupedByDay[day].tonnage,
             })),
-            axisLabel: getTranslation(language, "tonnage"), // Общая единица измерения
+            axisLabel: getTranslation(language, "tonnage"),
           });
 
           maxWeightData.push({
@@ -258,7 +270,7 @@ export default function AnalyticsScreen() {
               x: day,
               y: groupedByDay[day].maxWeight,
             })),
-            axisLabel: getTranslation(language, "weight"), // Общая единица измерения
+            axisLabel: getTranslation(language, "weight"),
           });
 
           maxRepsData.push({
@@ -266,15 +278,16 @@ export default function AnalyticsScreen() {
               x: day,
               y: groupedByDay[day].maxReps,
             })),
-            axisLabel: getTranslation(language, "reps"), // Общая единица измерения
+            axisLabel: getTranslation(language, "reps"),
           });
         }
       });
 
-      // Обрабатываем плановые результаты по каждому упражнению отдельно
       selectedPlannedIds.forEach((plannedId) => {
         const exerciseName = plannedId.replace("planned-", "");
-        const exercise = exercises.find((ex) => ex.name === exerciseName);
+        const exercise = exercises.find(
+          (ex: Exercise) => ex.name === exerciseName
+        );
 
         if (exercise) {
           const exercisePlannedResults = allPlannedResults.filter(
@@ -312,7 +325,7 @@ export default function AnalyticsScreen() {
                 x: day,
                 y: groupedPlannedByDay[day].tonnage,
               })),
-              axisLabel: getTranslation(language, "tonnage"), // Общая единица измерения
+              axisLabel: getTranslation(language, "tonnage"),
             });
 
             plannedMaxWeightData.push({
@@ -320,7 +333,7 @@ export default function AnalyticsScreen() {
                 x: day,
                 y: groupedPlannedByDay[day].maxWeight,
               })),
-              axisLabel: getTranslation(language, "weight"), // Общая единица измерения
+              axisLabel: getTranslation(language, "weight"),
             });
 
             plannedMaxRepsData.push({
@@ -328,7 +341,7 @@ export default function AnalyticsScreen() {
                 x: day,
                 y: groupedPlannedByDay[day].maxReps,
               })),
-              axisLabel: getTranslation(language, "reps"), // Общая единица измерения
+              axisLabel: getTranslation(language, "reps"),
             });
           }
         }
@@ -361,12 +374,12 @@ export default function AnalyticsScreen() {
     return null;
   }
 
-  const exercises = plans.flatMap((plan) =>
-    plan.trainings.flatMap((training) => training.exercises)
+  const exercises = plans.flatMap((plan: Plan) =>
+    plan.trainings.flatMap((training: Training) => training.exercises)
   );
 
-  const plannedResults = plans.flatMap((plan) =>
-    plan.trainings.flatMap((training) => training.plannedResults)
+  const plannedResults = plans.flatMap((plan: Plan) =>
+    plan.trainings.flatMap((training: Training) => training.plannedResults)
   );
 
   const renderChart = (
@@ -416,60 +429,7 @@ export default function AnalyticsScreen() {
     }
 
     const buildHighlightZones = (): Zone[] => {
-      if (!caloriesStore.maintenanceCalories || filteredDatasets.length === 0)
-        return [];
-
-      const allDataPoints = filteredDatasets.flatMap((dataset) => dataset.data);
-      if (allDataPoints.length === 0) return [];
-
-      const start = new Date(allDataPoints[0].x);
-      const end = new Date(allDataPoints[allDataPoints.length - 1].x);
-
-      const startOfWeek = (d: Date) => {
-        const nd = new Date(d);
-        const day = nd.getDay();
-        const diff = (day + 6) % 7;
-        nd.setDate(nd.getDate() - diff);
-        nd.setHours(0, 0, 0, 0);
-        return nd;
-      };
-      const addDays = (d: Date, n: number) => {
-        const nd = new Date(d);
-        nd.setDate(nd.getDate() + n);
-        return nd;
-      };
-
-      const zones: Zone[] = [];
-      let wStart = startOfWeek(start);
-      while (wStart <= end) {
-        const wEnd = addDays(wStart, 6);
-        let sum = 0;
-        let cnt = 0;
-        for (
-          let d = new Date(wStart);
-          d <= wEnd && d <= end;
-          d = addDays(d, 1)
-        ) {
-          const key = getDayString(d.toISOString());
-          const entry = caloriesStore.getEntryByDate(key);
-          if (entry) {
-            sum += entry.calories;
-            cnt += 1;
-          }
-        }
-        if (cnt > 0) {
-          const avg = sum / cnt;
-          const color =
-            avg < caloriesStore.maintenanceCalories
-              ? themeColors.chartZoneDeficit
-              : themeColors.chartZoneSurplus;
-          const zs = getDayString(wStart.toISOString());
-          const ze = getDayString((wEnd > end ? end : wEnd).toISOString());
-          zones.push({ startDate: zs, endDate: ze, color });
-        }
-        wStart = addDays(wStart, 7);
-      }
-      return zones;
+      return [];
     };
 
     const zones = buildHighlightZones();
@@ -483,7 +443,6 @@ export default function AnalyticsScreen() {
     };
 
     const legendItems = filteredDatasets.map((dataset, index) => {
-      // Извлекаем имя упражнения из полной метки оси (если есть)
       const fullLabel = dataset.axisLabel;
       const exerciseName = fullLabel.includes(" - ")
         ? fullLabel.split(" - ")[1]
@@ -516,12 +475,12 @@ export default function AnalyticsScreen() {
       </View>
     );
   };
-  // --- Функция импорта данных ---
+
   const importPlans = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
-        type: "application/json", // Разрешаем выбирать только JSON-файлы
-        copyToCacheDirectory: true, // Копируем файл во временную директорию для доступа
+        type: "application/json",
+        copyToCacheDirectory: true,
       });
 
       if (result.canceled) {
@@ -532,7 +491,7 @@ export default function AnalyticsScreen() {
       const fileUri = result.assets[0].uri;
       const fileContent = await FileSystem.readAsStringAsync(fileUri);
 
-      let importedRawData: { plans: RawPlan[] } | RawPlan | RawPlan[]; // Гибкий тип для входных данных
+      let importedRawData: { plans: RawPlan[] } | RawPlan | RawPlan[];
       try {
         importedRawData = JSON.parse(fileContent);
       } catch (parseError) {
@@ -546,7 +505,6 @@ export default function AnalyticsScreen() {
 
       let rawPlansToProcess: RawPlan[];
 
-      // Определяем, является ли корневой элемент массивом планов, объектом с полем 'plans' или одним планом
       if (Array.isArray(importedRawData)) {
         rawPlansToProcess = importedRawData as RawPlan[];
       } else if (
@@ -557,16 +515,14 @@ export default function AnalyticsScreen() {
       ) {
         rawPlansToProcess = importedRawData.plans as RawPlan[];
       } else {
-        // Если это одиночный план
         rawPlansToProcess = [importedRawData as RawPlan];
       }
 
       const processedPlans: Plan[] = [];
-      const { addPlan, plans: existingPlans } = useStore.getState();
+      const existingPlans = await dbLayer.getAllPlansWithData();
 
       for (const rawPlan of rawPlansToProcess) {
-        // Проверяем, существует ли план с таким именем
-        if (existingPlans.some((p) => p.planName === rawPlan.planName)) {
+        if (existingPlans.some((p: Plan) => p.planName === rawPlan.planName)) {
           console.warn(
             `План с именем "${rawPlan.planName}" уже существует. Пропускаем.`
           );
@@ -574,19 +530,18 @@ export default function AnalyticsScreen() {
             "Предупреждение",
             `План с именем "${rawPlan.planName}" уже существует и не будет добавлен.`
           );
-          continue; // Пропускаем этот план
+          continue;
         }
 
         const newTrainings: Training[] = [];
-        const exerciseIdMap = new Map<string, string>(); // Карта старых ID упражнений к новым ID для текущего плана
+        const exerciseIdMap = new Map<string, string>();
 
         for (const rawTraining of rawPlan.trainings) {
-          const newTrainingId = uuidv4(); // Генерируем новый ID для тренировки
+          const newTrainingId = uuidv4();
           const newExercises: Exercise[] = [];
 
           for (const rawExercise of rawTraining.exercises) {
-            const newExerciseId = uuidv4(); // Генерируем новый ID для упражнения
-            // Сохраняем соответствие старого ID (если есть) новому ID
+            const newExerciseId = uuidv4();
             if (rawExercise.id) {
               exerciseIdMap.set(rawExercise.id, newExerciseId);
             }
@@ -607,10 +562,10 @@ export default function AnalyticsScreen() {
               console.warn(
                 `Не удалось найти упражнение с ID ${rawResult.exerciseId} для результата в плане "${rawPlan.planName}". Пропускаем результат.`
               );
-              continue; // Пропускаем результат, если нет соответствия упражнения
+              continue;
             }
             newResults.push({
-              exerciseId: mappedExerciseId, // Используем новый ID упражнения
+              exerciseId: mappedExerciseId,
               weight: rawResult.weight,
               reps: rawResult.reps,
               date: rawResult.date,
@@ -623,7 +578,7 @@ export default function AnalyticsScreen() {
             name: rawTraining.name,
             exercises: newExercises,
             results: newResults,
-            plannedResults: [], // Добавляем пустой массив плановых результатов
+            plannedResults: [],
           });
         }
         processedPlans.push({
@@ -633,7 +588,32 @@ export default function AnalyticsScreen() {
       }
 
       if (processedPlans.length > 0) {
-        processedPlans.forEach((plan) => addPlan(plan));
+        for (const plan of processedPlans) {
+          await dbLayer.savePlan(plan.planName);
+          for (const training of plan.trainings) {
+            await dbLayer.saveTraining(
+              training.id,
+              plan.planName,
+              training.name
+            );
+            for (const exercise of training.exercises) {
+              await dbLayer.saveExercise({
+                id: exercise.id,
+                trainingId: training.id,
+                name: exercise.name,
+                muscleGroup: exercise.muscleGroup,
+                type: exercise.type,
+                unilateral: exercise.unilateral,
+                amplitude: exercise.amplitude,
+              });
+            }
+            for (const result of training.results) {
+              await dbLayer.saveResult(result);
+            }
+          }
+        }
+
+        await loadPlans();
         Alert.alert(
           "Успех",
           `Успешно импортировано ${processedPlans.length} план(а/ов)!`

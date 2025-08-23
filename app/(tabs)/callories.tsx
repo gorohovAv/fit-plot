@@ -11,12 +11,13 @@ import {
   Platform,
 } from "react-native";
 import Plot from "../../components/Plot";
-import useCaloriesStore from "../../store/calloriesStore";
 import useSettingsStore from "../../store/settingsStore";
 import { Colors } from "../../constants/Colors";
 import { getTranslation, formatTranslation } from "@/utils/localization";
 import { useSteps } from "../../hooks/useSteps";
 import * as stepService from "../../services/stepService";
+import * as dbLayer from "../../store/dbLayer";
+import { CalorieEntry } from "../../store/store";
 
 type Dataset = {
   data: { x: string; y: number }[];
@@ -28,14 +29,11 @@ export default function CaloriesScreen() {
   const [weight, setWeight] = useState("");
   const [maintenanceCaloriesInput, setMaintenanceCaloriesInput] = useState("");
   const [isEditingMaintenance, setIsEditingMaintenance] = useState(false);
+  const [entries, setEntries] = useState<CalorieEntry[]>([]);
+  const [maintenanceCalories, setMaintenanceCalories] = useState<number | null>(
+    null
+  );
 
-  const {
-    entries,
-    addEntry,
-    getEntryByDate,
-    maintenanceCalories,
-    setMaintenanceCalories,
-  } = useCaloriesStore();
   const { language } = useSettingsStore();
   const {
     todaySteps,
@@ -55,27 +53,41 @@ export default function CaloriesScreen() {
       : Colors.light;
 
   const today = new Date().toISOString().split("T")[0];
-  const todayEntry = getEntryByDate(today);
+  const todayEntry = entries.find((entry) => entry.date === today);
 
-  // Инициализация поля maintenance calories
   useEffect(() => {
-    if (maintenanceCalories !== null) {
-      setMaintenanceCaloriesInput(maintenanceCalories.toString());
-      setIsEditingMaintenance(false);
-    } else {
-      setIsEditingMaintenance(true);
+    loadCaloriesData();
+  }, []);
+
+  const loadCaloriesData = async () => {
+    try {
+      await dbLayer.initDatabase();
+      const loadedEntries = await dbLayer.getCalorieEntries();
+      const loadedMaintenance = await dbLayer.getMaintenanceCalories();
+
+      setEntries(loadedEntries);
+      setMaintenanceCalories(loadedMaintenance);
+
+      if (loadedMaintenance !== null) {
+        setMaintenanceCaloriesInput(loadedMaintenance.toString());
+        setIsEditingMaintenance(false);
+      } else {
+        setIsEditingMaintenance(true);
+      }
+    } catch (error) {
+      console.error("Ошибка загрузки данных калорий:", error);
     }
-  }, [maintenanceCalories]);
+  };
 
   useEffect(() => {
     const interval = setInterval(() => {
       refreshSteps();
-    }, 10000); // обновляем каждые 10 секунд
+    }, 10000);
 
     return () => clearInterval(interval);
   }, []);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const caloriesNum = parseInt(calories);
     const weightNum = parseFloat(weight);
 
@@ -103,21 +115,26 @@ export default function CaloriesScreen() {
       return;
     }
 
-    addEntry({
-      date: today,
-      calories: caloriesNum,
-      weight: weightNum,
-    });
+    try {
+      await dbLayer.saveCalorieEntry(today, caloriesNum, weightNum);
+      await loadCaloriesData();
 
-    setCalories("");
-    setWeight("");
-    Alert.alert(
-      getTranslation(language, "success"),
-      getTranslation(language, "dataSaved")
-    );
+      setCalories("");
+      setWeight("");
+      Alert.alert(
+        getTranslation(language, "success"),
+        getTranslation(language, "dataSaved")
+      );
+    } catch (error) {
+      console.error("Ошибка сохранения калорий:", error);
+      Alert.alert(
+        getTranslation(language, "error"),
+        "Ошибка сохранения данных"
+      );
+    }
   };
 
-  const handleMaintenanceCaloriesSave = () => {
+  const handleMaintenanceCaloriesSave = async () => {
     const maintenanceNum = parseInt(maintenanceCaloriesInput);
 
     if (!maintenanceCaloriesInput) {
@@ -136,9 +153,18 @@ export default function CaloriesScreen() {
       return;
     }
 
-    setMaintenanceCalories(maintenanceNum);
-    setIsEditingMaintenance(false);
-    Alert.alert(getTranslation(language, "maintenanceCaloriesSaved"));
+    try {
+      await dbLayer.saveMaintenanceCalories(maintenanceNum);
+      setMaintenanceCalories(maintenanceNum);
+      setIsEditingMaintenance(false);
+      Alert.alert(getTranslation(language, "maintenanceCaloriesSaved"));
+    } catch (error) {
+      console.error("Ошибка сохранения калорий поддержания:", error);
+      Alert.alert(
+        getTranslation(language, "error"),
+        "Ошибка сохранения калорий поддержания"
+      );
+    }
   };
 
   const handleEditMaintenance = () => {

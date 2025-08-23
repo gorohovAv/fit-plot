@@ -9,23 +9,25 @@ import {
   FlatList,
   Appearance,
 } from "react-native";
-import useStore, { Plan } from "../store/store";
+import { Plan } from "../store/store";
 import useSettingsStore from "../store/settingsStore";
 import { Colors } from "../constants/Colors";
 import { getTranslation, formatTranslation } from "../utils/localization";
+import * as dbLayer from "../store/dbLayer";
 
 type PlanSelectorProps = {
   visible: boolean;
   onClose: () => void;
   onSelect: (plan: Plan) => void;
+  plans: Plan[];
 };
 
 export const PlanSelector: React.FC<PlanSelectorProps> = ({
   visible,
   onClose,
   onSelect,
+  plans,
 }) => {
-  const { plans, addPlan, removePlan } = useStore();
   const [newPlanName, setNewPlanName] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   const theme = useSettingsStore((state) => state.theme);
@@ -38,16 +40,20 @@ export const PlanSelector: React.FC<PlanSelectorProps> = ({
       : Colors.light;
   const themeColors = colorScheme;
 
-  const handleAddPlan = () => {
+  const handleAddPlan = async () => {
     if (newPlanName.trim()) {
-      const newPlan: Plan = {
-        planName: newPlanName,
-        trainings: [],
-      };
-      addPlan(newPlan);
-      onSelect(newPlan);
-      setNewPlanName("");
-      setShowAddModal(false);
+      try {
+        await dbLayer.savePlan(newPlanName);
+        const newPlan: Plan = {
+          planName: newPlanName,
+          trainings: [],
+        };
+        onSelect(newPlan);
+        setNewPlanName("");
+        setShowAddModal(false);
+      } catch (error) {
+        console.error("Ошибка добавления плана:", error);
+      }
     }
   };
 

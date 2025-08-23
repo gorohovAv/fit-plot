@@ -412,3 +412,143 @@ export const logAllTables = async () => {
     console.error("Ошибка логирования таблиц:", error);
   }*/
 };
+
+export const savePlannedResult = async (plannedResult: {
+  exerciseId: string;
+  plannedWeight: number;
+  plannedReps: number;
+  plannedDate: string;
+  amplitude: string;
+}): Promise<void> => {
+  const database = await getDatabase();
+
+  const existing = await database.getFirstAsync(
+    `SELECT id FROM results
+     WHERE exerciseId = ? AND weight = ? AND reps = ? AND date = ? AND amplitude = ? AND isPlanned = ?`,
+    [
+      plannedResult.exerciseId,
+      plannedResult.plannedWeight,
+      plannedResult.plannedReps,
+      plannedResult.plannedDate,
+      plannedResult.amplitude,
+      1,
+    ]
+  );
+
+  if (!existing) {
+    await database.runAsync(
+      `INSERT INTO results (exerciseId, weight, reps, date, amplitude, isPlanned)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        plannedResult.exerciseId,
+        plannedResult.plannedWeight,
+        plannedResult.plannedReps,
+        plannedResult.plannedDate,
+        plannedResult.amplitude,
+        1,
+      ]
+    );
+  }
+};
+
+export const getPlannedResultsByExercise = async (
+  exerciseId: string
+): Promise<any[]> => {
+  const database = await getDatabase();
+  const result = await database.getAllAsync(
+    "SELECT * FROM results WHERE exerciseId = ? AND isPlanned = 1 ORDER BY date DESC",
+    [exerciseId]
+  );
+  return result.map((row: any) => ({
+    exerciseId: row.exerciseId,
+    plannedWeight: row.weight,
+    plannedReps: row.reps,
+    plannedDate: row.date,
+    amplitude: row.amplitude,
+    isPlanned: true,
+  }));
+};
+
+export const getAllPlansWithData = async (): Promise<Plan[]> => {
+  const database = await getDatabase();
+
+  const plans = await database.getAllAsync("SELECT planName FROM plans");
+  const result: Plan[] = [];
+
+  for (const plan of plans) {
+    const trainings = await database.getAllAsync(
+      "SELECT id, name FROM trainings WHERE planName = ?",
+      [plan.planName]
+    );
+
+    const planTrainings: Training[] = [];
+
+    for (const training of trainings) {
+      const exercises = await database.getAllAsync(
+        "SELECT * FROM exercises WHERE trainingId = ?",
+        [training.id]
+      );
+
+      const trainingExercises: Exercise[] = exercises.map((ex: any) => ({
+        id: ex.id,
+        name: ex.name,
+        muscleGroup: ex.muscleGroup,
+        type: ex.type,
+        unilateral: Boolean(ex.unilateral),
+        amplitude: ex.amplitude,
+        comment: ex.comment,
+        timerDuration: ex.timerDuration,
+      }));
+
+      const results: Result[] = [];
+      const plannedResults: PlannedResult[] = [];
+
+      for (const exercise of trainingExercises) {
+        const exerciseResults = await database.getAllAsync(
+          "SELECT * FROM results WHERE exerciseId = ? AND isPlanned = 0 ORDER BY date DESC",
+          [exercise.id]
+        );
+
+        const exercisePlannedResults = await database.getAllAsync(
+          "SELECT * FROM results WHERE exerciseId = ? AND isPlanned = 1 ORDER BY date DESC",
+          [exercise.id]
+        );
+
+        results.push(
+          ...exerciseResults.map((r: any) => ({
+            exerciseId: r.exerciseId,
+            weight: r.weight,
+            reps: r.reps,
+            date: r.date,
+            amplitude: r.amplitude,
+          }))
+        );
+
+        plannedResults.push(
+          ...exercisePlannedResults.map((r: any) => ({
+            exerciseId: r.exerciseId,
+            plannedWeight: r.weight,
+            plannedReps: r.reps,
+            plannedDate: r.date,
+            amplitude: r.amplitude,
+          }))
+        );
+      }
+
+      planTrainings.push({
+        id: training.id,
+        name: training.name,
+        exercises: trainingExercises,
+        results,
+        plannedResults,
+      });
+    }
+
+    result.push({
+      planName: plan.planName,
+      trainings: planTrainings,
+    });
+  }
+
+  return result;
+};

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   FlatList,
@@ -17,6 +17,7 @@ import useStore, {
   MuscleGroup,
   ExerciseType,
   Exercise,
+  Plan,
 } from "../../store/store";
 import { Picker } from "@react-native-picker/picker";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
@@ -24,6 +25,7 @@ import ExerciseModal from "../../components/ExerciseModal";
 import { Colors } from "../../constants/Colors";
 import useSettingsStore from "../../store/settingsStore";
 import { getTranslation } from "../../utils/localization";
+import * as dbLayer from "../../store/dbLayer";
 
 export default function WorkoutScreen() {
   const route = useRoute();
@@ -31,7 +33,7 @@ export default function WorkoutScreen() {
     workoutId: string;
     planName: string;
   };
-  const { plans, addExercise, updateExerciseInStore } = useStore();
+  const [plans, setPlans] = useState<Plan[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [newExercise, setNewExercise] = useState({
     name: "",
@@ -44,14 +46,26 @@ export default function WorkoutScreen() {
   const theme = useSettingsStore((state) => state.theme);
   const language = useSettingsStore((state) => state.language);
 
-  // определяем текущую тему
+  useEffect(() => {
+    loadPlans();
+  }, []);
+
+  const loadPlans = async () => {
+    try {
+      await dbLayer.initDatabase();
+      const loadedPlans = await dbLayer.getAllPlansWithData();
+      setPlans(loadedPlans);
+    } catch (error) {
+      console.error("Ошибка загрузки планов:", error);
+    }
+  };
+
   let colorScheme: "light" | "dark" = "light";
   if (theme === "dark") {
     colorScheme = "dark";
   } else if (theme === "light") {
     colorScheme = "light";
   } else {
-    // если system, пробуем взять из платформы, иначе по умолчанию светлая
     colorScheme =
       Platform.OS === "ios" || Platform.OS === "android"
         ? (Appearance.getColorScheme?.() as "light" | "dark") || "light"
@@ -63,30 +77,54 @@ export default function WorkoutScreen() {
     .find((plan) => plan.planName === planName)
     ?.trainings.find((training) => training.id === workoutId);
 
-  const handleAddEditExercise = (exerciseData: typeof newExercise) => {
+  const handleAddEditExercise = async (exerciseData: typeof newExercise) => {
     if (exerciseData.name.trim()) {
-      if (editingExercise) {
-        const updatedExercise: Exercise = {
-          ...editingExercise,
-          ...exerciseData,
-        };
-        updateExerciseInStore(planName, workoutId, updatedExercise);
-      } else {
-        const exercise: Exercise = {
-          id: Date.now().toString(),
-          ...exerciseData,
-        };
-        addExercise(planName, workoutId, exercise);
+      try {
+        if (editingExercise) {
+          const updatedExercise: Exercise = {
+            ...editingExercise,
+            ...exerciseData,
+          };
+          await dbLayer.saveExercise({
+            id: updatedExercise.id,
+            trainingId: workoutId,
+            name: updatedExercise.name,
+            muscleGroup: updatedExercise.muscleGroup,
+            type: updatedExercise.type,
+            unilateral: updatedExercise.unilateral,
+            amplitude: updatedExercise.amplitude,
+            comment: updatedExercise.comment,
+            timerDuration: updatedExercise.timerDuration,
+          });
+        } else {
+          const exercise: Exercise = {
+            id: Date.now().toString(),
+            ...exerciseData,
+          };
+          await dbLayer.saveExercise({
+            id: exercise.id,
+            trainingId: workoutId,
+            name: exercise.name,
+            muscleGroup: exercise.muscleGroup,
+            type: exercise.type,
+            unilateral: exercise.unilateral,
+            amplitude: exercise.amplitude,
+          });
+        }
+
+        await loadPlans();
+        setNewExercise({
+          name: "",
+          muscleGroup: "chest",
+          type: "free weight",
+          unilateral: false,
+          amplitude: "full",
+        });
+        setEditingExercise(null);
+        setIsModalVisible(false);
+      } catch (error) {
+        console.error("Ошибка сохранения упражнения:", error);
       }
-      setNewExercise({
-        name: "",
-        muscleGroup: "chest",
-        type: "free weight",
-        unilateral: false,
-        amplitude: "full",
-      });
-      setEditingExercise(null);
-      setIsModalVisible(false);
     }
   };
 
@@ -102,50 +140,58 @@ export default function WorkoutScreen() {
     setIsModalVisible(true);
   };
 
-  const handleDeleteExercise = (exerciseId: string) => {
-    const { removeExercise } = useStore.getState();
-    removeExercise(planName, workoutId, exerciseId);
+  const handleDeleteExercise = async (exerciseId: string) => {
+    try {
+      await dbLayer.deleteExercise(exerciseId);
+      await loadPlans();
+    } catch (error) {
+      console.error("Ошибка удаления упражнения:", error);
+    }
   };
 
   return (
     <KeyboardAvoidingView
+      style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={{ flex: 1, backgroundColor: themeColors.background }}
     >
       <View
-        style={{
-          flex: 1,
-          padding: 16,
-          backgroundColor: themeColors.background,
-        }}
+        style={[styles.container, { backgroundColor: themeColors.background }]}
       >
         <FlatList
           data={currentTraining?.exercises || []}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <ExerciseComponent
-              id={item.id}
-              name={item.name}
-              muscleGroup={item.muscleGroup}
-              type={item.type}
-              unilateral={item.unilateral}
-              amplitude={item.amplitude}
-              reps={0}
-              sets={0}
-              onRepsChange={() => {}}
-              onSetsChange={() => {}}
-              onComplete={() => {}}
-              completed={false}
+              exercise={item}
               onEdit={() => handleEditExercise(item)}
               onDelete={() => handleDeleteExercise(item.id)}
-              timerDuration={item.timerDuration}
+              planName={planName}
+              trainingId={workoutId}
             />
           )}
+          contentContainerStyle={{ flexGrow: 1 }}
+          ListEmptyComponent={
+            <Text style={[styles.emptyText, { color: themeColors.text }]}>
+              {getTranslation(language, "noExercises")}
+            </Text>
+          }
         />
 
         <TouchableOpacity
           style={[styles.addButton, { backgroundColor: themeColors.tint }]}
-          onPress={() => {
+          onPress={() => setIsModalVisible(true)}
+        >
+          <MaterialIcons name="add" size={24} color={themeColors.card} />
+          <Text style={[styles.addButtonText, { color: themeColors.card }]}>
+            {getTranslation(language, "addExercise")}
+          </Text>
+        </TouchableOpacity>
+
+        <ExerciseModal
+          visible={isModalVisible}
+          exercise={editingExercise}
+          onClose={() => {
+            setIsModalVisible(false);
             setEditingExercise(null);
             setNewExercise({
               name: "",
@@ -154,23 +200,8 @@ export default function WorkoutScreen() {
               unilateral: false,
               amplitude: "full",
             });
-            setIsModalVisible(true);
           }}
-        >
-          <Text style={[styles.addButtonText, { color: themeColors.card }]}>
-            +
-          </Text>
-        </TouchableOpacity>
-
-        <ExerciseModal
-          visible={isModalVisible}
-          onClose={() => {
-            setIsModalVisible(false);
-            setEditingExercise(null);
-          }}
-          onSubmit={handleAddEditExercise}
-          initialExercise={editingExercise || newExercise}
-          isEdit={!!editingExercise}
+          onSave={handleAddEditExercise}
         />
       </View>
     </KeyboardAvoidingView>

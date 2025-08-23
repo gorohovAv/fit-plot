@@ -1,6 +1,5 @@
 import { create } from "zustand";
-import { createSyncMiddleware, loadFromDatabase } from "./syncMiddleware";
-import * as dbLayer from "./dbLayer";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export type MuscleGroup =
   | "chest"
@@ -56,201 +55,55 @@ export type Plan = {
   trainings: Training[];
 };
 
-export type Settings = {
-  theme: string;
-  weight: number;
-  devMode: boolean;
-};
-
 export type CalorieEntry = {
   date: string;
   calories: number;
   weight: number;
 };
 
-export type StoreState = {
-  plans: Plan[];
-  settings?: Settings;
-  calories?: CalorieEntry[];
+type SettingsState = {
+  theme: "light" | "dark" | "system";
+  language: "ru" | "en";
+  initializeSettings: () => Promise<void>;
+  setTheme: (theme: "light" | "dark" | "system") => Promise<void>;
+  setLanguage: (language: "ru" | "en") => Promise<void>;
 };
 
-type State = StoreState & {
-  addPlan: (newPlan: Plan) => void;
-  addTraining: (planName: string, training: Training) => void;
-  addExercise: (
-    planName: string,
-    trainingId: string,
-    exercise: Exercise
-  ) => void;
-  addResult: (planName: string, trainingId: string, result: Result) => void;
-  addPlannedResult: (
-    planName: string,
-    trainingId: string,
-    plannedResult: PlannedResult
-  ) => void;
-  removeTraining: (planName: string, trainingId: string) => void;
-  removeExercise: (
-    planName: string,
-    trainingId: string,
-    exerciseId: string
-  ) => void;
-  updateExerciseInStore: (
-    planName: string,
-    trainingId: string,
-    updatedExercise: Exercise
-  ) => void;
-  initializeFromDB: () => Promise<void>;
-};
+const useStore = create<SettingsState>((set, get) => ({
+  theme: "system",
+  language: "ru",
 
-const syncMiddleware = createSyncMiddleware();
+  initializeSettings: async () => {
+    try {
+      const savedTheme = await AsyncStorage.getItem("theme");
+      const savedLanguage = await AsyncStorage.getItem("language");
 
-const useStore = create<State>()(
-  syncMiddleware((set, get) => ({
-    plans: [],
-    addPlan: (newPlan: Plan) =>
-      set((state: StoreState) => ({ plans: [...state.plans, newPlan] })),
-    addTraining: (planName: string, training: Training) =>
-      set((state: StoreState) => ({
-        plans: state.plans.map((plan: Plan) =>
-          plan.planName === planName
-            ? { ...plan, trainings: [...plan.trainings, training] }
-            : plan
-        ),
-      })),
-    addExercise: (planName: string, trainingId: string, exercise: Exercise) =>
-      set((state: StoreState) => ({
-        plans: state.plans.map((plan: Plan) =>
-          plan.planName === planName
-            ? {
-                ...plan,
-                trainings: plan.trainings.map((training: Training) =>
-                  training.id === trainingId
-                    ? {
-                        ...training,
-                        exercises: [...training.exercises, exercise],
-                      }
-                    : training
-                ),
-              }
-            : plan
-        ),
-      })),
-    addResult: (planName: string, trainingId: string, result: Result) =>
-      set((state: StoreState) => ({
-        plans: state.plans.map((plan: Plan) =>
-          plan.planName === planName
-            ? {
-                ...plan,
-                trainings: plan.trainings.map((training: Training) =>
-                  training.id === trainingId
-                    ? {
-                        ...training,
-                        results: [...training.results, result],
-                      }
-                    : training
-                ),
-              }
-            : plan
-        ),
-      })),
-    addPlannedResult: (
-      planName: string,
-      trainingId: string,
-      plannedResult: PlannedResult
-    ) =>
-      set((state: StoreState) => ({
-        plans: state.plans.map((plan: Plan) =>
-          plan.planName === planName
-            ? {
-                ...plan,
-                trainings: plan.trainings.map((training: Training) =>
-                  training.id === trainingId
-                    ? {
-                        ...training,
-                        plannedResults: [
-                          ...training.plannedResults,
-                          plannedResult,
-                        ],
-                      }
-                    : training
-                ),
-              }
-            : plan
-        ),
-      })),
-    removeTraining: (planName: string, trainingId: string) =>
-      set((state: StoreState) => ({
-        plans: state.plans.map((plan: Plan) =>
-          plan.planName === planName
-            ? {
-                ...plan,
-                trainings: plan.trainings.filter(
-                  (training: Training) => training.id !== trainingId
-                ),
-              }
-            : plan
-        ),
-      })),
-    removeExercise: (
-      planName: string,
-      trainingId: string,
-      exerciseId: string
-    ) =>
-      set((state: StoreState) => ({
-        plans: state.plans.map((plan: Plan) =>
-          plan.planName === planName
-            ? {
-                ...plan,
-                trainings: plan.trainings.map((training: Training) =>
-                  training.id === trainingId
-                    ? {
-                        ...training,
-                        exercises: training.exercises.filter(
-                          (ex: Exercise) => ex.id !== exerciseId
-                        ),
-                      }
-                    : training
-                ),
-              }
-            : plan
-        ),
-      })),
-    updateExerciseInStore: (
-      planName: string,
-      trainingId: string,
-      updatedExercise: Exercise
-    ) =>
-      set((state: StoreState) => ({
-        plans: state.plans.map((plan: Plan) =>
-          plan.planName === planName
-            ? {
-                ...plan,
-                trainings: plan.trainings.map((training: Training) =>
-                  training.id === trainingId
-                    ? {
-                        ...training,
-                        exercises: training.exercises.map((ex: Exercise) =>
-                          ex.id === updatedExercise.id ? updatedExercise : ex
-                        ),
-                      }
-                    : training
-                ),
-              }
-            : plan
-        ),
-      })),
-    initializeFromDB: async () => {
-      try {
-        await dbLayer.initDatabase();
-        const data = await loadFromDatabase();
-        if (data) {
-          set({ plans: data.plans });
-        }
-      } catch (error) {
-        console.error("Ошибка инициализации из БД:", error);
-      }
-    },
-  }))
-);
+      set({
+        theme: (savedTheme as "light" | "dark" | "system") || "system",
+        language: (savedLanguage as "ru" | "en") || "ru",
+      });
+    } catch (error) {
+      console.error("Ошибка загрузки настроек:", error);
+    }
+  },
+
+  setTheme: async (theme) => {
+    try {
+      await AsyncStorage.setItem("theme", theme);
+      set({ theme });
+    } catch (error) {
+      console.error("Ошибка сохранения темы:", error);
+    }
+  },
+
+  setLanguage: async (language) => {
+    try {
+      await AsyncStorage.setItem("language", language);
+      set({ language });
+    } catch (error) {
+      console.error("Ошибка сохранения языка:", error);
+    }
+  },
+}));
 
 export default useStore;

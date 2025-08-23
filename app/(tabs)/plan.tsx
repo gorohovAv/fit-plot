@@ -1,623 +1,336 @@
-import React, { useMemo, useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
-  TouchableOpacity,
-  Modal,
-  TextInput,
+  StyleSheet,
   ScrollView,
+  TouchableOpacity,
+  TextInput,
+  Modal,
+  KeyboardAvoidingView,
   Platform,
+  Appearance,
 } from "react-native";
-import { MaterialIcons } from "@expo/vector-icons";
-import useStore from "../../store/store";
-import { Exercise, PlannedResult, Plan } from "../../store/store";
+import { useRoute } from "@react-navigation/native";
+import useStore, { Plan, Exercise, PlannedResult } from "../../store/store";
 import { Picker } from "@react-native-picker/picker";
-import dayjs from "dayjs";
-import useSettingsStore from "../../store/settingsStore";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Colors } from "../../constants/Colors";
+import useSettingsStore from "../../store/settingsStore";
 import { getTranslation } from "../../utils/localization";
+import * as dbLayer from "../../store/dbLayer";
 
-// Цвета сезонов для светлой темы
-const SEASON_COLORS_LIGHT = {
-  winter: "#A7D8FF", // Зимний голубой
-  spring: "#B6F5B6", // Весенний зеленый
-  summer: "#FFF7A7", // Летний желтый
-  autumn: "#FFD6A7", // Осенний оранжевый
-};
+export default function PlanScreen() {
+  const route = useRoute();
+  const { planName } = route.params as { planName: string };
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [selectedExercise, setSelectedExercise] = useState<string>("");
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newPlannedResult, setNewPlannedResult] = useState({
+    plannedWeight: "",
+    plannedReps: "",
+    plannedDate: new Date().toISOString().split("T")[0],
+    amplitude: "full" as "full" | "partial",
+  });
+  const theme = useSettingsStore((state) => state.theme);
+  const language = useSettingsStore((state) => state.language);
 
-// Цвета сезонов для темной темы
-const SEASON_COLORS_DARK = {
-  winter: "#4A90E2", // Темный зимний голубой
-  spring: "#7ED321", // Темный весенний зеленый
-  summer: "#F5A623", // Темный летний желтый
-  autumn: "#D0743C", // Темный осенний оранжевый
-};
+  useEffect(() => {
+    loadPlans();
+  }, []);
 
-// Material Icons для сезонов
-const SEASON_ICONS = {
-  winter: "ac-unit" as const,
-  spring: "local-florist" as const,
-  summer: "wb-sunny" as const,
-  autumn: "nature" as const,
-};
+  const loadPlans = async () => {
+    try {
+      await dbLayer.initDatabase();
+      const loadedPlans = await dbLayer.getAllPlansWithData();
+      setPlans(loadedPlans);
+    } catch (error) {
+      console.error("Ошибка загрузки планов:", error);
+    }
+  };
 
-// Названия сезонов
-const SEASON_NAMES = {
-  winter: { english: "Winter", russian: "Зима" },
-  spring: { english: "Spring", russian: "Весна" },
-  summer: { english: "Summer", russian: "Лето" },
-  autumn: { english: "Autumn", russian: "Осень" },
-};
-
-function getSeason(month: number): keyof typeof SEASON_COLORS_LIGHT {
-  if ([11, 0, 1].includes(month)) return "winter";
-  if ([2, 3, 4].includes(month)) return "spring";
-  if ([5, 6, 7].includes(month)) return "summer";
-  return "autumn";
-}
-
-function getSeasonMonths(
-  season: keyof typeof SEASON_COLORS_LIGHT,
-  year: number
-) {
-  switch (season) {
-    case "winter":
-      return [11, 0, 1].map((month) =>
-        month === 11
-          ? dayjs()
-              .year(year - 1)
-              .month(month)
-          : dayjs().year(year).month(month)
-      );
-    case "spring":
-      return [2, 3, 4].map((month) => dayjs().year(year).month(month));
-    case "summer":
-      return [5, 6, 7].map((month) => dayjs().year(year).month(month));
-    case "autumn":
-      return [8, 9, 10].map((month) => dayjs().year(year).month(month));
+  let colorScheme: "light" | "dark" = "light";
+  if (theme === "dark") {
+    colorScheme = "dark";
+  } else if (theme === "light") {
+    colorScheme = "light";
+  } else {
+    colorScheme =
+      Platform.OS === "ios" || Platform.OS === "android"
+        ? (Appearance.getColorScheme?.() as "light" | "dark") || "light"
+        : "light";
   }
-}
+  const themeColors = Colors[colorScheme];
 
-function getSeasonsData(plannedResults: PlannedResult[]) {
-  const currentYear = dayjs().year();
-  const nextYear = currentYear + 1;
+  const currentPlan = plans.find((plan) => plan.planName === planName);
+  const allExercises =
+    currentPlan?.trainings.flatMap((training) => training.exercises) || [];
 
-  const seasons: Array<{
-    season: keyof typeof SEASON_COLORS_LIGHT;
-    year: number;
-    months: dayjs.Dayjs[];
-    results: PlannedResult[];
-    id: string;
-  }> = [];
-  const seasonKeys: (keyof typeof SEASON_COLORS_LIGHT)[] = [
-    "winter",
-    "spring",
-    "summer",
-    "autumn",
-  ];
+  const handleAddPlannedResult = async () => {
+    if (
+      selectedExercise &&
+      newPlannedResult.plannedWeight &&
+      newPlannedResult.plannedReps
+    ) {
+      try {
+        await dbLayer.savePlannedResult({
+          exerciseId: selectedExercise,
+          plannedWeight: parseFloat(newPlannedResult.plannedWeight),
+          plannedReps: parseInt(newPlannedResult.plannedReps),
+          plannedDate: newPlannedResult.plannedDate,
+          amplitude: newPlannedResult.amplitude,
+        });
 
-  // Добавляем текущий и следующий год
-  [currentYear, nextYear].forEach((year) => {
-    seasonKeys.forEach((season) => {
-      const months = getSeasonMonths(season, year);
-      const seasonResults = plannedResults.filter((result) => {
-        const resultDate = dayjs(result.plannedDate);
-        return months.some(
-          (month) =>
-            resultDate.year() === month.year() &&
-            resultDate.month() === month.month()
-        );
-      });
+        await loadPlans();
+        setNewPlannedResult({
+          plannedWeight: "",
+          plannedReps: "",
+          plannedDate: new Date().toISOString().split("T")[0],
+          amplitude: "full",
+        });
+        setSelectedExercise("");
+        setShowAddModal(false);
+      } catch (error) {
+        console.error("Ошибка сохранения планового результата:", error);
+      }
+    }
+  };
 
-      seasons.push({
-        season,
-        year,
-        months,
-        results: seasonResults,
-        id: `${season}-${year}`,
-      });
+  const groupedPlannedResults: Record<string, PlannedResult[]> = {};
+
+  currentPlan?.trainings.forEach((training) => {
+    training.plannedResults.forEach((plannedResult) => {
+      const exercise = training.exercises.find(
+        (ex) => ex.id === plannedResult.exerciseId
+      );
+      if (exercise) {
+        if (!groupedPlannedResults[exercise.name]) {
+          groupedPlannedResults[exercise.name] = [];
+        }
+        groupedPlannedResults[exercise.name].push(plannedResult);
+      }
     });
   });
 
-  return seasons;
-}
-
-interface SeasonZoneProps {
-  season: keyof typeof SEASON_COLORS_LIGHT;
-  year: number;
-  results: PlannedResult[];
-  allExercises: Exercise[];
-  colors: any;
-  language: string;
-  isDark: boolean;
-  onAddResult: (season: keyof typeof SEASON_COLORS_LIGHT, year: number) => void;
-}
-
-function SeasonZone({
-  season,
-  year,
-  results,
-  allExercises,
-  colors,
-  language,
-  isDark,
-  onAddResult,
-}: SeasonZoneProps) {
-  const seasonName =
-    SEASON_NAMES[season][language as "english" | "russian"] ||
-    SEASON_NAMES[season].english;
-  const seasonColors = isDark ? SEASON_COLORS_DARK : SEASON_COLORS_LIGHT;
-  const seasonColor = seasonColors[season];
-
   return (
-    <View style={{ marginBottom: 32 }}>
-      {/* Баннер сезона */}
-      <View
-        style={{
-          backgroundColor: seasonColor,
-          borderRadius: 16,
-          padding: 20,
-          marginBottom: 16,
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.15,
-          shadowRadius: 4,
-          elevation: 3,
-        }}
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <ScrollView
+        style={[styles.container, { backgroundColor: themeColors.background }]}
       >
-        <View style={{ flex: 1 }}>
-          <Text
-            style={{
-              fontSize: 28,
-              fontWeight: "bold",
-              color: isDark ? "#fff" : "#333",
-              marginBottom: 4,
-            }}
-          >
-            {seasonName} {year}
+        <View style={styles.header}>
+          <Text style={[styles.title, { color: themeColors.text }]}>
+            {getTranslation(language, "resultsPlanning")} - {planName}
           </Text>
-        </View>
-        <MaterialIcons
-          name={SEASON_ICONS[season]}
-          size={48}
-          color={isDark ? "#fff" : "#333"}
-        />
-      </View>
-
-      {/* Список планируемых результатов */}
-      <View style={{ paddingHorizontal: 4 }}>
-        {results.length > 0 ? (
-          results.map((result, index) => {
-            const exercise = allExercises.find(
-              (ex) => ex.id === result.exerciseId
-            );
-            return (
-              <View
-                key={`${result.exerciseId}-${result.plannedDate}-${index}`}
-                style={{
-                  backgroundColor: colors.card,
-                  borderRadius: 12,
-                  padding: 16,
-                  marginBottom: 8,
-                  borderLeftWidth: 4,
-                  borderLeftColor: seasonColor,
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 1 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 2,
-                  elevation: 2,
-                }}
-              >
-                <Text
-                  style={{
-                    fontSize: 16,
-                    fontWeight: "600",
-                    color: colors.text,
-                    marginBottom: 4,
-                  }}
-                >
-                  {exercise?.name || "Unknown Exercise"}
-                </Text>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    justifyContent: "space-between",
-                  }}
-                >
-                  <Text style={{ color: colors.textSecondary, fontSize: 14 }}>
-                    {result.plannedWeight}{" "}
-                    {getTranslation(language as any, "kg")} ×{" "}
-                    {result.plannedReps}{" "}
-                    {getTranslation(language as any, "reps")}
-                  </Text>
-                  <Text style={{ color: colors.textSecondary, fontSize: 14 }}>
-                    {dayjs(result.plannedDate).format("DD.MM.YYYY")}
-                  </Text>
-                </View>
-              </View>
-            );
-          })
-        ) : (
-          <Text
-            style={{
-              color: colors.textSecondary,
-              fontStyle: "italic",
-              textAlign: "center",
-              marginBottom: 16,
-            }}
+          <TouchableOpacity
+            style={[styles.addButton, { backgroundColor: themeColors.tint }]}
+            onPress={() => setShowAddModal(true)}
           >
-            {language === "russian"
-              ? "Нет запланированных результатов"
-              : "No planned results"}
-          </Text>
-        )}
-
-        {/* Кнопка добавления */}
-        <TouchableOpacity
-          style={{
-            backgroundColor: colors.tint,
-            borderRadius: 12,
-            padding: 16,
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-            marginTop: 8,
-          }}
-          onPress={() => onAddResult(season, year)}
-        >
-          <MaterialIcons
-            name="add"
-            size={20}
-            color={colors.buttonPrimaryText}
-          />
-          <Text
-            style={{
-              color: colors.buttonPrimaryText,
-              fontSize: 16,
-              fontWeight: "600",
-              marginLeft: 8,
-            }}
-          >
-            {getTranslation(language as any, "addPlannedResult")}
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-}
-
-export default function PlanScreen() {
-  const plans = useStore((s) => s.plans);
-  const addPlannedResult = useStore((s) => s.addPlannedResult);
-  const language = useSettingsStore((s) => s.language);
-
-  const plan: Plan = plans[0];
-  const allExercises = plan?.trainings.flatMap((t) => t.exercises) || [];
-  const plannedResults = plan?.trainings.flatMap((t) => t.plannedResults) || [];
-
-  const seasonsData = useMemo(
-    () => getSeasonsData(plannedResults),
-    [plannedResults]
-  );
-
-  const [modalVisible, setModalVisible] = useState(false);
-  const [selectedSeason, setSelectedSeason] = useState<
-    keyof typeof SEASON_COLORS_LIGHT | null
-  >(null);
-  const [selectedYear, setSelectedYear] = useState<number>(0);
-  const [selectedExerciseId, setSelectedExerciseId] = useState<string>("");
-  const [plannedWeight, setPlannedWeight] = useState<string>("");
-  const [plannedReps, setPlannedReps] = useState<string>("");
-  const [plannedDate, setPlannedDate] = useState<string>("");
-
-  const openModal = (
-    season: keyof typeof SEASON_COLORS_LIGHT,
-    year: number
-  ) => {
-    setSelectedSeason(season);
-    setSelectedYear(year);
-    setModalVisible(true);
-    setSelectedExerciseId(allExercises[0]?.id || "");
-    setPlannedWeight("");
-    setPlannedReps("");
-
-    const seasonMonths = getSeasonMonths(season, year);
-    const firstMonth = seasonMonths[0];
-    setPlannedDate(firstMonth.format("YYYY-MM-DD"));
-  };
-
-  const closeModal = () => setModalVisible(false);
-
-  const handleSubmit = () => {
-    if (
-      !selectedSeason ||
-      !selectedExerciseId ||
-      !plannedWeight ||
-      !plannedReps ||
-      !plannedDate
-    )
-      return;
-
-    const training = plan.trainings.find((t) =>
-      t.exercises.some((e) => e.id === selectedExerciseId)
-    );
-    if (!training) return;
-
-    addPlannedResult(plan.planName, training.id, {
-      exerciseId: selectedExerciseId,
-      plannedWeight: Number(plannedWeight),
-      plannedReps: Number(plannedReps),
-      plannedDate,
-      amplitude: "full",
-    });
-    closeModal();
-  };
-
-  const theme = useSettingsStore((s) => s.theme);
-  const colorScheme =
-    theme === "system"
-      ? Platform.OS === "web"
-        ? window.matchMedia &&
-          window.matchMedia("(prefers-color-scheme: dark)").matches
-          ? "dark"
-          : "light"
-        : "light"
-      : theme;
-  const colors = Colors[colorScheme];
-  const isDark = colorScheme === "dark";
-
-  if (!plan) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: colors.background,
-        }}
-      >
-        <Text style={{ color: colors.text, fontSize: 16 }}>
-          {getTranslation(language, "selectPlanToStart")}
-        </Text>
-      </View>
-    );
-  }
-
-  return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <ScrollView contentContainerStyle={{ padding: 16 }}>
-        <Text
-          style={{
-            fontSize: 24,
-            fontWeight: "bold",
-            marginBottom: 24,
-            color: colors.text,
-          }}
-        >
-          {getTranslation(language, "resultsPlanning")}
-        </Text>
-
-        {seasonsData.map((seasonData) => (
-          <SeasonZone
-            key={seasonData.id}
-            season={seasonData.season}
-            year={seasonData.year}
-            results={seasonData.results}
-            allExercises={allExercises}
-            colors={colors}
-            language={language}
-            isDark={isDark}
-            onAddResult={openModal}
-          />
-        ))}
-      </ScrollView>
-
-      {/* Модальное окно для добавления результата */}
-      <Modal visible={modalVisible} transparent animationType="slide">
-        <View
-          style={{
-            flex: 1,
-            justifyContent: "center",
-            alignItems: "center",
-            backgroundColor: colors.modalOverlay,
-          }}
-        >
-          <View
-            style={{
-              backgroundColor: colors.card,
-              padding: 24,
-              borderRadius: 16,
-              width: "90%",
-              maxWidth: 400,
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 18,
-                fontWeight: "bold",
-                marginBottom: 16,
-                color: colors.text,
-                textAlign: "center",
-              }}
-            >
+            <MaterialIcons name="add" size={24} color={themeColors.card} />
+            <Text style={[styles.addButtonText, { color: themeColors.card }]}>
               {getTranslation(language, "addPlannedResult")}
             </Text>
+          </TouchableOpacity>
+        </View>
 
-            {selectedSeason && (
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  marginBottom: 16,
-                }}
-              >
-                <MaterialIcons
-                  name={SEASON_ICONS[selectedSeason]}
-                  size={24}
-                  color={colors.textSecondary}
-                  style={{ marginRight: 8 }}
-                />
-                <Text
-                  style={{
-                    color: colors.textSecondary,
-                    fontSize: 16,
-                  }}
+        {Object.entries(groupedPlannedResults).map(
+          ([exerciseName, plannedResults]) => (
+            <View
+              key={exerciseName}
+              style={[
+                styles.exerciseGroup,
+                { backgroundColor: themeColors.card },
+              ]}
+            >
+              <Text style={[styles.exerciseName, { color: themeColors.text }]}>
+                {exerciseName}
+              </Text>
+              {plannedResults.map((plannedResult, index) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.plannedResult,
+                    { backgroundColor: themeColors.background },
+                  ]}
                 >
-                  {
-                    SEASON_NAMES[selectedSeason][
-                      language as "english" | "russian"
-                    ]
-                  }{" "}
-                  {selectedYear}
-                </Text>
+                  <Text
+                    style={[
+                      styles.plannedResultText,
+                      { color: themeColors.text },
+                    ]}
+                  >
+                    {plannedResult.plannedWeight} кг ×{" "}
+                    {plannedResult.plannedReps} повторений
+                  </Text>
+                  <Text
+                    style={[
+                      styles.plannedResultDate,
+                      { color: themeColors.icon },
+                    ]}
+                  >
+                    {new Date(plannedResult.plannedDate).toLocaleDateString()}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )
+        )}
+
+        {Object.keys(groupedPlannedResults).length === 0 && (
+          <Text style={[styles.emptyText, { color: themeColors.icon }]}>
+            {getTranslation(language, "noPlannedResults")}
+          </Text>
+        )}
+      </ScrollView>
+
+      <Modal
+        visible={showAddModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowAddModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={styles.modalContainer}
+          >
+            <View
+              style={[
+                styles.modalContent,
+                { backgroundColor: themeColors.card },
+              ]}
+            >
+              <Text style={[styles.modalTitle, { color: themeColors.text }]}>
+                {getTranslation(language, "addPlannedResult")}
+              </Text>
+
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={selectedExercise}
+                  onValueChange={(itemValue) => setSelectedExercise(itemValue)}
+                  style={[
+                    styles.picker,
+                    {
+                      color: themeColors.text,
+                      backgroundColor: themeColors.background,
+                    },
+                  ]}
+                >
+                  <Picker.Item label="Выберите упражнение" value="" />
+                  {allExercises.map((exercise) => (
+                    <Picker.Item
+                      key={exercise.id}
+                      label={exercise.name}
+                      value={exercise.id}
+                    />
+                  ))}
+                </Picker>
               </View>
-            )}
 
-            <Text style={{ color: colors.text, marginBottom: 8 }}>
-              {getTranslation(language, "exercise")}:
-            </Text>
-            <View
-              style={{
-                borderWidth: 1,
-                borderColor: colors.border,
-                borderRadius: 8,
-                marginBottom: 16,
-                backgroundColor: colors.inputBackground,
-              }}
-            >
-              <Picker
-                selectedValue={selectedExerciseId}
-                onValueChange={setSelectedExerciseId}
-                style={{ color: colors.text }}
-              >
-                {allExercises.map((ex) => (
-                  <Picker.Item key={ex.id} label={ex.name} value={ex.id} />
-                ))}
-              </Picker>
-            </View>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    borderColor: themeColors.border,
+                    color: themeColors.text,
+                    backgroundColor: themeColors.background,
+                  },
+                ]}
+                placeholder="Планируемый вес (кг)"
+                placeholderTextColor={themeColors.icon}
+                value={newPlannedResult.plannedWeight}
+                onChangeText={(text) =>
+                  setNewPlannedResult({
+                    ...newPlannedResult,
+                    plannedWeight: text,
+                  })
+                }
+                keyboardType="numeric"
+              />
 
-            <Text style={{ color: colors.text, marginBottom: 8 }}>
-              {getTranslation(language, "weightKg")}:
-            </Text>
-            <TextInput
-              value={plannedWeight}
-              onChangeText={setPlannedWeight}
-              keyboardType="numeric"
-              style={{
-                borderWidth: 1,
-                borderColor: colors.border,
-                marginBottom: 16,
-                borderRadius: 8,
-                padding: 12,
-                color: colors.text,
-                backgroundColor: colors.inputBackground,
-              }}
-              placeholderTextColor={colors.placeholderText}
-            />
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    borderColor: themeColors.border,
+                    color: themeColors.text,
+                    backgroundColor: themeColors.background,
+                  },
+                ]}
+                placeholder="Планируемые повторения"
+                placeholderTextColor={themeColors.icon}
+                value={newPlannedResult.plannedReps}
+                onChangeText={(text) =>
+                  setNewPlannedResult({
+                    ...newPlannedResult,
+                    plannedReps: text,
+                  })
+                }
+                keyboardType="numeric"
+              />
 
-            <Text style={{ color: colors.text, marginBottom: 8 }}>
-              {getTranslation(language, "repetitions")}:
-            </Text>
-            <TextInput
-              value={plannedReps}
-              onChangeText={setPlannedReps}
-              keyboardType="numeric"
-              style={{
-                borderWidth: 1,
-                borderColor: colors.border,
-                marginBottom: 16,
-                borderRadius: 8,
-                padding: 12,
-                color: colors.text,
-                backgroundColor: colors.inputBackground,
-              }}
-              placeholderTextColor={colors.placeholderText}
-            />
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    borderColor: themeColors.border,
+                    color: themeColors.text,
+                    backgroundColor: themeColors.background,
+                  },
+                ]}
+                placeholder="Планируемая дата (YYYY-MM-DD)"
+                placeholderTextColor={themeColors.icon}
+                value={newPlannedResult.plannedDate}
+                onChangeText={(text) =>
+                  setNewPlannedResult({
+                    ...newPlannedResult,
+                    plannedDate: text,
+                  })
+                }
+              />
 
-            <Text style={{ color: colors.text, marginBottom: 8 }}>
-              {getTranslation(language, "dateWithinMonth")}:
-            </Text>
-            <TextInput
-              value={plannedDate}
-              onChangeText={setPlannedDate}
-              placeholder="YYYY-MM-DD"
-              style={{
-                borderWidth: 1,
-                borderColor: colors.border,
-                marginBottom: 24,
-                borderRadius: 8,
-                padding: 12,
-                color: colors.text,
-                backgroundColor: colors.inputBackground,
-              }}
-              placeholderTextColor={colors.placeholderText}
-            />
-
-            <View
-              style={{ flexDirection: "row", justifyContent: "space-between" }}
-            >
-              <TouchableOpacity
-                style={{
-                  flex: 1,
-                  marginRight: 8,
-                  backgroundColor: colors.buttonSecondary,
-                  padding: 12,
-                  borderRadius: 8,
-                  alignItems: "center",
-                  flexDirection: "row",
-                  justifyContent: "center",
-                }}
-                onPress={closeModal}
-              >
-                <MaterialIcons
-                  name="close"
-                  size={18}
-                  color={colors.buttonSecondaryText}
-                  style={{ marginRight: 4 }}
-                />
-                <Text
-                  style={{
-                    color: colors.buttonSecondaryText,
-                    fontWeight: "600",
-                  }}
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={[
+                    styles.modalButton,
+                    { backgroundColor: themeColors.error },
+                  ]}
+                  onPress={() => setShowAddModal(false)}
                 >
-                  {getTranslation(language, "cancel")}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={{
-                  flex: 1,
-                  marginLeft: 8,
-                  backgroundColor: colors.buttonSuccess,
-                  padding: 12,
-                  borderRadius: 8,
-                  alignItems: "center",
-                  flexDirection: "row",
-                  justifyContent: "center",
-                }}
-                onPress={handleSubmit}
-              >
-                <MaterialIcons
-                  name="check"
-                  size={18}
-                  color={colors.buttonSuccessText}
-                  style={{ marginRight: 4 }}
-                />
-                <Text
-                  style={{ color: colors.buttonSuccessText, fontWeight: "600" }}
+                  <Text
+                    style={[
+                      styles.modalButtonText,
+                      { color: themeColors.card },
+                    ]}
+                  >
+                    {getTranslation(language, "cancel")}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.modalButton,
+                    { backgroundColor: themeColors.success },
+                  ]}
+                  onPress={handleAddPlannedResult}
                 >
-                  {getTranslation(language, "saveResult")}
-                </Text>
-              </TouchableOpacity>
+                  <Text
+                    style={[
+                      styles.modalButtonText,
+                      { color: themeColors.card },
+                    ]}
+                  >
+                    {getTranslation(language, "add")}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
+
+// ... existing styles ...
