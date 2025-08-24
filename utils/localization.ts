@@ -2,7 +2,7 @@ import * as XLSX from "xlsx";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import useStore, { Plan, Exercise, Result } from "@/store/store";
-import { getCalorieEntries } from "@/store/dbLayer";
+import useCaloriesStore from "@/store/calloriesStore";
 
 export interface ExportData {
   plans: Plan[];
@@ -12,9 +12,9 @@ export interface ExportData {
 export async function exportToExcel(data: ExportData): Promise<void> {
   const workbook = XLSX.utils.book_new();
 
-  const plansData: any[] = [];
-  const resultsData: any[] = [];
-  const caloriesData: any[] = [];
+  const plansData = [];
+  const resultsData = [];
+  const caloriesData = [];
 
   data.plans.forEach((plan) => {
     plan.trainings.forEach((training) => {
@@ -148,13 +148,13 @@ export async function exportDataToFile(
   }
 }
 
-export async function getExportData(): Promise<ExportData> {
+export function getExportData(): ExportData {
   const store = useStore.getState();
-  const calories = await getCalorieEntries();
+  const caloriesStore = useCaloriesStore.getState();
 
   return {
-    plans: [], // Здесь нужно будет загрузить планы из БД
-    calories: calories,
+    plans: store.plans,
+    calories: caloriesStore.entries,
   };
 }
 
@@ -247,6 +247,7 @@ export const translations = {
     calves: "Calves",
     abs: "Abs",
     selectExercise: "Select exercise",
+    back: "Back",
 
     // Plan Selector
     choosePlan: "Choose plan",
@@ -454,6 +455,7 @@ Pull-ups
     calves: "Икры",
     abs: "Пресс",
     selectExercise: "Выбери упражнение",
+    back: "Назад",
 
     // Plan Selector
     choosePlan: "Выберите план",

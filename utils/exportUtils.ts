@@ -2,7 +2,7 @@ import * as XLSX from "xlsx";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import useStore, { Plan, Exercise, Result } from "@/store/store";
-import { getCalorieEntries, getAllPlansWithData } from "@/store/dbLayer";
+import useCaloriesStore from "@/store/calloriesStore";
 
 export interface ExportData {
   plans: Plan[];
@@ -176,12 +176,12 @@ export async function exportDataToFile(
   }
 }
 
-export async function getExportData(): Promise<ExportData> {
-  const plans = await getAllPlansWithData();
-  const calories = await getCalorieEntries();
+export function getExportData(): ExportData {
+  const store = useStore.getState();
+  const caloriesStore = useCaloriesStore.getState();
 
   return {
-    plans: plans,
-    calories: calories,
+    plans: store.plans,
+    calories: caloriesStore.entries,
   };
 }

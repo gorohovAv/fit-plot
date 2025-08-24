@@ -1,7 +1,7 @@
 import * as XLSX from "xlsx";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
-import {
+import useStore, {
   Plan,
   Exercise,
   Result,
@@ -9,15 +9,7 @@ import {
   ExerciseType,
   Training,
 } from "@/store/store";
-import {
-  savePlan,
-  saveTraining,
-  saveExercise,
-  saveResult,
-  saveCalorieEntry,
-  getCalorieEntries,
-  getAllPlansWithData,
-} from "@/store/dbLayer";
+import useCaloriesStore from "@/store/calloriesStore";
 
 export interface ExportData {
   plans: Plan[];
@@ -191,13 +183,13 @@ export async function exportDataToFile(
   }
 }
 
-export async function getExportData(): Promise<ExportData> {
-  const plans = await getAllPlansWithData();
-  const calories = await getCalorieEntries();
+export function getExportData(): ExportData {
+  const store = useStore.getState();
+  const caloriesStore = useCaloriesStore.getState();
 
   return {
-    plans: plans,
-    calories: calories,
+    plans: store.plans,
+    calories: caloriesStore.entries,
   };
 }
 
@@ -289,8 +281,10 @@ export function validateImport(text: string): ValidationResult {
   };
 }
 
-export async function importData(text: string): Promise<void> {
+export function importData(text: string): void {
   const lines = text.split("\n").filter((line) => line.trim());
+  const store = useStore.getState();
+  const caloriesStore = useCaloriesStore.getState();
 
   let currentExercise = "";
   let currentDate = new Date().toISOString().split("T")[0];
@@ -337,11 +331,9 @@ export async function importData(text: string): Promise<void> {
                 };
                 exerciseMap.set(currentExercise, exercise);
                 importedTraining.exercises.push(exercise);
-
-                await saveExercise(exercise);
               }
 
-              await saveResult({
+              store.addResult(importedPlan!.planName, importedTraining.id, {
                 exerciseId: exercise.id,
                 weight: weight,
                 reps: Math.round(reps),
@@ -370,11 +362,9 @@ export async function importData(text: string): Promise<void> {
             };
             exerciseMap.set(currentExercise, exercise);
             importedTraining.exercises.push(exercise);
-
-            await saveExercise(exercise);
           }
 
-          await saveResult({
+          store.addResult(importedPlan!.planName, importedTraining.id, {
             exerciseId: exercise.id,
             weight: 0,
             reps: Math.round(reps),
@@ -404,7 +394,7 @@ export async function importData(text: string): Promise<void> {
           planName: `Импортированный план ${new Date().toLocaleDateString()}`,
           trainings: [],
         };
-        await savePlan(importedPlan.planName);
+        store.addPlan(importedPlan);
       }
 
       if (!importedTraining) {
@@ -415,11 +405,7 @@ export async function importData(text: string): Promise<void> {
           results: [],
           plannedResults: [],
         };
-        await saveTraining(
-          importedTraining.id,
-          importedPlan.planName,
-          importedTraining.name
-        );
+        store.addTraining(importedPlan.planName, importedTraining);
       }
     }
   }
