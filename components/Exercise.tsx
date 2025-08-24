@@ -2,290 +2,267 @@ import React, { useState } from "react";
 import {
   View,
   Text,
-  TouchableOpacity,
   StyleSheet,
-  Modal,
   TextInput,
-  KeyboardAvoidingView,
-  Platform,
-  Appearance,
+  TouchableOpacity,
 } from "react-native";
-import { Exercise as ExerciseType } from "../store/store";
+import useStore from "../store/store";
+import { useRoute } from "@react-navigation/native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { Colors } from "../constants/Colors";
+import { useNavigation } from "@react-navigation/native";
+import Timer from "./Timer";
 import useSettingsStore from "../store/settingsStore";
-import { getTranslation } from "../utils/localization";
-import * as dbLayer from "../store/dbLayer";
+import { Colors } from "../constants/Colors";
+import { getTranslation } from "@/utils/localization";
+
+type MuscleGroup = string; // Пример: Определяем как строку, если нет других определений
+type ExerciseType = string; // Пример: Определяем как строку, если нет других определений
+
+interface Result {
+  exerciseId: string;
+  weight: number;
+  reps: number;
+  amplitude: "full" | "partial";
+  date: string;
+}
 
 type ExerciseProps = {
-  exercise: ExerciseType;
+  id: string;
+  name: string;
+  muscleGroup: MuscleGroup;
+  type: ExerciseType;
+  unilateral: boolean;
+  reps: number;
+  sets: number;
+  amplitude: "full" | "partial";
+  comment?: string;
+  timerDuration?: number;
+  onRepsChange: (reps: number) => void;
+  onSetsChange: (sets: number) => void;
+  onComplete: () => void;
+  completed: boolean;
   onEdit: () => void;
   onDelete: () => void;
-  planName: string;
-  trainingId: string;
 };
 
 export const Exercise: React.FC<ExerciseProps> = ({
-  exercise,
+  id,
+  name,
+  muscleGroup,
+  type,
+  unilateral,
+  reps,
+  sets,
+  amplitude,
+  comment,
+  timerDuration,
+  onRepsChange,
+  onSetsChange,
+  onComplete,
+  completed,
   onEdit,
   onDelete,
-  planName,
-  trainingId,
 }) => {
-  const [showResults, setShowResults] = useState(false);
-  const [results, setResults] = useState<any[]>([]);
-  const [newResult, setNewResult] = useState({
-    weight: "",
-    reps: "",
-    date: new Date().toISOString().split("T")[0],
+  const route = useRoute();
+  const { workoutId, planName } = route.params as {
+    workoutId: string;
+    planName: string;
+  };
+  const navigation = useNavigation();
+  const [editing, setEditing] = useState(false);
+  const [result, setResult] = useState({
+    weight: 0,
+    reps: 0,
     amplitude: "full" as "full" | "partial",
   });
-  const [showAddResultModal, setShowAddResultModal] = useState(false);
+  const { plans, addResult } = useStore();
+  const [showTimer, setShowTimer] = useState(false);
+  const [timerKey, setTimerKey] = useState(0);
   const theme = useSettingsStore((state) => state.theme);
   const language = useSettingsStore((state) => state.language);
-
-  let colorScheme: "light" | "dark" = "light";
-  if (theme === "dark") {
-    colorScheme = "dark";
-  } else if (theme === "light") {
-    colorScheme = "light";
-  } else {
-    colorScheme =
-      Platform.OS === "ios" || Platform.OS === "android"
-        ? (Appearance.getColorScheme?.() as "light" | "dark") || "light"
-        : "light";
-  }
+  const colorScheme =
+    theme === "system"
+      ? typeof window !== "undefined" &&
+        window.matchMedia &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light"
+      : theme;
   const themeColors = Colors[colorScheme];
 
-  const loadResults = async () => {
-    try {
-      const exerciseResults = await dbLayer.getResultsByExercise(exercise.id);
-      setResults(exerciseResults);
-    } catch (error) {
-      console.error("Ошибка загрузки результатов:", error);
-    }
-  };
+  const exerciseResults =
+    plans
+      .find((plan) => plan.planName === planName)
+      ?.trainings.find((training) => training.id === workoutId)
+      ?.results.filter((res) => res.exerciseId === id)
+      .slice(-5) || [];
 
-  const handleAddResult = async () => {
-    if (newResult.weight && newResult.reps) {
-      try {
-        await dbLayer.saveResult({
-          exerciseId: exercise.id,
-          weight: parseFloat(newResult.weight),
-          reps: parseInt(newResult.reps),
-          date: newResult.date,
-          amplitude: newResult.amplitude,
-        });
-
-        await loadResults();
-        setNewResult({
-          weight: "",
-          reps: "",
-          date: new Date().toISOString().split("T")[0],
-          amplitude: "full",
-        });
-        setShowAddResultModal(false);
-      } catch (error) {
-        console.error("Ошибка сохранения результата:", error);
-      }
-    }
-  };
-
-  const handleToggleResults = () => {
-    if (!showResults) {
-      loadResults();
-    }
-    setShowResults(!showResults);
+  const handleAddResult = () => {
+    const newResult: Result = {
+      exerciseId: id,
+      weight: result.weight,
+      reps: result.reps,
+      amplitude: result.amplitude,
+      date: new Date().toISOString(),
+    };
+    addResult(planName, workoutId, newResult);
+    setResult({ weight: 0, reps: 0, amplitude: "full" });
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: themeColors.card }]}>
+    <View
+      style={[
+        styles.container,
+        completed && { backgroundColor: themeColors.success + "22" },
+        { backgroundColor: themeColors.card },
+      ]}
+    >
       <View style={styles.header}>
-        <View style={styles.exerciseInfo}>
-          <Text style={[styles.exerciseName, { color: themeColors.text }]}>
-            {exercise.name}
+        <Text style={[styles.name, { color: themeColors.text }]}>{name}</Text>
+        <Text style={[styles.details, { color: themeColors.icon }]}>
+          {muscleGroup} • {type} •{" "}
+          {unilateral
+            ? getTranslation(language, "unilateralExercise")
+            : getTranslation(language, "bilateralExercise")}{" "}
+          •{" "}
+          {amplitude === "full"
+            ? getTranslation(language, "fullAmplitudeExercise")
+            : getTranslation(language, "partialAmplitudeExercise")}
+        </Text>
+        {comment ? (
+          <Text style={[styles.comment, { color: themeColors.icon }]}>
+            {comment}
           </Text>
-          <Text style={[styles.exerciseDetails, { color: themeColors.icon }]}>
-            {getTranslation(language, exercise.muscleGroup)} •{" "}
-            {getTranslation(language, exercise.type)}
-            {exercise.unilateral && " • Одностороннее"}
-          </Text>
-        </View>
-        <View style={styles.actions}>
-          <TouchableOpacity onPress={onEdit} style={styles.actionButton}>
-            <MaterialIcons name="edit" size={20} color={themeColors.icon} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={onDelete} style={styles.actionButton}>
-            <MaterialIcons name="delete" size={20} color={themeColors.error} />
-          </TouchableOpacity>
-        </View>
+        ) : null}
       </View>
 
-      <TouchableOpacity
-        style={styles.resultsToggle}
-        onPress={handleToggleResults}
-      >
-        <Text style={[styles.resultsToggleText, { color: themeColors.tint }]}>
-          {showResults ? "Скрыть результаты" : "Показать результаты"}
-        </Text>
-        <MaterialIcons
-          name={showResults ? "expand-less" : "expand-more"}
-          size={20}
-          color={themeColors.tint}
-        />
-      </TouchableOpacity>
+      <View style={styles.actions}>
+        <TouchableOpacity onPress={onEdit} style={styles.actionButton}>
+          <MaterialIcons name="edit" size={20} color={themeColors.icon} />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={onDelete} style={styles.actionButton}>
+          <MaterialIcons name="delete" size={20} color={themeColors.icon} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => {
+            console.log("Навигация на аналитику с параметрами:", {
+              exerciseId: id,
+              exerciseName: name,
+            });
+            navigation.navigate("analytics", {
+              exerciseId: id,
+              exerciseName: name,
+            });
+          }}
+          style={styles.actionButton}
+        >
+          <MaterialIcons name="analytics" size={20} color={themeColors.icon} />
+        </TouchableOpacity>
+      </View>
 
-      {showResults && (
-        <View style={styles.resultsContainer}>
-          <View style={styles.resultsHeader}>
-            <Text style={[styles.resultsTitle, { color: themeColors.text }]}>
-              Результаты
-            </Text>
-            <TouchableOpacity
-              onPress={() => setShowAddResultModal(true)}
-              style={styles.addResultButton}
-            >
-              <MaterialIcons name="add" size={20} color={themeColors.tint} />
-            </TouchableOpacity>
-          </View>
-
-          {results.length > 0 ? (
-            results.map((result, index) => (
-              <View
-                key={index}
-                style={[
-                  styles.resultItem,
-                  { backgroundColor: themeColors.background },
-                ]}
-              >
-                <Text style={[styles.resultText, { color: themeColors.text }]}>
-                  {result.weight} кг × {result.reps} повторений
-                </Text>
-                <Text style={[styles.resultDate, { color: themeColors.icon }]}>
-                  {new Date(result.date).toLocaleDateString()}
-                </Text>
-              </View>
-            ))
-          ) : (
-            <Text style={[styles.noResults, { color: themeColors.icon }]}>
-              Нет результатов
-            </Text>
-          )}
+      {exerciseResults.length > 0 && (
+        <View style={styles.resultsList}>
+          {exerciseResults.map((res, index) => (
+            <View key={index} style={styles.resultItem}>
+              <MaterialIcons
+                name={res.amplitude === "full" ? "straighten" : "crop"}
+                size={16}
+                color={themeColors.icon}
+              />
+              <Text style={[styles.resultText, { color: themeColors.icon }]}>
+                {res.weight} {getTranslation(language, "kg")} × {res.reps}{" "}
+                {getTranslation(language, "reps")}
+              </Text>
+            </View>
+          ))}
         </View>
       )}
 
-      <Modal
-        visible={showAddResultModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowAddResultModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            style={styles.modalContainer}
-          >
-            <View
-              style={[
-                styles.modalContent,
-                { backgroundColor: themeColors.card },
-              ]}
-            >
-              <Text style={[styles.modalTitle, { color: themeColors.text }]}>
-                Добавить результат
-              </Text>
-
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    borderColor: themeColors.border,
-                    color: themeColors.text,
-                    backgroundColor: themeColors.background,
-                  },
-                ]}
-                placeholder="Вес (кг)"
-                placeholderTextColor={themeColors.icon}
-                value={newResult.weight}
-                onChangeText={(text) =>
-                  setNewResult({ ...newResult, weight: text })
-                }
-                keyboardType="numeric"
-              />
-
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    borderColor: themeColors.border,
-                    color: themeColors.text,
-                    backgroundColor: themeColors.background,
-                  },
-                ]}
-                placeholder="Повторения"
-                placeholderTextColor={themeColors.icon}
-                value={newResult.reps}
-                onChangeText={(text) =>
-                  setNewResult({ ...newResult, reps: text })
-                }
-                keyboardType="numeric"
-              />
-
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    borderColor: themeColors.border,
-                    color: themeColors.text,
-                    backgroundColor: themeColors.background,
-                  },
-                ]}
-                placeholder="Дата (YYYY-MM-DD)"
-                placeholderTextColor={themeColors.icon}
-                value={newResult.date}
-                onChangeText={(text) =>
-                  setNewResult({ ...newResult, date: text })
-                }
-              />
-
-              <View style={styles.modalButtons}>
-                <TouchableOpacity
-                  style={[
-                    styles.modalButton,
-                    { backgroundColor: themeColors.error },
-                  ]}
-                  onPress={() => setShowAddResultModal(false)}
-                >
-                  <Text
-                    style={[
-                      styles.modalButtonText,
-                      { color: themeColors.card },
-                    ]}
-                  >
-                    Отмена
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.modalButton,
-                    { backgroundColor: themeColors.success },
-                  ]}
-                  onPress={handleAddResult}
-                >
-                  <Text
-                    style={[
-                      styles.modalButtonText,
-                      { color: themeColors.card },
-                    ]}
-                  >
-                    Добавить
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </KeyboardAvoidingView>
-        </View>
-      </Modal>
+      <View style={styles.resultForm}>
+        <TextInput
+          style={[
+            styles.weightInput,
+            {
+              color: themeColors.text,
+              borderColor: themeColors.border,
+              backgroundColor: themeColors.card,
+            },
+          ]}
+          placeholder={getTranslation(language, "weightPlaceholder")}
+          placeholderTextColor={themeColors.icon}
+          keyboardType="numeric"
+          value={result.weight.toString()}
+          onChangeText={(text) =>
+            setResult({ ...result, weight: parseFloat(text) || 0 })
+          }
+        />
+        <Text style={[styles.xSymbol, { color: themeColors.text }]}>×</Text>
+        <TextInput
+          style={[
+            styles.repsInput,
+            {
+              color: themeColors.text,
+              borderColor: themeColors.border,
+              backgroundColor: themeColors.card,
+            },
+          ]}
+          placeholder={getTranslation(language, "repsPlaceholder")}
+          placeholderTextColor={themeColors.icon}
+          keyboardType="numeric"
+          value={result.reps.toString()}
+          onChangeText={(text) =>
+            setResult({ ...result, reps: parseInt(text) || 0 })
+          }
+        />
+        <TouchableOpacity
+          onPress={() =>
+            setResult({
+              ...result,
+              amplitude: result.amplitude === "full" ? "partial" : "full",
+            })
+          }
+          style={styles.amplitudeToggle}
+        >
+          <MaterialIcons
+            name={result.amplitude === "full" ? "straighten" : "crop"}
+            size={24}
+            color={themeColors.icon}
+          />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.confirmButton,
+            { backgroundColor: themeColors.success },
+          ]}
+          onPress={handleAddResult}
+          activeOpacity={0.7}
+        >
+          <MaterialIcons name="check" size={20} color={themeColors.card} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.timerWrapper}
+          onPress={() => {
+            setShowTimer(false);
+            setTimeout(() => {
+              setTimerKey((k) => k + 1);
+              setShowTimer(true);
+            }, 10);
+          }}
+          activeOpacity={0.7}
+        >
+          {showTimer ? (
+            <Timer
+              key={timerKey}
+              duration={timerDuration ?? 60}
+              size={40}
+              strokeWidth={6}
+              onEnd={() => setShowTimer(false)}
+            />
+          ) : (
+            <MaterialIcons name="timer" size={32} color={themeColors.icon} />
+          )}
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -381,113 +358,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 2,
     fontStyle: "italic",
-  },
-  exerciseInfo: {
-    flex: 1,
-  },
-  exerciseName: {
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  exerciseDetails: {
-    fontSize: 14,
-    marginTop: 2,
-  },
-  resultsToggle: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: "#f0f0f0",
-  },
-  resultsToggleText: {
-    fontSize: 14,
-    fontWeight: "bold",
-  },
-  resultsContainer: {
-    marginTop: 8,
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: "#f9f9f9",
-  },
-  resultsHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  resultsTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  addResultButton: {
-    padding: 4,
-  },
-  noResults: {
-    fontSize: 14,
-    textAlign: "center",
-    marginTop: 10,
-  },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.5)",
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalContent: {
-    width: "80%",
-    padding: 20,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 15,
-  },
-  pickerContainer: {
-    width: "100%",
-    marginBottom: 15,
-  },
-  picker: {
-    height: 50,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    paddingHorizontal: 10,
-  },
-  input: {
-    width: "100%",
-    height: 50,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    paddingHorizontal: 10,
-    marginBottom: 15,
-  },
-  modalButtons: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    width: "100%",
-    marginTop: 15,
-  },
-  modalButton: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: "center",
-    marginHorizontal: 5,
-  },
-  modalButtonText: {
-    fontSize: 16,
-    fontWeight: "bold",
   },
 });

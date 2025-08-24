@@ -15,7 +15,6 @@ import useStore, { Plan } from "../../store/store";
 import useSettingsStore from "../../store/settingsStore";
 import { Colors } from "../../constants/Colors";
 import { getTranslation } from "@/utils/localization";
-import * as dbLayer from "../../store/dbLayer";
 
 type Training = {
   id: string;
@@ -26,8 +25,10 @@ type Training = {
 
 export default function WorkoutPlanScreen() {
   const navigation = useNavigation();
-  const [plans, setPlans] = useState<Plan[]>([]);
-  const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
+  const { plans, addPlan, removeTraining, addTraining } = useStore();
+  const [selectedPlan, setSelectedPlan] = useState<Plan | null>(
+    plans[0] || null
+  );
   const [showPlanSelector, setShowPlanSelector] = useState(false);
   const [showTrainingModal, setShowTrainingModal] = useState(false);
   const [trainingName, setTrainingName] = useState("");
@@ -42,23 +43,6 @@ export default function WorkoutPlanScreen() {
       : Colors.light;
 
   useEffect(() => {
-    loadPlans();
-  }, []);
-
-  const loadPlans = async () => {
-    try {
-      await dbLayer.initDatabase();
-      const loadedPlans = await dbLayer.getAllPlansWithData();
-      setPlans(loadedPlans);
-      if (loadedPlans.length > 0 && !selectedPlan) {
-        setSelectedPlan(loadedPlans[0]);
-      }
-    } catch (error) {
-      console.error("Ошибка загрузки планов:", error);
-    }
-  };
-
-  useEffect(() => {
     if (selectedPlan) {
       const updatedPlan = plans.find(
         (plan) => plan.planName === selectedPlan.planName
@@ -69,7 +53,7 @@ export default function WorkoutPlanScreen() {
     }
   }, [plans]);
 
-  const handleAddTraining = async () => {
+  const handleAddTraining = () => {
     if (!selectedPlan || !trainingName.trim()) return;
 
     const newTraining: Training = {
@@ -79,30 +63,23 @@ export default function WorkoutPlanScreen() {
       results: [],
     };
 
-    try {
-      await dbLayer.saveTraining(
-        newTraining.id,
-        selectedPlan.planName,
-        newTraining.name
-      );
+    addTraining(selectedPlan.planName, newTraining);
+    setTrainingName("");
+    setShowTrainingModal(false);
 
-      await loadPlans();
-      setTrainingName("");
-      setShowTrainingModal(false);
-    } catch (error) {
-      console.error("Ошибка добавления тренировки:", error);
-    }
+    const updatedPlan = plans.find(
+      (plan) => plan.planName === selectedPlan.planName
+    );
+    setSelectedPlan(updatedPlan || null);
   };
 
-  const handleDeleteTraining = async (trainingId: string) => {
+  const handleDeleteTraining = (trainingId: string) => {
     if (!selectedPlan) return;
-
-    try {
-      await dbLayer.deleteTraining(trainingId);
-      await loadPlans();
-    } catch (error) {
-      console.error("Ошибка удаления тренировки:", error);
-    }
+    removeTraining(selectedPlan.planName, trainingId);
+    const updatedPlan = plans.find(
+      (plan) => plan.planName === selectedPlan.planName
+    );
+    setSelectedPlan(updatedPlan || null);
   };
 
   const TrainingModal = () => (
@@ -231,7 +208,6 @@ export default function WorkoutPlanScreen() {
           setSelectedPlan(plan);
           setShowPlanSelector(false);
         }}
-        plans={plans}
       />
     </View>
   );
