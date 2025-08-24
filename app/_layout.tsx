@@ -15,7 +15,6 @@ import useCaloriesStore from "@/store/calloriesStore";
 import useSettingsStore from "@/store/settingsStore";
 import { logAllTables } from "@/store/dbLayer";
 import * as stepService from "@/services/stepService";
-import { setInitializing } from "@/store/syncMiddleware";
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -23,38 +22,11 @@ export default function RootLayout() {
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
 
-  const initializeFromDB = useStore((state) => state.initializeFromDB);
-  const initializeCaloriesFromDB = useCaloriesStore(
-    (state) => state.initializeFromDB
-  );
-  const initializeSettingsFromDB = useSettingsStore(
-    (state) => state.initializeFromDB
-  );
-
   useEffect(() => {
-    const initializeApp = async () => {
-      try {
-        setInitializing(true); // БЛОКИРУЕМ синхронизацию
-
-        await initializeFromDB();
-        await initializeCaloriesFromDB();
-        await initializeSettingsFromDB();
-
-        setInitializing(false); // РАЗБЛОКИРУЕМ синхронизацию
-      } catch (error) {
-        console.error("Ошибка инициализации приложения:", error);
-      }
-    };
-
     if (loaded) {
-      initializeApp();
+      // можно добавить логику инициализации, если потребуется
     }
-  }, [
-    loaded,
-    initializeFromDB,
-    initializeCaloriesFromDB,
-    initializeSettingsFromDB,
-  ]);
+  }, [loaded]);
 
   if (!loaded) {
     return null;
