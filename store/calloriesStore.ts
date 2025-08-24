@@ -20,7 +20,13 @@ type CaloriesState = {
   initializeFromDB: () => Promise<void>;
 };
 
-const storage = new MMKV();
+let storage: MMKV | null = null;
+function getStorage() {
+  if (!storage) {
+    storage = new MMKV();
+  }
+  return storage;
+}
 
 const useCaloriesStore = create<CaloriesState>()(
   persist(
@@ -51,14 +57,14 @@ const useCaloriesStore = create<CaloriesState>()(
       name: "fit-plot-calories-store",
       storage: {
         getItem: (name) => {
-          const value = storage.getString(name);
+          const value = getStorage().getString(name);
           return value ?? null;
         },
         setItem: (name, value) => {
-          storage.set(name, value);
+          getStorage().set(name, value);
         },
         removeItem: (name) => {
-          storage.delete(name);
+          getStorage().delete(name);
         },
       },
       partialize: (state) => ({

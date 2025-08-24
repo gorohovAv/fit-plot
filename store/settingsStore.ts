@@ -17,7 +17,13 @@ type SettingsState = {
   initializeFromDB: () => Promise<void>;
 };
 
-const storage = new MMKV();
+let storage: MMKV | null = null;
+function getStorage() {
+  if (!storage) {
+    storage = new MMKV();
+  }
+  return storage;
+}
 
 const useSettingsStore = create<SettingsState>()(
   persist(
@@ -36,14 +42,14 @@ const useSettingsStore = create<SettingsState>()(
       name: "fit-plot-settings-store",
       storage: {
         getItem: (name) => {
-          const value = storage.getString(name);
+          const value = getStorage().getString(name);
           return value ?? null;
         },
         setItem: (name, value) => {
-          storage.set(name, value);
+          getStorage().set(name, value);
         },
         removeItem: (name) => {
-          storage.delete(name);
+          getStorage().delete(name);
         },
       },
       partialize: (state) => ({
