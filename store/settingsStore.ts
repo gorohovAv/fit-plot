@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { mmkvSettings } from "./storage";
+import { MMKV } from "react-native-mmkv";
 import { Language } from "@/utils/localization";
 
 type Theme = "light" | "dark" | "system";
@@ -16,6 +16,14 @@ type SettingsState = {
   setLanguage: (language: Language) => void;
   initializeFromDB: () => Promise<void>;
 };
+
+let storage: MMKV | null = null;
+function getStorage() {
+  if (!storage) {
+    storage = new MMKV();
+  }
+  return storage;
+}
 
 const useSettingsStore = create<SettingsState>()(
   persist(
@@ -34,14 +42,14 @@ const useSettingsStore = create<SettingsState>()(
       name: "fit-plot-settings-store",
       storage: {
         getItem: (name) => {
-          const value = mmkvSettings.getString(name);
+          const value = getStorage().getString(name);
           return value ?? null;
         },
         setItem: (name, value) => {
-          mmkvSettings.set(name, value);
+          getStorage().set(name, value);
         },
         removeItem: (name) => {
-          mmkvSettings.delete(name);
+          getStorage().delete(name);
         },
       },
       partialize: (state) => ({

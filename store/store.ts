@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { mmkvStore } from "./storage";
+import { MMKV } from "react-native-mmkv";
 import * as dbLayer from "./dbLayer";
 
 export type MuscleGroup =
@@ -102,6 +102,14 @@ type State = StoreState & {
   ) => void;
   initializeFromDB: () => Promise<void>;
 };
+
+let storage: MMKV | null = null;
+function getStorage() {
+  if (!storage) {
+    storage = new MMKV();
+  }
+  return storage;
+}
 
 const useStore = create<State>()(
   persist(
@@ -245,14 +253,14 @@ const useStore = create<State>()(
       name: "fit-plot-store",
       storage: {
         getItem: (name) => {
-          const value = mmkvStore.getString(name);
+          const value = getStorage().getString(name);
           return value ?? null;
         },
         setItem: (name, value) => {
-          mmkvStore.set(name, value);
+          getStorage().set(name, value);
         },
         removeItem: (name) => {
-          mmkvStore.delete(name);
+          getStorage().delete(name);
         },
       },
       partialize: (state) => ({ plans: state.plans }),

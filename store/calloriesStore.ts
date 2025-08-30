@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { mmkvCalories } from "./storage";
+import { MMKV } from "react-native-mmkv";
 import * as dbLayer from "./dbLayer";
 
 type CalorieEntry = {
@@ -19,6 +19,14 @@ type CaloriesState = {
   setMaintenanceCalories: (calories: number) => void;
   initializeFromDB: () => Promise<void>;
 };
+
+let storage: MMKV | null = null;
+function getStorage() {
+  if (!storage) {
+    storage = new MMKV();
+  }
+  return storage;
+}
 
 const useCaloriesStore = create<CaloriesState>()(
   persist(
@@ -49,14 +57,14 @@ const useCaloriesStore = create<CaloriesState>()(
       name: "fit-plot-calories-store",
       storage: {
         getItem: (name) => {
-          const value = mmkvCalories.getString(name);
+          const value = getStorage().getString(name);
           return value ?? null;
         },
         setItem: (name, value) => {
-          mmkvCalories.set(name, value);
+          getStorage().set(name, value);
         },
         removeItem: (name) => {
-          mmkvCalories.delete(name);
+          getStorage().delete(name);
         },
       },
       partialize: (state) => ({
