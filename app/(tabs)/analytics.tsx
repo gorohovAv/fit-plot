@@ -1,39 +1,36 @@
-import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Alert,
-  TouchableOpacity,
-  Appearance,
-  ActivityIndicator,
-} from "react-native";
-import { CartesianChart, Line } from "victory-native";
-import useStore, {
-  Plan,
-  Training,
-  Exercise,
-  Result,
-  MuscleGroup,
-  ExerciseType,
-  PlannedResult,
-} from "../../store/store";
-import useSettingsStore from "@/store/settingsStore";
-import useCaloriesStore from "@/store/calloriesStore";
-import { Colors } from "@/constants/Colors";
-import { Picker } from "@react-native-picker/picker";
-import { Circle, useFont } from "@shopify/react-native-skia";
+import AnalyticsExerciseSelector from "@/components/AnalyticsExerciseSelector";
 import Plot from "@/components/Plot";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import ResultsList from "@/components/ResultsList";
+import { Colors } from "@/constants/Colors";
+import useCaloriesStore from "@/store/calloriesStore";
+import useSettingsStore from "@/store/settingsStore";
+import { formatTranslation, getTranslation } from "@/utils/localization";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { useRoute } from "@react-navigation/native";
+import { useFont } from "@shopify/react-native-skia";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system";
+import React, { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Appearance,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { v4 as uuidv4 } from "uuid";
-import { useRoute } from "@react-navigation/native";
-import AnalyticsExerciseSelector from "@/components/AnalyticsExerciseSelector";
-import { getTranslation, formatTranslation } from "@/utils/localization";
-import { logAllTables } from "@/store/dbLayer";
+import useStore, {
+  Exercise,
+  ExerciseType,
+  MuscleGroup,
+  Plan,
+  PlannedResult,
+  Result,
+  Training,
+} from "../../store/store";
 
 type ChartData = {
   x: string; // Дата
@@ -361,13 +358,17 @@ export default function AnalyticsScreen() {
     return null;
   }
 
-  const exercises = plans.flatMap((plan) =>
-    plan.trainings.flatMap((training) => training.exercises)
-  );
+  const exercises = plans
+    .flatMap((plan) =>
+      plan.trainings.flatMap((training) => training.exercises || [])
+    )
+    .filter((exercise) => exercise && exercise.id && exercise.name); // Фильтруем некорректные упражнения
 
-  const plannedResults = plans.flatMap((plan) =>
-    plan.trainings.flatMap((training) => training.plannedResults)
-  );
+  const plannedResults = plans
+    .flatMap((plan) =>
+      plan.trainings.flatMap((training) => training.plannedResults || [])
+    )
+    .filter((planned) => planned && planned.exerciseId && planned.plannedDate); // Фильтруем некорректные плановые результаты
 
   const renderChart = (
     datasets: Dataset[],

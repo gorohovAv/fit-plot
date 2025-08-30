@@ -1,27 +1,19 @@
-import React, { useState, useEffect } from "react";
-import {
-  View,
-  FlatList,
-  TouchableOpacity,
-  Text,
-  StyleSheet,
-  TextInput,
-  Pressable,
-} from "react-native";
-import { Workout } from "../../components/Workout";
-import { useNavigation } from "@react-navigation/native";
-import { PlanSelector } from "../../components/PlanSelector";
-import useStore, { Plan } from "../../store/store";
-import useSettingsStore from "../../store/settingsStore";
-import { Colors } from "../../constants/Colors";
 import { getTranslation } from "@/utils/localization";
-
-type Training = {
-  id: string;
-  name: string;
-  exercises: any[];
-  results: any[];
-};
+import { useNavigation } from "@react-navigation/native";
+import React, { useEffect, useState } from "react";
+import {
+  FlatList,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { PlanSelector } from "../../components/PlanSelector";
+import { Workout } from "../../components/Workout";
+import { Colors } from "../../constants/Colors";
+import useSettingsStore from "../../store/settingsStore";
+import useStore, { Plan, Training } from "../../store/store";
 
 export default function WorkoutPlanScreen() {
   const navigation = useNavigation();
@@ -61,6 +53,7 @@ export default function WorkoutPlanScreen() {
       name: trainingName,
       exercises: [],
       results: [],
+      plannedResults: [],
     };
 
     addTraining(selectedPlan.planName, newTraining);
