@@ -1,6 +1,10 @@
 import { create } from "zustand";
-import { createSyncMiddleware, loadFromDatabase } from "./syncMiddleware";
 import * as dbLayer from "./dbLayer";
+import {
+  createSyncMiddleware,
+  loadFromDatabase,
+  setInitializing,
+} from "./syncMiddleware";
 
 export type MuscleGroup =
   | "chest"
@@ -241,13 +245,20 @@ const useStore = create<State>()(
       })),
     initializeFromDB: async () => {
       try {
+        setInitializing(true); // Устанавливаем флаг инициализации
         await dbLayer.initDatabase();
         const data = await loadFromDatabase();
         if (data) {
-          set({ plans: data.plans });
+          set({
+            plans: data.plans || [],
+            settings: data.settings,
+            calories: data.calories,
+          });
         }
       } catch (error) {
         console.error("Ошибка инициализации из БД:", error);
+      } finally {
+        setInitializing(false); // Сбрасываем флаг после завершения инициализации
       }
     },
   }))
