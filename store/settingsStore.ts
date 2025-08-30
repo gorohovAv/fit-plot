@@ -1,6 +1,6 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
-import { MMKV } from "react-native-mmkv";
+import { createSyncMiddleware } from "./syncMiddleware";
+import * as dbLayer from "./dbLayer";
 import { Language } from "@/utils/localization";
 
 type Theme = "light" | "dark" | "system";
@@ -17,43 +17,43 @@ type SettingsState = {
   initializeFromDB: () => Promise<void>;
 };
 
-const storage = new MMKV();
+const syncMiddleware = createSyncMiddleware();
 
 const useSettingsStore = create<SettingsState>()(
-  persist(
-    (set) => ({
-      theme: "system",
-      weight: 70,
-      devMode: false,
-      language: "russian",
-      setTheme: (theme: Theme) => set({ theme }),
-      setWeight: (weight: number) => set({ weight }),
-      setDevMode: (devMode: boolean) => set({ devMode }),
-      setLanguage: (language: Language) => set({ language }),
-      initializeFromDB: async () => {},
-    }),
-    {
-      name: "fit-plot-settings-store",
-      storage: {
-        getItem: (name) => {
-          const value = storage.getString(name);
-          return value ?? null;
-        },
-        setItem: (name, value) => {
-          storage.set(name, value);
-        },
-        removeItem: (name) => {
-          storage.delete(name);
-        },
-      },
-      partialize: (state) => ({
-        theme: state.theme,
-        weight: state.weight,
-        devMode: state.devMode,
-        language: state.language,
-      }),
-    }
-  )
+  syncMiddleware((set) => ({
+    theme: "system",
+    weight: 70,
+    devMode: false,
+    language: "russian",
+    setTheme: (theme: Theme) => set({ theme }),
+    setWeight: (weight: number) => set({ weight }),
+    setDevMode: (devMode: boolean) => set({ devMode }),
+    setLanguage: (language: Language) => set({ language }),
+    initializeFromDB: async () => {
+      try {
+        await dbLayer.initDatabase();
+        const settings = await loadSettingsFromDB();
+        set(settings);
+      } catch (error) {
+        console.error("Ошибка инициализации настроек из БД:", error);
+      }
+    },
+  }))
 );
+
+const loadSettingsFromDB = async () => {
+  const settings = await dbLayer.getAllSettings();
+  const settingsMap = settings.reduce((acc, { key, value }) => {
+    acc[key] = value;
+    return acc;
+  }, {} as Record<string, string>);
+
+  return {
+    theme: (settingsMap.theme as Theme) || "system",
+    weight: parseFloat(settingsMap.weight) || 70,
+    devMode: settingsMap.devMode === "true",
+    language: (settingsMap.language as Language) || "russian",
+  };
+};
 
 export default useSettingsStore;
