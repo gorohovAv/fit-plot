@@ -107,6 +107,7 @@ const syncPlans = async (plans: Plan[]) => {
           for (const result of training.results) {
             if (!result || !result.exerciseId) continue;
 
+            console.log(`Синхронизация: Сохранение ${training.results.length} результатов для упражнения ${result.exerciseId} (незапланированные)`);
             await dbLayer.saveResult({
               ...result,
               isPlanned: false,
@@ -118,6 +119,7 @@ const syncPlans = async (plans: Plan[]) => {
           for (const plannedResult of training.plannedResults) {
             if (!plannedResult || !plannedResult.exerciseId) continue;
 
+            console.log(`Синхронизация: Сохранение ${training.plannedResults.length} результатов для упражнения ${plannedResult.exerciseId} (запланированные)`);
             await dbLayer.saveResult({
               exerciseId: plannedResult.exerciseId,
               weight: plannedResult.plannedWeight,

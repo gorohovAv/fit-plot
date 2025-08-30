@@ -213,7 +213,7 @@ export const saveResult = async (result: {
   // Проверяем, существует ли уже такой результат
   const existing = await database.getFirstAsync(
     `SELECT id FROM results
-     WHERE id = ? AND exerciseId = ? AND weight = ? AND reps = ? AND date = ? AND amplitude = ? AND isPlanned = ?`,
+     WHERE exerciseId = ? AND weight = ? AND reps = ? AND date = ? AND amplitude = ? AND isPlanned = ?`,
     [
       result.exerciseId,
       result.weight,
