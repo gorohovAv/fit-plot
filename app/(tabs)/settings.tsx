@@ -1,18 +1,18 @@
+import { Colors } from "@/constants/Colors";
+import useSettingsStore from "@/store/settingsStore";
+import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
-  View,
+  StyleSheet,
   Text,
   TextInput,
-  Switch,
-  StyleSheet,
   TouchableOpacity,
+  useColorScheme,
+  View
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import useSettingsStore from "@/store/settingsStore";
-import { Colors } from "@/constants/Colors";
-import { useColorScheme } from "react-native";
-import { ImportScreen } from "@/components/ImportScreen";
+
 import { ExportScreen } from "@/components/ExportScreen";
+import { ImportScreen } from "@/components/ImportScreen";
 import { getTranslation } from "@/utils/localization";
 
 export default function SettingsScreen() {
@@ -151,7 +151,7 @@ export default function SettingsScreen() {
         placeholderTextColor={colors.icon}
       />
 
-      <Text style={[styles.label, { color: colors.text }]}>Язык</Text>
+      <Text style={[styles.label, { color: colors.text }]}>{getTranslation(language, "language")}</Text>
       <View style={styles.row}>
         <TouchableOpacity
           style={[

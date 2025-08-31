@@ -1,8 +1,8 @@
-import * as XLSX from "xlsx";
+import useCaloriesStore from "@/store/calloriesStore";
+import useStore, { Plan } from "@/store/store";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
-import useStore, { Plan, Exercise, Result } from "@/store/store";
-import useCaloriesStore from "@/store/calloriesStore";
+import * as XLSX from "xlsx";
 
 export interface ExportData {
   plans: Plan[];
@@ -169,6 +169,7 @@ export const translations = {
     enterWeight: "Enter weight",
     developerMode: "Developer mode",
     importData: "Import data",
+    language: "Language",
 
     // Calories
     calories: "Calories",
@@ -377,6 +378,7 @@ Pull-ups
     enterWeight: "Введите вес",
     developerMode: "Режим разработчика",
     importData: "Импорт данных",
+    language: "Язык",
 
     // Calories
     calories: "Калории",

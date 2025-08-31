@@ -1,22 +1,21 @@
-import React, { useState, useEffect } from "react";
+import { formatTranslation, getTranslation } from "@/utils/localization";
+import React, { useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
   Alert,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Plot from "../../components/Plot";
+import { Colors } from "../../constants/Colors";
+import { useSteps } from "../../hooks/useSteps";
 import useCaloriesStore from "../../store/calloriesStore";
 import useSettingsStore from "../../store/settingsStore";
-import { Colors } from "../../constants/Colors";
-import { getTranslation, formatTranslation } from "@/utils/localization";
-import { useSteps } from "../../hooks/useSteps";
-import * as stepService from "../../services/stepService";
 
 type Dataset = {
   data: { x: string; y: number }[];
@@ -67,13 +66,13 @@ export default function CaloriesScreen() {
     }
   }, [maintenanceCalories]);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      refreshSteps();
-    }, 10000); // обновляем каждые 10 секунд
+  //useEffect(() => {
+    //const interval = setInterval(() => {
+      //refreshSteps();
+    //}, 10000); // обновляем каждые 10 секунд
 
-    return () => clearInterval(interval);
-  }, []);
+    //return () => clearInterval(interval);
+  //}, []);
 
   const handleSave = () => {
     const caloriesNum = parseInt(calories);
@@ -111,10 +110,10 @@ export default function CaloriesScreen() {
 
     setCalories("");
     setWeight("");
-    Alert.alert(
-      getTranslation(language, "success"),
-      getTranslation(language, "dataSaved")
-    );
+    //Alert.alert(
+      //getTranslation(language, "success"),
+      //getTranslation(language, "dataSaved")
+    //);
   };
 
   const handleMaintenanceCaloriesSave = () => {
@@ -138,7 +137,7 @@ export default function CaloriesScreen() {
 
     setMaintenanceCalories(maintenanceNum);
     setIsEditingMaintenance(false);
-    Alert.alert(getTranslation(language, "maintenanceCaloriesSaved"));
+    //Alert.alert(getTranslation(language, "maintenanceCaloriesSaved"));
   };
 
   const handleEditMaintenance = () => {
