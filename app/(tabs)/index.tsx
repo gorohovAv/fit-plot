@@ -1,6 +1,6 @@
 import { getTranslation } from "@/utils/localization";
 import { useNavigation } from "@react-navigation/native";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   FlatList,
   StyleSheet,
@@ -75,7 +75,7 @@ export default function WorkoutPlanScreen() {
     setSelectedPlan(updatedPlan || null);
   };
 
-  const TrainingModal = () => (
+  const TrainingModal = useCallback(() => (
     <View
       style={[modalStyles.container, { backgroundColor: "rgba(0, 0, 0, 0.5)" }]}
     >
@@ -96,8 +96,9 @@ export default function WorkoutPlanScreen() {
           placeholderTextColor={colorScheme.textSecondary}
           value={trainingName}
           onChangeText={(text) => setTrainingName(text)}
-          onSubmitEditing={() => {}}
+          onSubmitEditing={handleAddTraining}
           blurOnSubmit={false}
+          autoFocus={true}
         />
         <View style={modalStyles.buttons}>
           <TouchableOpacity
@@ -122,7 +123,7 @@ export default function WorkoutPlanScreen() {
         </View>
       </View>
     </View>
-  );
+  ), [colorScheme, language, trainingName, handleAddTraining]);
 
   return (
     <View
