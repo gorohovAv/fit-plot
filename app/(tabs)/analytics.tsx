@@ -40,6 +40,7 @@ type ChartData = {
 type Dataset = {
   data: ChartData;
   axisLabel: string;
+  name?: string; // Optional dataset name for legend
 };
 
 type Zone = {
@@ -248,6 +249,7 @@ export default function AnalyticsScreen() {
               y: groupedByDay[day].tonnage,
             })),
             axisLabel: getTranslation(language, "tonnage"), // Общая единица измерения
+            name: exercise.name, // Добавляем имя упражнения для легенды
           });
 
           maxWeightData.push({
@@ -256,6 +258,7 @@ export default function AnalyticsScreen() {
               y: groupedByDay[day].maxWeight,
             })),
             axisLabel: getTranslation(language, "weight"), // Общая единица измерения
+            name: exercise.name, // Добавляем имя упражнения для легенды
           });
 
           maxRepsData.push({
@@ -264,6 +267,7 @@ export default function AnalyticsScreen() {
               y: groupedByDay[day].maxReps,
             })),
             axisLabel: getTranslation(language, "reps"), // Общая единица измерения
+            name: exercise.name, // Добавляем имя упражнения для легенды
           });
         }
       });
@@ -310,6 +314,7 @@ export default function AnalyticsScreen() {
                 y: groupedPlannedByDay[day].tonnage,
               })),
               axisLabel: getTranslation(language, "tonnage"), // Общая единица измерения
+              name: `${exercise.name} (план)`, // Добавляем имя упражнения с маркером плана
             });
 
             plannedMaxWeightData.push({
@@ -318,6 +323,7 @@ export default function AnalyticsScreen() {
                 y: groupedPlannedByDay[day].maxWeight,
               })),
               axisLabel: getTranslation(language, "weight"), // Общая единица измерения
+              name: `${exercise.name} (план)`, // Добавляем имя упражнения с маркером плана
             });
 
             plannedMaxRepsData.push({
@@ -326,6 +332,7 @@ export default function AnalyticsScreen() {
                 y: groupedPlannedByDay[day].maxReps,
               })),
               axisLabel: getTranslation(language, "reps"), // Общая единица измерения
+              name: `${exercise.name} (план)`, // Добавляем имя упражнения с маркером плана
             });
           }
         }
@@ -483,19 +490,6 @@ export default function AnalyticsScreen() {
       background: themeColors.card,
     };
 
-    const legendItems = filteredDatasets.map((dataset, index) => {
-      // Извлекаем имя упражнения из полной метки оси (если есть)
-      const fullLabel = dataset.axisLabel;
-      const exerciseName = fullLabel.includes(" - ")
-        ? fullLabel.split(" - ")[1]
-        : fullLabel;
-
-      return {
-        label: exerciseName,
-        color: lineColors[index % lineColors.length],
-      };
-    });
-
     return (
       <View
         style={[styles.chartContainer, { backgroundColor: themeColors.card }]}
@@ -512,7 +506,6 @@ export default function AnalyticsScreen() {
           height={300}
           margin={{ top: 20, right: 80, bottom: 80, left: 80 }}
           showLegend={true}
-          legendItems={legendItems}
         />
       </View>
     );

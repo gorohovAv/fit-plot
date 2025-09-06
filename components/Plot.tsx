@@ -1,7 +1,7 @@
-import React from "react";
-import { View, ScrollView, StyleSheet, Dimensions, Text } from "react-native";
 import { Canvas, Path, Rect } from "@shopify/react-native-skia";
 import * as d3 from "d3";
+import React from "react";
+import { Dimensions, ScrollView, StyleSheet, Text, View } from "react-native";
 import HorizontalAxis from "./HorizontalAxis";
 import VerticalAxis from "./VerticalAxis";
 
@@ -13,6 +13,7 @@ type DataPoint = {
 type Dataset = {
   data: DataPoint[];
   axisLabel: string;
+  name?: string; // Optional dataset name for legend
 };
 
 type Zone = {
@@ -118,8 +119,8 @@ const Plot: React.FC<PlotProps> = ({
   const globalYMin = Math.min(0, d3.min(allValues) ?? 0);
   const globalYMax = d3.max(allValues) ?? 0;
 
-  // Исправляем расчет максимального значения оси - добавляем 5% отступ сверху
-  const globalYPadding = (globalYMax - globalYMin) * 0.05; // Уменьшаем отступ до 5%
+  // Fix Y-axis scaling - use proper padding and ensure lines don't exceed axis bounds
+  const globalYPadding = Math.max((globalYMax - globalYMin) * 0.1, 1); // Increase padding to 10% with minimum of 1
   const globalYDomain = [
     globalYMin - globalYPadding,
     globalYMax + globalYPadding,
@@ -152,7 +153,13 @@ const Plot: React.FC<PlotProps> = ({
     };
   });
 
-  console.log("linePaths created:", linePaths.length);
+  // Generate legend items automatically from datasets if not provided
+  const autoLegendItems = datasets.map((dataset, index) => ({
+    label: dataset.name || dataset.axisLabel,
+    color: lineColors[index % lineColors.length],
+  }));
+
+  const finalLegendItems = legendItems.length > 0 ? legendItems : autoLegendItems;
 
   const zoneRects = zones.map((zone) => {
     const x1 = xScale(new Date(zone.startDate));
@@ -296,8 +303,8 @@ const Plot: React.FC<PlotProps> = ({
         </ScrollView>
       </View>
 
-      {showLegend && legendItems.length > 0 && (
-        <Legend items={legendItems} textColor={axisColors.labels} />
+      {showLegend && finalLegendItems.length > 0 && (
+        <Legend items={finalLegendItems} textColor={axisColors.labels} />
       )}
     </View>
   );
