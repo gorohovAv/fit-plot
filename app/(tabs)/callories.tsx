@@ -11,16 +11,11 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import Plot from "../../components/Plot";
+import VerticalBarChart from "../../components/VerticalBarChart";
 import { Colors } from "../../constants/Colors";
 import { useSteps } from "../../hooks/useSteps";
 import useCaloriesStore from "../../store/calloriesStore";
 import useSettingsStore from "../../store/settingsStore";
-
-type Dataset = {
-  data: { x: string; y: number }[];
-  axisLabel: string;
-};
 
 export default function CaloriesScreen() {
   const [calories, setCalories] = useState("");
@@ -55,6 +50,14 @@ export default function CaloriesScreen() {
 
   const today = new Date().toISOString().split("T")[0];
   const todayEntry = getEntryByDate(today);
+
+  // Initialize form with today's data if it exists
+  useEffect(() => {
+    if (todayEntry) {
+      setCalories(todayEntry.calories.toString());
+      setWeight(todayEntry.weight.toString());
+    }
+  }, [todayEntry]);
 
   // Инициализация поля maintenance calories
   useEffect(() => {
@@ -108,8 +111,11 @@ export default function CaloriesScreen() {
       weight: weightNum,
     });
 
-    setCalories("");
-    setWeight("");
+    // Don't clear the form if updating today's entry
+    if (!todayEntry) {
+      setCalories("");
+      setWeight("");
+    }
     //Alert.alert(
       //getTranslation(language, "success"),
       //getTranslation(language, "dataSaved")
@@ -155,31 +161,6 @@ export default function CaloriesScreen() {
   const sortedEntries = [...entries].sort(
     (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
   );
-
-  const datasets: Dataset[] = [
-    {
-      data: sortedEntries.map((entry) => ({
-        x: entry.date,
-        y: entry.calories,
-      })),
-      axisLabel: "Калории",
-    },
-    {
-      data: sortedEntries.map((entry) => ({
-        x: entry.date,
-        y: entry.weight,
-      })),
-      axisLabel: "Вес (кг)",
-    },
-  ];
-
-  const lineColors = [colorScheme.chartLine[0], colorScheme.chartLine[1]];
-
-  const axisColors = {
-    axis: colorScheme.text,
-    labels: colorScheme.text,
-    background: colorScheme.card,
-  };
 
   return (
     <KeyboardAvoidingView
@@ -375,7 +356,10 @@ export default function CaloriesScreen() {
             onPress={handleSave}
           >
             <Text style={[styles.saveButtonText, { color: colorScheme.card }]}>
-              {getTranslation(language, "save")}
+              {todayEntry
+                ? getTranslation(language, "update") || "Обновить"
+                : getTranslation(language, "save")
+              }
             </Text>
           </TouchableOpacity>
 
@@ -425,20 +409,43 @@ export default function CaloriesScreen() {
             <Text style={[styles.chartTitle, { color: colorScheme.text }]}>
               {getTranslation(language, "caloriesAndWeightChart")}
             </Text>
-            <Plot
-              datasets={datasets}
-              lineColors={lineColors}
-              axisColors={axisColors}
-              zones={[]}
-              width={350}
-              height={300}
-              margin={{ top: 20, right: 80, bottom: 80, left: 80 }}
-              showLegend={true}
-              legendItems={[
-                { label: "Калории", color: lineColors[0] },
-                { label: "Вес (кг)", color: lineColors[1] },
-              ]}
+            <VerticalBarChart
+              data={sortedEntries.map(entry => ({
+                date: entry.date,
+                calories: entry.calories,
+                weight: entry.weight,
+              }))}
+              caloriesColor={colorScheme.chartLine[0]}
+              weightColor={colorScheme.chartLine[1]}
+              textColor={colorScheme.text}
+              backgroundColor={colorScheme.card}
             />
+
+            {/* Legend */}
+            <View style={styles.legendContainer}>
+              <View style={styles.legendItem}>
+                <View
+                  style={[
+                    styles.legendColor,
+                    { backgroundColor: colorScheme.chartLine[0] }
+                  ]}
+                />
+                <Text style={[styles.legendText, { color: colorScheme.text }]}>
+                  Калории (вверх)
+                </Text>
+              </View>
+              <View style={styles.legendItem}>
+                <View
+                  style={[
+                    styles.legendColor,
+                    { backgroundColor: colorScheme.chartLine[1] }
+                  ]}
+                />
+                <Text style={[styles.legendText, { color: colorScheme.text }]}>
+                  Вес (вниз)
+                </Text>
+              </View>
+            </View>
           </View>
         )}
       </ScrollView>
@@ -581,5 +588,25 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 16,
     textAlign: "center",
+  },
+  legendContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: 16,
+    gap: 20,
+  },
+  legendItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  legendColor: {
+    width: 12,
+    height: 12,
+    borderRadius: 2,
+  },
+  legendText: {
+    fontSize: 12,
+    fontWeight: "500",
   },
 });
