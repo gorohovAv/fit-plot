@@ -1,19 +1,19 @@
+import { getTranslation } from "@/utils/localization";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import React, { useState } from "react";
 import {
-  View,
-  Text,
   StyleSheet,
+  Text,
   TextInput,
   TouchableOpacity,
+  View,
 } from "react-native";
-import useStore from "../store/store";
-import { useRoute } from "@react-navigation/native";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { useNavigation } from "@react-navigation/native";
-import Timer from "./Timer";
-import useSettingsStore from "../store/settingsStore";
 import { Colors } from "../constants/Colors";
-import { getTranslation } from "@/utils/localization";
+import useSettingsStore from "../store/settingsStore";
+import useStore from "../store/store";
+import useTimerStore from "../store/timerStore";
+import Timer from "./Timer";
 
 type MuscleGroup = string; // Пример: Определяем как строку, если нет других определений
 type ExerciseType = string; // Пример: Определяем как строку, если нет других определений
@@ -76,8 +76,7 @@ export const Exercise: React.FC<ExerciseProps> = ({
     amplitude: "full" as "full" | "partial",
   });
   const { plans, addResult } = useStore();
-  const [showTimer, setShowTimer] = useState(false);
-  const [timerKey, setTimerKey] = useState(0);
+  const { startTimer, stopTimer, isTimerRunning } = useTimerStore();
   const theme = useSettingsStore((state) => state.theme);
   const language = useSettingsStore((state) => state.language);
   const colorScheme =
@@ -107,6 +106,14 @@ export const Exercise: React.FC<ExerciseProps> = ({
     };
     addResult(planName, workoutId, newResult);
     setResult({ weight: 0, reps: 0, amplitude: "full" });
+  };
+
+  const handleTimerPress = () => {
+    if (isTimerRunning(id)) {
+      stopTimer(id);
+    } else {
+      startTimer(id, timerDuration ?? 60);
+    }
   };
 
   return (
@@ -241,22 +248,16 @@ export const Exercise: React.FC<ExerciseProps> = ({
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.timerWrapper}
-          onPress={() => {
-            setShowTimer(false);
-            setTimeout(() => {
-              setTimerKey((k) => k + 1);
-              setShowTimer(true);
-            }, 10);
-          }}
+          onPress={handleTimerPress}
           activeOpacity={0.7}
         >
-          {showTimer ? (
+          {isTimerRunning(id) ? (
             <Timer
-              key={timerKey}
+              exerciseId={id}
               duration={timerDuration ?? 60}
               size={40}
               strokeWidth={6}
-              onEnd={() => setShowTimer(false)}
+              onEnd={() => stopTimer(id)}
             />
           ) : (
             <MaterialIcons name="timer" size={32} color={themeColors.icon} />

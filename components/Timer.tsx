@@ -1,10 +1,12 @@
-import React, { useEffect, useRef, useState } from "react";
-import { View, StyleSheet } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { View } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
-import useSettingsStore from "../store/settingsStore";
 import { Colors } from "../constants/Colors";
+import useSettingsStore from "../store/settingsStore";
+import useTimerStore from "../store/timerStore";
 
 interface TimerProps {
+  exerciseId: string;
   duration: number; // продолжительность таймера в секундах
   size?: number; // размер компонента
   strokeWidth?: number; // толщина кольца
@@ -54,14 +56,19 @@ const describeArc = (
 };
 
 const Timer: React.FC<TimerProps> = ({
+  exerciseId,
   duration,
   size = 80,
   strokeWidth = 10,
   onEnd,
 }) => {
-  const [elapsed, setElapsed] = useState(0);
   const intervalRef = useRef<number | null>(null);
   const theme = useSettingsStore((state) => state.theme);
+  const { getTimer, updateTimer, stopTimer } = useTimerStore();
+
+  const timer = getTimer(exerciseId);
+  const elapsed = timer?.elapsed || 0;
+
   const colorScheme =
     theme === "system"
       ? typeof window !== "undefined" &&
@@ -73,24 +80,25 @@ const Timer: React.FC<TimerProps> = ({
   const themeColors = Colors[colorScheme];
 
   useEffect(() => {
-    setElapsed(0);
+    if (!timer) return;
+
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
+
     intervalRef.current = setInterval(() => {
-      setElapsed((prev) => {
-        const next = prev + 1;
-        console.log(`Таймер: ${next} из ${duration}`);
-        if (next >= duration) {
-          if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
-          }
-          onEnd && onEnd();
-          return duration;
-        }
-        return next;
-      });
+      const currentTimer = getTimer(exerciseId);
+      if (!currentTimer) return;
+
+      const nextElapsed = currentTimer.elapsed + 1;
+      console.log(`Таймер: ${nextElapsed} из ${duration}`);
+
+      if (nextElapsed >= duration) {
+        stopTimer(exerciseId);
+        onEnd && onEnd();
+      } else {
+        updateTimer(exerciseId, nextElapsed);
+      }
     }, 1000);
 
     return () => {
@@ -99,7 +107,19 @@ const Timer: React.FC<TimerProps> = ({
         intervalRef.current = null;
       }
     };
-  }, [duration, onEnd]);
+  }, [timer?.exerciseId, duration, onEnd, exerciseId, getTimer, updateTimer, stopTimer]);
+
+  // Clean up interval when timer is stopped
+  useEffect(() => {
+    if (!timer && intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  }, [timer]);
+
+  if (!timer) {
+    return null;
+  }
 
   const progress = elapsed / duration;
   const angle = 360 * progress;
