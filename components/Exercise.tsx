@@ -71,8 +71,8 @@ export const Exercise: React.FC<ExerciseProps> = ({
   const navigation = useNavigation();
   const [editing, setEditing] = useState(false);
   const [result, setResult] = useState({
-    weight: 0,
-    reps: 0,
+    weight: "",
+    reps: "",
     amplitude: "full" as "full" | "partial",
   });
   const { plans, addResult } = useStore();
@@ -97,15 +97,22 @@ export const Exercise: React.FC<ExerciseProps> = ({
       .slice(-5) || [];
 
   const handleAddResult = () => {
+    const weight = parseFloat(result.weight.replace(',', '.')) || 0;
+    const reps = parseInt(result.reps) || 0;
+
+    if (weight <= 0 || reps <= 0) {
+      return;
+    }
+
     const newResult: Result = {
       exerciseId: id,
-      weight: result.weight,
-      reps: result.reps,
+      weight: weight,
+      reps: reps,
       amplitude: result.amplitude,
       date: new Date().toISOString(),
     };
     addResult(planName, workoutId, newResult);
-    setResult({ weight: 0, reps: 0, amplitude: "full" });
+    setResult({ weight: "", reps: "", amplitude: "full" });
   };
 
   const handleTimerPress = () => {
@@ -152,14 +159,10 @@ export const Exercise: React.FC<ExerciseProps> = ({
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => {
-            console.log("Навигация на аналитику с параметрами:", {
+            navigation.navigate("analytics" as never, {
               exerciseId: id,
               exerciseName: name,
-            });
-            navigation.navigate("analytics", {
-              exerciseId: id,
-              exerciseName: name,
-            });
+            } as never);
           }}
           style={styles.actionButton}
         >
@@ -169,19 +172,30 @@ export const Exercise: React.FC<ExerciseProps> = ({
 
       {exerciseResults.length > 0 && (
         <View style={styles.resultsList}>
-          {exerciseResults.map((res, index) => (
-            <View key={index} style={styles.resultItem}>
-              <MaterialIcons
-                name={res.amplitude === "full" ? "straighten" : "crop"}
-                size={16}
-                color={themeColors.icon}
-              />
-              <Text style={[styles.resultText, { color: themeColors.icon }]}>
-                {res.weight} {getTranslation(language, "kg")} × {res.reps}{" "}
-                {getTranslation(language, "reps")}
-              </Text>
-            </View>
-          ))}
+          {exerciseResults.map((res, index) => {
+            const resultDate = new Date(res.date);
+            const today = new Date();
+            const isToday = resultDate.toDateString() === today.toDateString();
+
+            return (
+              <View key={index} style={styles.resultItem}>
+                <MaterialIcons
+                  name={res.amplitude === "full" ? "straighten" : "crop"}
+                  size={16}
+                  color={themeColors.icon}
+                />
+                <Text style={[styles.resultText, { color: themeColors.icon }]}>
+                  {res.weight} {getTranslation(language, "kg")} × {res.reps}{" "}
+                  {getTranslation(language, "reps")}
+                  {!isToday && (
+                    <Text style={[styles.dateText, { color: themeColors.icon }]}>
+                      {" "}({resultDate.toLocaleDateString()})
+                    </Text>
+                  )}
+                </Text>
+              </View>
+            );
+          })}
         </View>
       )}
 
@@ -198,9 +212,9 @@ export const Exercise: React.FC<ExerciseProps> = ({
           placeholder={getTranslation(language, "weightPlaceholder")}
           placeholderTextColor={themeColors.icon}
           keyboardType="numeric"
-          value={result.weight.toString()}
+          value={result.weight}
           onChangeText={(text) =>
-            setResult({ ...result, weight: parseFloat(text) || 0 })
+            setResult({ ...result, weight: text })
           }
         />
         <Text style={[styles.xSymbol, { color: themeColors.text }]}>×</Text>
@@ -216,9 +230,9 @@ export const Exercise: React.FC<ExerciseProps> = ({
           placeholder={getTranslation(language, "repsPlaceholder")}
           placeholderTextColor={themeColors.icon}
           keyboardType="numeric"
-          value={result.reps.toString()}
+          value={result.reps}
           onChangeText={(text) =>
-            setResult({ ...result, reps: parseInt(text) || 0 })
+            setResult({ ...result, reps: text })
           }
         />
         <TouchableOpacity
@@ -252,13 +266,15 @@ export const Exercise: React.FC<ExerciseProps> = ({
           activeOpacity={0.7}
         >
           {isTimerRunning(id) ? (
-            <Timer
-              exerciseId={id}
-              duration={timerDuration ?? 60}
-              size={40}
-              strokeWidth={6}
-              onEnd={() => stopTimer(id)}
-            />
+            <View style={styles.timerComponent}>
+              <Timer
+                exerciseId={id}
+                duration={timerDuration ?? 60}
+                size={40}
+                strokeWidth={6}
+                onEnd={() => stopTimer(id)}
+              />
+            </View>
           ) : (
             <MaterialIcons name="timer" size={32} color={themeColors.icon} />
           )}
@@ -333,6 +349,10 @@ const styles = StyleSheet.create({
   resultText: {
     fontSize: 14,
   },
+  dateText: {
+    fontSize: 12,
+    fontStyle: "italic",
+  },
   actions: {
     position: "absolute",
     right: 12,
@@ -354,6 +374,10 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     minWidth: 48,
+  },
+  timerComponent: {
+    alignItems: "center",
+    justifyContent: "center",
   },
   comment: {
     fontSize: 13,

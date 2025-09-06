@@ -137,6 +137,21 @@ export default function AnalyticsScreen() {
   };
 
   useEffect(() => {
+    // Handle route parameters from Exercise navigation
+    if (route.params) {
+      const { exerciseId, exerciseName } = route.params as { exerciseId?: string; exerciseName?: string };
+      if (exerciseId && exerciseName) {
+        // Find the exercise in the exercises list
+        const exercise = exercises.find(ex => ex.id === exerciseId);
+        if (exercise) {
+          setSelectedExerciseIds([exerciseId]);
+          setSelectedPlannedIds([]);
+        }
+      }
+    }
+  }, [route.params, exercises]);
+
+  useEffect(() => {
     setIsLoading(true);
 
     const processData = async () => {
