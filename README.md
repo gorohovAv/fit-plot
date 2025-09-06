@@ -1,50 +1,65 @@
-# Welcome to your Expo app 👋
+# Language / Язык
+- [🇺🇸 English](#english)
+- [🇷🇺 Русский](#русский)
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+---
 
-## Get started
+## English
 
-1. Install dependencies
+# FitPlot - Free Open Source Fitness App 🏋️
 
-   ```bash
-   npm install
-   ```
+**FitPlot** is a free, open-source fitness application without ads, designed by gymbro for gymbro. The app helps track workouts, calories, analyze progress, and plan future training sessions.
 
-2. Start the app
+## Features
 
-   ```bash
-   npx expo start
-   ```
+- **📊 Workout Tracking**: Create and manage workout plans with customizable exercises, perform exercises and record results
+- **🍎 Calorie Tracking**: Log daily calorie intake and track weight, monitor diet impact on strength training
+- **📈 Progress Analytics**: Analyze progress through tonnage, max weight, and repetition charts
+- **📅 Workout Planning**: Create future workout plans and compare with actual results
+- **💾 Local Storage**: All data is stored locally on your device
 
-In the output, you'll find options to open the app in a
+## Running and Building the App
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- **Running**
+npm run android
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+- **Building**
+cd android
+.\gradlew.bat assembleRelease -PreactNativeArchitectures=arm64-v8a
 
-## Get a fresh project
+## Contributing
+If you want to contribute to the project, ping me on Telegram @Eggplant11
+or by email gorokhoff.art@mail.ru
 
-When you're ready, run:
+## Give up ur stars)
 
-```bash
-npm run reset-project
-```
+---
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Русский
 
-## Learn more
+# FitPlot - Бесплатное фитнес-приложение с открытым исходным кодом 🏋️
 
-To learn more about developing your project with Expo, look at the following resources:
+**FitPlot** — это бесплатное фитнес-приложение с открытым исходным кодом без рекламы, созданное gymbro для gymbro. Приложение помогает отслеживать тренировки, калории, анализировать прогресс и планировать будущие занятия.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Фичи
 
-## Join the community
+- **📊 Отслеживание тренировок**: Создавайте и управляйте планами тренировок с настраиваемыми упражнениями, выполняйте упражнения и записывайте результаты
+- **🍎 Учет калорий**: Записывайте ежедневное потребление калорий и отслеживайте вес, отслеживайте влияние диеты на силовые
+- **📈 Аналитика прогресса**: Анализируйте прогресс через графики тоннажа, максимального веса и повторений
+- **📅 Планирование тренировок**: Составляйте план будущих тренировок и сравнивайте с фактическими результатами
+- **💾 Локальное хранение**: Все данные хранятся локально на устройстве
 
-Join our community of developers creating universal apps.
+## Запуск и сборка приложения
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- **Запуск**
+npm run android
+
+- **Сборка**
+cd android
+.\gradlew.bat assembleRelease -PreactNativeArchitectures=arm64-v8a
+
+## Вклад
+Если вы хотите внести свой вклад в проект, пинганите меня в тг @Eggplant11
+или по почте gorokhoff.art@mail.ru
+
+## Ставьте звездочки)
