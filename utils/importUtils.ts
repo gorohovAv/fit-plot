@@ -1,15 +1,12 @@
-import * as XLSX from "xlsx";
+import useCaloriesStore from "@/store/calloriesStore";
+import useStore, {
+  Exercise,
+  Plan,
+  Training
+} from "@/store/store";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
-import useStore, {
-  Plan,
-  Exercise,
-  Result,
-  MuscleGroup,
-  ExerciseType,
-  Training,
-} from "@/store/store";
-import useCaloriesStore from "@/store/calloriesStore";
+import * as XLSX from "xlsx";
 
 export interface ExportData {
   plans: Plan[];
@@ -214,11 +211,41 @@ export function validateImport(text: string): ValidationResult {
   let hasErrors = false;
   let errorMessages: string[] = [];
   let warningMessages: string[] = [];
+  let inNutritionSection = false;
 
   for (const line of lines) {
     const trimmedLine = line.trim();
     if (!trimmedLine) continue;
 
+    // Check for nutrition section headers
+    const upperLine = trimmedLine.toUpperCase();
+    if (upperLine === "ПИТАНИЕ" || upperLine === "NUTRITION" || upperLine === "КАЛЛОРАЖ") {
+      inNutritionSection = true;
+      hasValidData = true;
+      continue;
+    }
+
+    // If we're in nutrition section, validate nutrition format
+    if (inNutritionSection) {
+      const nutritionMatch = trimmedLine.match(/^(\d+)\s+(ккал|kcal)\s+(\d+(?:[.,]\d+)?)\s+(кг|kg)\s+(\d{1,2}\.\d{1,2}\.\d{4})$/);
+      if (nutritionMatch) {
+        const calories = parseInt(nutritionMatch[1]);
+        const weightStr = nutritionMatch[3].replace(",", ".");
+        const weight = parseFloat(weightStr);
+
+        if (calories > 0 && weight > 0) {
+          hasValidData = true;
+          continue;
+        }
+      }
+
+      // If line doesn't match nutrition format in nutrition section, it's an error
+      hasErrors = true;
+      errorMessages.push(`Неверный формат строки в секции питания: ${trimmedLine}`);
+      continue;
+    }
+
+    // Standard exercise parsing logic
     const parts = trimmedLine.split(/\s+/);
     let hasValidFormat = false;
 
@@ -291,11 +318,54 @@ export function importData(text: string): void {
   let importedPlan: Plan | null = null;
   let importedTraining: Training | null = null;
   let exerciseMap = new Map<string, Exercise>();
+  let inNutritionSection = false;
 
   for (const line of lines) {
     const trimmedLine = line.trim();
     if (!trimmedLine) continue;
 
+    // Check for nutrition section headers
+    const upperLine = trimmedLine.toUpperCase();
+    if (upperLine === "ПИТАНИЕ" || upperLine === "NUTRITION" || upperLine === "КАЛЛОРАЖ") {
+      inNutritionSection = true;
+      continue;
+    }
+
+    // If we're in nutrition section, parse nutrition data
+    if (inNutritionSection) {
+      const nutritionMatch = trimmedLine.match(/^(\d+)\s+(ккал|kcal)\s+(\d+(?:[.,]\d+)?)\s+(кг|kg)\s+(\d{1,2}\.\d{1,2}\.\d{4})$/);
+      if (nutritionMatch) {
+        const calories = parseInt(nutritionMatch[1]);
+        const weightStr = nutritionMatch[3].replace(",", ".");
+        const weight = parseFloat(weightStr);
+        const dateStr = nutritionMatch[5];
+
+        // Convert date from DD.MM.YYYY to YYYY-MM-DD
+        const [day, month, year] = dateStr.split(".");
+        const formattedDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+
+        if (calories > 0 && weight > 0) {
+          // Check if entry already exists for this date
+          const existingEntry = caloriesStore.getEntryByDate(formattedDate);
+          if (existingEntry) {
+            caloriesStore.updateEntry(formattedDate, {
+              date: formattedDate,
+              calories: calories,
+              weight: weight,
+            });
+          } else {
+            caloriesStore.addEntry({
+              date: formattedDate,
+              calories: calories,
+              weight: weight,
+            });
+          }
+        }
+      }
+      continue;
+    }
+
+    // Standard exercise parsing logic
     const parts = trimmedLine.split(/\s+/);
     let exerciseName = "";
     let date = currentDate;
