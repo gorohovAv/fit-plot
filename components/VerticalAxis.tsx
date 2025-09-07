@@ -44,7 +44,7 @@ const VerticalAxis: React.FC<VerticalAxisProps> = ({
   // Manual tick calculation to ensure proper coverage
   const [domainMin, domainMax] = scale.domain();
   const dataMax = d3.max(data, (d) => d.y) ?? 0;
-  const dataMin = d3.min(data, (d) => d.y) ?? 0;
+  const dataMin = 0;
 
   console.log('VerticalAxis debug:', { domainMin, domainMax, dataMin, dataMax });
 
@@ -53,7 +53,7 @@ const VerticalAxis: React.FC<VerticalAxisProps> = ({
 
   // Generate evenly spaced ticks from domain min to domain max
   for (let i = 0; i <= tickCount; i++) {
-    const tickValue = domainMin + (domainMax - domainMin) * (i / tickCount);
+    const tickValue = 0 + (domainMax - 0) * (i / tickCount);
     ticks.push(tickValue);
   }
 
@@ -140,6 +140,8 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "center",
     marginTop: 10,
+    marginBottom: 10,
+    marginRight: 10,
   },
   ticksContainer: {
     flex: 1,
@@ -148,6 +150,7 @@ const styles = StyleSheet.create({
   axisLine: {
     position: "absolute",
     width: 1,
+    height: 200,
   },
   tickContainer: {
     position: "absolute",
@@ -156,7 +159,7 @@ const styles = StyleSheet.create({
   },
   tickMark: {
     position: "absolute",
-    width: 8,
+    width: 4,
     height: 1,
   },
   tickText: {
