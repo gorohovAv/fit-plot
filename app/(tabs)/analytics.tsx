@@ -92,16 +92,10 @@ export default function AnalyticsScreen() {
     tonnage: Dataset[];
     maxWeight: Dataset[];
     maxReps: Dataset[];
-    plannedTonnage: Dataset[];
-    plannedMaxWeight: Dataset[];
-    plannedMaxReps: Dataset[];
   }>({
     tonnage: [],
     maxWeight: [],
     maxReps: [],
-    plannedTonnage: [],
-    plannedMaxWeight: [],
-    plannedMaxReps: [],
   });
   const [showResultsList, setShowResultsList] = useState<boolean>(false);
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
@@ -191,9 +185,6 @@ export default function AnalyticsScreen() {
           tonnage: [],
           maxWeight: [],
           maxReps: [],
-          plannedTonnage: [],
-          plannedMaxWeight: [],
-          plannedMaxReps: [],
         });
         setIsLoading(false);
         return;
@@ -242,9 +233,6 @@ export default function AnalyticsScreen() {
           tonnage: [],
           maxWeight: [],
           maxReps: [],
-          plannedTonnage: [],
-          plannedMaxWeight: [],
-          plannedMaxReps: [],
         });
         setIsLoading(false);
         return;
@@ -264,9 +252,6 @@ export default function AnalyticsScreen() {
       const tonnageData: Dataset[] = [];
       const maxWeightData: Dataset[] = [];
       const maxRepsData: Dataset[] = [];
-      const plannedTonnageData: Dataset[] = [];
-      const plannedMaxWeightData: Dataset[] = [];
-      const plannedMaxRepsData: Dataset[] = [];
 
       // Обрабатываем обычные результаты по каждому упражнению отдельно
       selectedExerciseIds.forEach((exerciseId) => {
@@ -294,8 +279,8 @@ export default function AnalyticsScreen() {
               x: day,
               y: groupedByDay[day].tonnage,
             })),
-            axisLabel: getTranslation(language, "tonnage"), // Общая единица измерения
-            name: exercise.name, // Добавляем имя упражнения для легенды
+            axisLabel: getTranslation(language, "tonnage"),
+            name: exercise.name,
           });
 
           maxWeightData.push({
@@ -303,8 +288,8 @@ export default function AnalyticsScreen() {
               x: day,
               y: groupedByDay[day].maxWeight,
             })),
-            axisLabel: getTranslation(language, "weight"), // Общая единица измерения
-            name: exercise.name, // Добавляем имя упражнения для легенды
+            axisLabel: getTranslation(language, "weight"),
+            name: exercise.name,
           });
 
           maxRepsData.push({
@@ -312,13 +297,13 @@ export default function AnalyticsScreen() {
               x: day,
               y: groupedByDay[day].maxReps,
             })),
-            axisLabel: getTranslation(language, "reps"), // Общая единица измерения
-            name: exercise.name, // Добавляем имя упражнения для легенды
+            axisLabel: getTranslation(language, "reps"),
+            name: exercise.name,
           });
         }
       });
 
-      // Обрабатываем плановые результаты по каждому упражнению отдельно
+      // Обрабатываем плановые результаты и добавляем их в основные данные как дополнительные кривые
       selectedPlannedIds.forEach((plannedId) => {
         const exerciseName = plannedId.replace("planned-", "");
         const exercise = exercises.find((ex) => ex.name === exerciseName);
@@ -354,31 +339,31 @@ export default function AnalyticsScreen() {
 
             const sortedPlannedDays = Object.keys(groupedPlannedByDay).sort();
 
-            plannedTonnageData.push({
+            tonnageData.push({
               data: sortedPlannedDays.map((day) => ({
                 x: day,
                 y: groupedPlannedByDay[day].tonnage,
               })),
-              axisLabel: getTranslation(language, "tonnage"), // Общая единица измерения
-              name: `${exercise.name} (план)`, // Добавляем имя упражнения с маркером плана
+              axisLabel: getTranslation(language, "tonnage"),
+              name: `${exercise.name} (план)`,
             });
 
-            plannedMaxWeightData.push({
+            maxWeightData.push({
               data: sortedPlannedDays.map((day) => ({
                 x: day,
                 y: groupedPlannedByDay[day].maxWeight,
               })),
-              axisLabel: getTranslation(language, "weight"), // Общая единица измерения
-              name: `${exercise.name} (план)`, // Добавляем имя упражнения с маркером плана
+              axisLabel: getTranslation(language, "weight"),
+              name: `${exercise.name} (план)`,
             });
 
-            plannedMaxRepsData.push({
+            maxRepsData.push({
               data: sortedPlannedDays.map((day) => ({
                 x: day,
                 y: groupedPlannedByDay[day].maxReps,
               })),
-              axisLabel: getTranslation(language, "reps"), // Общая единица измерения
-              name: `${exercise.name} (план)`, // Добавляем имя упражнения с маркером плана
+              axisLabel: getTranslation(language, "reps"),
+              name: `${exercise.name} (план)`,
             });
           }
         }
@@ -388,9 +373,6 @@ export default function AnalyticsScreen() {
         tonnage: tonnageData,
         maxWeight: maxWeightData,
         maxReps: maxRepsData,
-        plannedTonnage: plannedTonnageData,
-        plannedMaxWeight: plannedMaxWeightData,
-        plannedMaxReps: plannedMaxRepsData,
       });
 
       setIsLoading(false);
@@ -729,8 +711,7 @@ export default function AnalyticsScreen() {
       {showResultsList ? (
         <ResultsList plans={plans} />
       ) : (
-        (chartData.tonnage.length > 0 ||
-          chartData.plannedTonnage.length > 0) && (
+        chartData.tonnage.length > 0 && (
           <>
             {renderChart(
               chartData.tonnage,
@@ -739,14 +720,6 @@ export default function AnalyticsScreen() {
               getTranslation(language, "date"),
               getTranslation(language, "tonnage")
             )}
-            {chartData.plannedTonnage.length > 0 &&
-              renderChart(
-                chartData.plannedTonnage,
-                getTranslation(language, "generalTonnage") + " (ПЛАН)",
-                themeColors.chartLine,
-                getTranslation(language, "date"),
-                getTranslation(language, "tonnage")
-              )}
             {renderChart(
               chartData.maxWeight,
               getTranslation(language, "maxWeight"),
@@ -754,14 +727,6 @@ export default function AnalyticsScreen() {
               getTranslation(language, "date"),
               getTranslation(language, "weight")
             )}
-            {chartData.plannedMaxWeight.length > 0 &&
-              renderChart(
-                chartData.plannedMaxWeight,
-                getTranslation(language, "maxWeight") + " (ПЛАН)",
-                themeColors.chartLine,
-                getTranslation(language, "date"),
-                getTranslation(language, "weight")
-              )}
             {renderChart(
               chartData.maxReps,
               getTranslation(language, "maxReps"),
@@ -769,14 +734,6 @@ export default function AnalyticsScreen() {
               getTranslation(language, "date"),
               getTranslation(language, "reps")
             )}
-            {chartData.plannedMaxReps.length > 0 &&
-              renderChart(
-                chartData.plannedMaxReps,
-                getTranslation(language, "maxReps") + " (ПЛАН)",
-                themeColors.chartLine,
-                getTranslation(language, "date"),
-                getTranslation(language, "reps")
-              )}
           </>
         )
       )}
