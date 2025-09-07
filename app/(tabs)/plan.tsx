@@ -1,20 +1,19 @@
-import React, { useMemo, useState } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Modal,
-  TextInput,
-  ScrollView,
-  Platform,
-} from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import useStore from "../../store/store";
-import { Exercise, PlannedResult, Plan } from "../../store/store";
 import { Picker } from "@react-native-picker/picker";
 import dayjs from "dayjs";
-import useSettingsStore from "../../store/settingsStore";
+import React, { useMemo, useState } from "react";
+import {
+  Modal,
+  Platform,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { Colors } from "../../constants/Colors";
+import useSettingsStore from "../../store/settingsStore";
+import useStore, { Exercise, Plan, PlannedResult } from "../../store/store";
 import { getTranslation } from "../../utils/localization";
 
 // Цвета сезонов для светлой темы
@@ -79,8 +78,10 @@ function getSeasonMonths(
 }
 
 function getSeasonsData(plannedResults: PlannedResult[]) {
-  const currentYear = dayjs().year();
-  const nextYear = currentYear + 1;
+  const currentDate = dayjs();
+  const currentYear = currentDate.year();
+  const currentMonth = currentDate.month();
+  const currentSeason = getSeason(currentMonth);
 
   const seasons: Array<{
     season: keyof typeof SEASON_COLORS_LIGHT;
@@ -89,6 +90,7 @@ function getSeasonsData(plannedResults: PlannedResult[]) {
     results: PlannedResult[];
     id: string;
   }> = [];
+
   const seasonKeys: (keyof typeof SEASON_COLORS_LIGHT)[] = [
     "winter",
     "spring",
@@ -96,28 +98,41 @@ function getSeasonsData(plannedResults: PlannedResult[]) {
     "autumn",
   ];
 
-  // Добавляем текущий и следующий год
-  [currentYear, nextYear].forEach((year) => {
-    seasonKeys.forEach((season) => {
-      const months = getSeasonMonths(season, year);
-      const seasonResults = plannedResults.filter((result) => {
-        const resultDate = dayjs(result.plannedDate);
-        return months.some(
-          (month) =>
-            resultDate.year() === month.year() &&
-            resultDate.month() === month.month()
-        );
-      });
+  // Находим индекс текущего сезона
+  const currentSeasonIndex = seasonKeys.indexOf(currentSeason);
 
-      seasons.push({
-        season,
-        year,
-        months,
-        results: seasonResults,
-        id: `${season}-${year}`,
-      });
+  // Генерируем 8 сезонов начиная с текущего
+  for (let i = 0; i < 8; i++) {
+    const seasonIndex = (currentSeasonIndex + i) % 4;
+    const season = seasonKeys[seasonIndex];
+
+    // Определяем год для этого сезона
+    let year = currentYear;
+    if (i >= 4 - currentSeasonIndex) {
+      year = currentYear + 1;
+    }
+    if (i >= 4 - currentSeasonIndex + 4) {
+      year = currentYear + 2;
+    }
+
+    const months = getSeasonMonths(season, year);
+    const seasonResults = plannedResults.filter((result) => {
+      const resultDate = dayjs(result.plannedDate);
+      return months.some(
+        (month) =>
+          resultDate.year() === month.year() &&
+          resultDate.month() === month.month()
+      );
     });
-  });
+
+    seasons.push({
+      season,
+      year,
+      months,
+      results: seasonResults,
+      id: `${season}-${year}`,
+    });
+  }
 
   return seasons;
 }
