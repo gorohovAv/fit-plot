@@ -1,6 +1,6 @@
-import React from "react";
-import { View, Text, StyleSheet } from "react-native";
 import * as d3 from "d3";
+import React from "react";
+import { StyleSheet, Text, View } from "react-native";
 
 type VerticalAxisProps = {
   data: Array<{ x: string; y: number }>;
@@ -41,8 +41,26 @@ const VerticalAxis: React.FC<VerticalAxisProps> = ({
       .range([innerHeight, 0]);
   }
 
-  const tickCount = 5;
-  const ticks = scale.ticks(tickCount);
+  // Manual tick calculation to ensure proper coverage
+  const [domainMin, domainMax] = scale.domain();
+  const dataMax = d3.max(data, (d) => d.y) ?? 0;
+  const dataMin = d3.min(data, (d) => d.y) ?? 0;
+
+  console.log('VerticalAxis debug:', { domainMin, domainMax, dataMin, dataMax });
+
+  const tickCount = 6;
+  const ticks: number[] = [];
+
+  // Generate evenly spaced ticks from domain min to domain max
+  for (let i = 0; i <= tickCount; i++) {
+    const tickValue = domainMin + (domainMax - domainMin) * (i / tickCount);
+    ticks.push(tickValue);
+  }
+
+  // Ensure the actual data maximum is visible by adjusting the top tick if needed
+  if (dataMax > ticks[ticks.length - 1]) {
+    ticks[ticks.length - 1] = Math.max(dataMax, ticks[ticks.length - 1]);
+  }
 
   const containerStyle =
     position === "left"
