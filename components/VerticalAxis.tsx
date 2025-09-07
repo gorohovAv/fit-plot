@@ -109,6 +109,16 @@ const VerticalAxis: React.FC<VerticalAxisProps> = ({
                   },
                 ]}
               />
+              {/* Vertical connector (connects to next tick) */}
+                <View
+                  style={[
+                    styles.tickMarkVertical,
+                    {
+                      backgroundColor: color,
+                      [position === "left" ? "right" : "left"]: 0, // Align with horizontal part
+                    },
+                  ]}
+                />
               <Text
                 style={[
                   styles.tickText,
@@ -149,7 +159,7 @@ const styles = StyleSheet.create({
   },
   axisLine: {
     position: "absolute",
-    width: 1,
+    width: 0,
     height: 200,
   },
   tickContainer: {
@@ -166,6 +176,11 @@ const styles = StyleSheet.create({
     fontSize: 10,
     textAlign: "center",
     position: "absolute",
+  },
+    tickMarkVertical: {
+    position: "absolute",
+    width: 1,        // Thin vertical line
+    height: 40,
   },
 });
 
