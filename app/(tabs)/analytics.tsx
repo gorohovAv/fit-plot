@@ -2,7 +2,6 @@ import AnalyticsExerciseSelector from "@/components/AnalyticsExerciseSelector";
 import Plot from "@/components/Plot";
 import ResultsList from "@/components/ResultsList";
 import { Colors } from "@/constants/Colors";
-import useCaloriesStore from "@/store/calloriesStore";
 import useSettingsStore from "@/store/settingsStore";
 import { formatTranslation, getTranslation } from "@/utils/localization";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
@@ -22,6 +21,7 @@ import {
   View,
 } from "react-native";
 import { v4 as uuidv4 } from "uuid";
+import * as dbLayer from "../../store/dbLayer";
 import useStore, {
   Exercise,
   ExerciseType,
@@ -106,6 +106,10 @@ export default function AnalyticsScreen() {
   const [showResultsList, setShowResultsList] = useState<boolean>(false);
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
 
+  // Direct state for calories data
+  const [caloriesEntries, setCaloriesEntries] = useState<{ date: string; calories: number; weight: number }[]>([]);
+  const [maintenanceCalories, setMaintenanceCalories] = useState<number | null>(null);
+
   const font = useFont(require("../../assets/fonts/SpaceMono-Regular.ttf"));
   const route = useRoute();
   const theme = useSettingsStore((state) => state.theme);
@@ -115,7 +119,34 @@ export default function AnalyticsScreen() {
   const themeColors = Colors[colorScheme];
 
   const settingsStore = useSettingsStore();
-  const caloriesStore = useCaloriesStore();
+
+  // Load calories data directly from DB
+  const loadCaloriesFromDB = async () => {
+    try {
+      console.log(`[AnalyticsScreen] Loading calories data directly from DB`);
+
+      const entries = await dbLayer.getCalorieEntries();
+      const maintenance = await dbLayer.getMaintenanceCalories();
+
+      console.log(`[AnalyticsScreen] Loaded ${entries.length} calorie entries from DB`);
+      console.log(`[AnalyticsScreen] Loaded maintenance calories from DB:`, maintenance);
+
+      setCaloriesEntries(entries);
+      setMaintenanceCalories(maintenance);
+    } catch (error) {
+      console.error(`[AnalyticsScreen] Error loading calories data from DB:`, error);
+    }
+  };
+
+  // Function to get calorie entry by date for zones
+  const getEntryByDate = (date: string) => {
+    return caloriesEntries.find(entry => entry.date === date);
+  };
+
+  // Load calories data on component mount
+  useEffect(() => {
+    loadCaloriesFromDB();
+  }, []);
 
   const getDayString = (dateStr: string) => {
     const d = new Date(dateStr);
@@ -439,7 +470,7 @@ export default function AnalyticsScreen() {
     }
 
     const buildHighlightZones = (): Zone[] => {
-      if (!caloriesStore.maintenanceCalories || filteredDatasets.length === 0)
+      if (!maintenanceCalories || filteredDatasets.length === 0)
         return [];
 
       const allDataPoints = filteredDatasets.flatMap((dataset) => dataset.data);
@@ -474,7 +505,7 @@ export default function AnalyticsScreen() {
           d = addDays(d, 1)
         ) {
           const key = getDayString(d.toISOString());
-          const entry = caloriesStore.getEntryByDate(key);
+          const entry = getEntryByDate(key);
           if (entry) {
             sum += entry.calories;
             cnt += 1;
@@ -483,7 +514,7 @@ export default function AnalyticsScreen() {
         if (cnt > 0) {
           const avg = sum / cnt;
           const color =
-            avg < caloriesStore.maintenanceCalories
+            avg < maintenanceCalories
               ? themeColors.chartZoneDeficit
               : themeColors.chartZoneSurplus;
           const zs = getDayString(wStart.toISOString());

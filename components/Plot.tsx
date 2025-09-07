@@ -178,7 +178,6 @@ const Plot: React.FC<PlotProps> = ({
 
   return (
     <View style={styles.plotContainer}>
-      {/* Левая ось - всегда показываем */}
       <VerticalAxis
         data={allDataPoints}
         height={height}
@@ -190,7 +189,6 @@ const Plot: React.FC<PlotProps> = ({
         yScale={yScale}
       />
 
-      {/* Правая ось - показываем только если есть разные единицы измерения */}
       {uniqueAxisLabels.length > 1 && (
         <VerticalAxis
           data={allDataPoints}

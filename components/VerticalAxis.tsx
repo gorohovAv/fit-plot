@@ -41,7 +41,6 @@ const VerticalAxis: React.FC<VerticalAxisProps> = ({
       .range([innerHeight, 0]);
   }
 
-  // Manual tick calculation to ensure proper coverage
   const [domainMin, domainMax] = scale.domain();
   const dataMax = d3.max(data, (d) => d.y) ?? 0;
   const dataMin = 0;
@@ -115,7 +114,7 @@ const VerticalAxis: React.FC<VerticalAxisProps> = ({
                     styles.tickMarkVertical,
                     {
                       backgroundColor: color,
-                      [position === "left" ? "right" : "left"]: 0, // Align with horizontal part
+                      [position === "left" ? "right" : "left"]: 0,
                     },
                   ]}
                 />
@@ -179,7 +178,7 @@ const styles = StyleSheet.create({
   },
     tickMarkVertical: {
     position: "absolute",
-    width: 1,        // Thin vertical line
+    width: 1,
     height: 40,
   },
 });

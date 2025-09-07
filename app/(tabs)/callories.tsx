@@ -14,8 +14,15 @@ import {
 import VerticalBarChart from "../../components/VerticalBarChart";
 import { Colors } from "../../constants/Colors";
 import { useSteps } from "../../hooks/useSteps";
-import useCaloriesStore from "../../store/calloriesStore";
+import * as dbLayer from "../../store/dbLayer";
 import useSettingsStore from "../../store/settingsStore";
+
+// Types for direct DB access
+type CalorieEntry = {
+  date: string;
+  calories: number;
+  weight: number;
+};
 
 export default function CaloriesScreen() {
   const [calories, setCalories] = useState("");
@@ -23,13 +30,11 @@ export default function CaloriesScreen() {
   const [maintenanceCaloriesInput, setMaintenanceCaloriesInput] = useState("");
   const [isEditingMaintenance, setIsEditingMaintenance] = useState(false);
 
-  const {
-    entries,
-    addEntry,
-    getEntryByDate,
-    maintenanceCalories,
-    setMaintenanceCalories,
-  } = useCaloriesStore();
+  // Direct state for DB data
+  const [entries, setEntries] = useState<CalorieEntry[]>([]);
+  const [maintenanceCalories, setMaintenanceCaloriesState] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
   const { language } = useSettingsStore();
   const {
     todaySteps,
@@ -49,37 +54,69 @@ export default function CaloriesScreen() {
       : Colors.light;
 
   const today = new Date().toISOString().split("T")[0];
-  const todayEntry = getEntryByDate(today);
+
+  // Function to load data directly from DB
+  const loadDataFromDB = async () => {
+    console.log(`[CaloriesScreen] Loading data directly from DB`);
+    try {
+      setIsLoading(true);
+
+      // Load entries
+      const dbEntries = await dbLayer.getCalorieEntries();
+      console.log(`[CaloriesScreen] Loaded ${dbEntries.length} entries from DB:`, dbEntries);
+      setEntries(dbEntries);
+
+      // Load maintenance calories
+      const dbMaintenanceCalories = await dbLayer.getMaintenanceCalories();
+      console.log(`[CaloriesScreen] Loaded maintenance calories from DB:`, dbMaintenanceCalories);
+      setMaintenanceCaloriesState(dbMaintenanceCalories);
+
+      setIsLoading(false);
+    } catch (error) {
+      console.error(`[CaloriesScreen] Error loading data from DB:`, error);
+      setIsLoading(false);
+    }
+  };
+
+  // Load data on component mount
+  useEffect(() => {
+    loadDataFromDB();
+  }, []);
+
+  // Get today's entry
+  const todayEntry = entries.find(entry => entry.date === today);
+  console.log(`[CaloriesScreen] Today date: ${today}`);
+  console.log(`[CaloriesScreen] Today entry:`, todayEntry);
+  console.log(`[CaloriesScreen] All entries count: ${entries.length}`);
 
   // Initialize form with today's data if it exists
   useEffect(() => {
     if (todayEntry) {
+      console.log(`[CaloriesScreen] Initializing form with today's data:`, todayEntry);
       setCalories(todayEntry.calories.toString());
       setWeight(todayEntry.weight.toString());
+    } else {
+      console.log(`[CaloriesScreen] No today's entry found, keeping empty form`);
     }
   }, [todayEntry]);
 
-  // Инициализация поля maintenance calories
+  // Initialize maintenance calories input
   useEffect(() => {
     if (maintenanceCalories !== null) {
+      console.log(`[CaloriesScreen] Setting maintenance calories input to: ${maintenanceCalories}`);
       setMaintenanceCaloriesInput(maintenanceCalories.toString());
       setIsEditingMaintenance(false);
     } else {
+      console.log(`[CaloriesScreen] No maintenance calories set, enabling editing mode`);
       setIsEditingMaintenance(true);
     }
   }, [maintenanceCalories]);
 
-  //useEffect(() => {
-    //const interval = setInterval(() => {
-      //refreshSteps();
-    //}, 10000); // обновляем каждые 10 секунд
-
-    //return () => clearInterval(interval);
-  //}, []);
-
-  const handleSave = () => {
+  const handleSave = async () => {
     const caloriesNum = parseInt(calories);
     const weightNum = parseFloat(weight);
+
+    console.log(`[CaloriesScreen] Attempting to save - calories: "${calories}", weight: "${weight}"`);
 
     if (!calories || !weight) {
       Alert.alert(
@@ -105,25 +142,42 @@ export default function CaloriesScreen() {
       return;
     }
 
-    addEntry({
-      date: today,
-      calories: caloriesNum,
-      weight: weightNum,
-    });
+    try {
+      console.log(`[CaloriesScreen] Saving directly to DB: date=${today}, calories=${caloriesNum}, weight=${weightNum}`);
 
-    // Don't clear the form if updating today's entry
-    if (!todayEntry) {
-      setCalories("");
-      setWeight("");
+      // Save directly to DB
+      await dbLayer.saveCalorieEntry(today, caloriesNum, weightNum);
+      console.log(`[CaloriesScreen] Successfully saved to DB`);
+
+      // Reload data from DB to update UI
+      await loadDataFromDB();
+
+      // Don't clear the form if updating today's entry
+      if (!todayEntry) {
+        console.log(`[CaloriesScreen] Clearing form after adding new entry`);
+        setCalories("");
+        setWeight("");
+      } else {
+        console.log(`[CaloriesScreen] Keeping form data after updating existing entry`);
+      }
+
+      //Alert.alert(
+        //getTranslation(language, "success"),
+        //getTranslation(language, "dataSaved")
+      //);
+    } catch (error) {
+      console.error(`[CaloriesScreen] Error saving to DB:`, error);
+      Alert.alert(
+        getTranslation(language, "error"),
+        "Failed to save data"
+      );
     }
-    //Alert.alert(
-      //getTranslation(language, "success"),
-      //getTranslation(language, "dataSaved")
-    //);
   };
 
-  const handleMaintenanceCaloriesSave = () => {
+  const handleMaintenanceCaloriesSave = async () => {
     const maintenanceNum = parseInt(maintenanceCaloriesInput);
+
+    console.log(`[CaloriesScreen] Attempting to save maintenance calories: "${maintenanceCaloriesInput}"`);
 
     if (!maintenanceCaloriesInput) {
       Alert.alert(
@@ -141,12 +195,32 @@ export default function CaloriesScreen() {
       return;
     }
 
-    setMaintenanceCalories(maintenanceNum);
-    setIsEditingMaintenance(false);
-    //Alert.alert(getTranslation(language, "maintenanceCaloriesSaved"));
+    try {
+      console.log(`[CaloriesScreen] Saving maintenance calories directly to DB: ${maintenanceNum}`);
+
+      // Save directly to DB
+      await dbLayer.saveMaintenanceCalories(maintenanceNum);
+      console.log(`[CaloriesScreen] Successfully saved maintenance calories to DB`);
+
+      // Update local state
+      setMaintenanceCaloriesState(maintenanceNum);
+      setIsEditingMaintenance(false);
+
+      //Alert.alert(
+        //getTranslation(language, "success"),
+        //getTranslation(language, "maintenanceCaloriesSaved")
+      //);
+    } catch (error) {
+      console.error(`[CaloriesScreen] Error saving maintenance calories to DB:`, error);
+      Alert.alert(
+        getTranslation(language, "error"),
+        "Failed to save maintenance calories"
+      );
+    }
   };
 
   const handleEditMaintenance = () => {
+    console.log(`[CaloriesScreen] Enabling maintenance calories editing`);
     setIsEditingMaintenance(true);
   };
 
@@ -158,9 +232,43 @@ export default function CaloriesScreen() {
     }
   };
 
+  // Debug function to manually check database
+  const debugCheckDatabase = async () => {
+    console.log(`[CaloriesScreen] DEBUG: Manually checking database`);
+    try {
+      const dbEntries = await dbLayer.getCalorieEntries();
+      console.log(`[CaloriesScreen] DEBUG: Direct DB query results:`, dbEntries);
+
+      const dbMaintenance = await dbLayer.getMaintenanceCalories();
+      console.log(`[CaloriesScreen] DEBUG: Direct DB maintenance calories:`, dbMaintenance);
+
+      // Force refresh the data
+      await loadDataFromDB();
+    } catch (error) {
+      console.error(`[CaloriesScreen] DEBUG: Error checking database:`, error);
+    }
+  };
+
+  // Function to get entry by date for analytics
+  const getEntryByDate = (date: string) => {
+    return entries.find(entry => entry.date === date);
+  };
+
   const sortedEntries = [...entries].sort(
     (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
   );
+
+  console.log(`[CaloriesScreen] Sorted entries for chart:`, sortedEntries);
+
+  if (isLoading) {
+    return (
+      <View style={[styles.container, { backgroundColor: colorScheme.background, justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={[styles.title, { color: colorScheme.text }]}>
+          {getTranslation(language, "loading")}...
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView
