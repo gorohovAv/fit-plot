@@ -6,15 +6,13 @@ import {
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import "react-native-reanimated";
 import { useEffect } from "react";
+import "react-native-reanimated";
 
 import { useColorScheme } from "@/hooks/useColorScheme";
-import useStore from "@/store/store";
 import useCaloriesStore from "@/store/calloriesStore";
 import useSettingsStore from "@/store/settingsStore";
-import { logAllTables } from "@/store/dbLayer";
-import * as stepService from "@/services/stepService";
+import useStore from "@/store/store";
 import { setInitializing } from "@/store/syncMiddleware";
 
 export default function RootLayout() {
@@ -34,13 +32,13 @@ export default function RootLayout() {
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        setInitializing(true); // БЛОКИРУЕМ синхронизацию
+        setInitializing(true);
 
         await initializeFromDB();
         await initializeCaloriesFromDB();
         await initializeSettingsFromDB();
 
-        setInitializing(false); // РАЗБЛОКИРУЕМ синхронизацию
+        setInitializing(false);
       } catch (error) {
         console.error("Ошибка инициализации приложения:", error);
       }

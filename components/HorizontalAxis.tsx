@@ -1,6 +1,6 @@
-import React from "react";
-import { View, Text, StyleSheet } from "react-native";
 import * as d3 from "d3";
+import React from "react";
+import { StyleSheet, Text, View } from "react-native";
 
 type HorizontalAxisProps = {
   data: Array<{ x: string; y: number }>;
@@ -59,7 +59,7 @@ const HorizontalAxis: React.FC<HorizontalAxisProps> = ({
               styles.tickContainer,
               {
                 left: x,
-                transform: [{ translateX: -20 }], // Увеличиваем отступ для лучшего позиционирования
+                transform: [{ translateX: -20 }],
               },
             ]}
           >
@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
   container: {
     position: "relative",
     marginTop: 10,
-    overflow: "visible", // Изменяем на visible чтобы даты не обрезались
+    overflow: "visible", // чтобы даты не обрезались
   },
   axisLine: {
     position: "absolute",
@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
   tickContainer: {
     position: "absolute",
     top: 0,
-    width: 40, // Увеличиваем ширину контейнера
+    width: 40,
     alignItems: "center",
   },
   tickMark: {
@@ -94,11 +94,11 @@ const styles = StyleSheet.create({
     marginTop: -4,
   },
   tickText: {
-    fontSize: 10, // Увеличиваем размер шрифта
+    fontSize: 10,
     textAlign: "center",
     transform: [{ rotate: "-90deg" }],
-    marginTop: 15, // Увеличиваем отступ сверху
-    width: 40, // Фиксируем ширину текста
+    marginTop: 15,
+    width: 40,
   },
 });
 

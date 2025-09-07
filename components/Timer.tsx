@@ -7,10 +7,10 @@ import useTimerStore from "../store/timerStore";
 
 interface TimerProps {
   exerciseId: string;
-  duration: number; // продолжительность таймера в секундах
-  size?: number; // размер компонента
-  strokeWidth?: number; // толщина кольца
-  onEnd?: () => void; // колбэк по завершению
+  duration: number;
+  size?: number;
+  strokeWidth?: number;
+  onEnd?: () => void;
 }
 
 const getColor = (progress: number, themeColors: typeof Colors.light) => {

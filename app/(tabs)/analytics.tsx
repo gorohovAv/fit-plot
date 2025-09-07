@@ -7,29 +7,22 @@ import { formatTranslation, getTranslation } from "@/utils/localization";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useRoute } from "@react-navigation/native";
 import { useFont } from "@shopify/react-native-skia";
-import * as DocumentPicker from "expo-document-picker";
-import * as FileSystem from "expo-file-system";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Appearance,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
-import { v4 as uuidv4 } from "uuid";
 import * as dbLayer from "../../store/dbLayer";
 import useStore, {
-  Exercise,
   ExerciseType,
   MuscleGroup,
-  Plan,
   PlannedResult,
-  Result,
-  Training,
+  Result
 } from "../../store/store";
 
 type ChartData = {
@@ -162,7 +155,6 @@ export default function AnalyticsScreen() {
   };
 
   useEffect(() => {
-    // Handle route parameters from Exercise navigation
     if (route.params) {
       const { exerciseId, exerciseName } = route.params as { exerciseId?: string; exerciseName?: string };
       if (exerciseId && exerciseName) {
@@ -253,7 +245,6 @@ export default function AnalyticsScreen() {
       const maxWeightData: Dataset[] = [];
       const maxRepsData: Dataset[] = [];
 
-      // Обрабатываем обычные результаты по каждому упражнению отдельно
       selectedExerciseIds.forEach((exerciseId) => {
         const exerciseResults = allResults.filter(
           (r) => r.exerciseId === exerciseId
@@ -537,142 +528,6 @@ export default function AnalyticsScreen() {
         />
       </View>
     );
-  };
-  // --- Функция импорта данных ---
-  const importPlans = async () => {
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: "application/json", // Разрешаем выбирать только JSON-файлы
-        copyToCacheDirectory: true, // Копируем файл во временную директорию для доступа
-      });
-
-      if (result.canceled) {
-        console.log("Выбор файла отменен.");
-        return;
-      }
-
-      const fileUri = result.assets[0].uri;
-      const fileContent = await FileSystem.readAsStringAsync(fileUri);
-
-      let importedRawData: { plans: RawPlan[] } | RawPlan | RawPlan[]; // Гибкий тип для входных данных
-      try {
-        importedRawData = JSON.parse(fileContent);
-      } catch (parseError) {
-        Alert.alert(
-          "Ошибка",
-          "Не удалось прочитать файл. Убедитесь, что это валидный JSON."
-        );
-        console.error("Ошибка при парсинге JSON:", parseError);
-        return;
-      }
-
-      let rawPlansToProcess: RawPlan[];
-
-      // Определяем, является ли корневой элемент массивом планов, объектом с полем 'plans' или одним планом
-      if (Array.isArray(importedRawData)) {
-        rawPlansToProcess = importedRawData as RawPlan[];
-      } else if (
-        typeof importedRawData === "object" &&
-        importedRawData !== null &&
-        "plans" in importedRawData &&
-        Array.isArray(importedRawData.plans)
-      ) {
-        rawPlansToProcess = importedRawData.plans as RawPlan[];
-      } else {
-        // Если это одиночный план
-        rawPlansToProcess = [importedRawData as RawPlan];
-      }
-
-      const processedPlans: Plan[] = [];
-      const { addPlan, plans: existingPlans } = useStore.getState();
-
-      for (const rawPlan of rawPlansToProcess) {
-        // Проверяем, существует ли план с таким именем
-        if (existingPlans.some((p) => p.planName === rawPlan.planName)) {
-          console.warn(
-            `План с именем "${rawPlan.planName}" уже существует. Пропускаем.`
-          );
-          Alert.alert(
-            "Предупреждение",
-            `План с именем "${rawPlan.planName}" уже существует и не будет добавлен.`
-          );
-          continue; // Пропускаем этот план
-        }
-
-        const newTrainings: Training[] = [];
-        const exerciseIdMap = new Map<string, string>(); // Карта старых ID упражнений к новым ID для текущего плана
-
-        for (const rawTraining of rawPlan.trainings) {
-          const newTrainingId = uuidv4(); // Генерируем новый ID для тренировки
-          const newExercises: Exercise[] = [];
-
-          for (const rawExercise of rawTraining.exercises) {
-            const newExerciseId = uuidv4(); // Генерируем новый ID для упражнения
-            // Сохраняем соответствие старого ID (если есть) новому ID
-            if (rawExercise.id) {
-              exerciseIdMap.set(rawExercise.id, newExerciseId);
-            }
-            newExercises.push({
-              id: newExerciseId,
-              name: rawExercise.name,
-              muscleGroup: rawExercise.muscleGroup,
-              type: rawExercise.type,
-              unilateral: rawExercise.unilateral,
-              amplitude: rawExercise.amplitude,
-            });
-          }
-
-          const newResults: Result[] = [];
-          for (const rawResult of rawTraining.results) {
-            const mappedExerciseId = exerciseIdMap.get(rawResult.exerciseId);
-            if (!mappedExerciseId) {
-              console.warn(
-                `Не удалось найти упражнение с ID ${rawResult.exerciseId} для результата в плане "${rawPlan.planName}". Пропускаем результат.`
-              );
-              continue; // Пропускаем результат, если нет соответствия упражнения
-            }
-            newResults.push({
-              exerciseId: mappedExerciseId, // Используем новый ID упражнения
-              weight: rawResult.weight,
-              reps: rawResult.reps,
-              date: rawResult.date,
-              amplitude: rawResult.amplitude,
-            });
-          }
-
-          newTrainings.push({
-            id: newTrainingId,
-            name: rawTraining.name,
-            exercises: newExercises,
-            results: newResults,
-            plannedResults: [], // Добавляем пустой массив плановых результатов
-          });
-        }
-        processedPlans.push({
-          planName: rawPlan.planName,
-          trainings: newTrainings,
-        });
-      }
-
-      if (processedPlans.length > 0) {
-        processedPlans.forEach((plan) => addPlan(plan));
-        Alert.alert(
-          "Успех",
-          `Успешно импортировано ${processedPlans.length} план(а/ов)!`
-        );
-      } else {
-        Alert.alert(
-          "Информация",
-          "Не было новых планов для импорта или все импортированные планы уже существуют."
-        );
-      }
-    } catch (error) {
-      console.error("Произошла ошибка при импорте данных:", error);
-      Alert.alert(
-        "Ошибка",
-        "Произошла ошибка при импорте данных. Пожалуйста, попробуйте снова."
-      );
-    }
   };
 
   return (

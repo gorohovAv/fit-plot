@@ -15,8 +15,8 @@ import useStore from "../store/store";
 import useTimerStore from "../store/timerStore";
 import Timer from "./Timer";
 
-type MuscleGroup = string; // Пример: Определяем как строку, если нет других определений
-type ExerciseType = string; // Пример: Определяем как строку, если нет других определений
+type MuscleGroup = string;
+type ExerciseType = string;
 
 interface Result {
   exerciseId: string;

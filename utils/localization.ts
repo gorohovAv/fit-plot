@@ -130,9 +130,7 @@ Bench press
 Pull-ups
 10x5 12x4 15x3 01.02.2025
 
-NUTRITION
-1800 kcal 65 kg 30.07.2025
-1700 kcal 64 kg 01.08.2025`,
+`,
 
     // Import Validator
     validationErrorTitle: "Validation error",
@@ -310,9 +308,7 @@ NUTRITION
 Подтягивания
 10х5 12х4 15х3 01.02.2025
 
-ПИТАНИЕ
-1800 ккал 65 кг 30.07.2025
-1700 ккал 64 кг 01.08.2025`,
+`,
 
     // Import Validator
     validationErrorTitle: "Ошибка валидации",

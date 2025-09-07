@@ -97,5 +97,4 @@ export const EXERCISE_LIST = [
     unilateral: false,
     amplitude: "full",
   },
-  // ... добавь ещё по желанию
 ];
