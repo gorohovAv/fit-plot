@@ -1,15 +1,15 @@
 import { getTranslation } from "@/utils/localization";
 import { useNavigation } from "@react-navigation/native";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   FlatList,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import { PlanSelector } from "../../components/PlanSelector";
+import { TrainingModal } from "../../components/TrainingModal";
 import { Workout } from "../../components/Workout";
 import { Colors } from "../../constants/Colors";
 import useSettingsStore from "../../store/settingsStore";
@@ -66,6 +66,11 @@ export default function WorkoutPlanScreen() {
     setSelectedPlan(updatedPlan || null);
   };
 
+  const handleCancelTraining = () => {
+    setShowTrainingModal(false);
+    setTrainingName("");
+  };
+
   const handleDeleteTraining = (trainingId: string) => {
     if (!selectedPlan) return;
     removeTraining(selectedPlan.planName, trainingId);
@@ -75,55 +80,7 @@ export default function WorkoutPlanScreen() {
     setSelectedPlan(updatedPlan || null);
   };
 
-  const TrainingModal = useCallback(() => (
-    <View
-      style={[modalStyles.container, { backgroundColor: "rgba(0, 0, 0, 0.5)" }]}
-    >
-      <View style={[modalStyles.modal, { backgroundColor: colorScheme.card }]}>
-        <Text style={[modalStyles.title, { color: colorScheme.text }]}>
-          {getTranslation(language, "workoutName")}
-        </Text>
-        <TextInput
-          style={[
-            modalStyles.input,
-            {
-              borderColor: colorScheme.border,
-              color: colorScheme.text,
-              backgroundColor: colorScheme.background,
-            },
-          ]}
-          placeholder={getTranslation(language, "enterName")}
-          placeholderTextColor={colorScheme.textSecondary}
-          value={trainingName}
-          onChangeText={(text) => setTrainingName(text)}
-          onSubmitEditing={handleAddTraining}
-          blurOnSubmit={false}
-          autoFocus={true}
-        />
-        <View style={modalStyles.buttons}>
-          <TouchableOpacity
-            style={[modalStyles.button, modalStyles.cancelButton]}
-            onPress={() => {
-              setShowTrainingModal(false);
-              setTrainingName("");
-            }}
-          >
-            <Text style={modalStyles.buttonText}>
-              {getTranslation(language, "cancel")}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[modalStyles.button, modalStyles.confirmButton]}
-            onPress={handleAddTraining}
-          >
-            <Text style={modalStyles.buttonText}>
-              {getTranslation(language, "add")}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </View>
-  ), [colorScheme, language, trainingName, handleAddTraining]);
+
 
   return (
     <View
@@ -194,7 +151,13 @@ export default function WorkoutPlanScreen() {
         </>
       )}
 
-      {showTrainingModal && <TrainingModal />}
+      <TrainingModal
+        visible={showTrainingModal}
+        trainingName={trainingName}
+        onTrainingNameChange={setTrainingName}
+        onAdd={handleAddTraining}
+        onCancel={handleCancelTraining}
+      />
       <PlanSelector
         visible={showPlanSelector}
         onClose={() => setShowPlanSelector(false)}
@@ -248,55 +211,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   planScaleButtonText: {
-    fontWeight: "bold",
-  },
-});
-
-const modalStyles = StyleSheet.create({
-  container: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modal: {
-    width: "80%",
-    borderRadius: 8,
-    padding: 16,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 16,
-    textAlign: "center",
-  },
-  input: {
-    borderWidth: 1,
-    borderRadius: 4,
-    padding: 8,
-    marginBottom: 16,
-  },
-  buttons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  button: {
-    padding: 12,
-    borderRadius: 4,
-    alignItems: "center",
-    flex: 1,
-    marginHorizontal: 4,
-  },
-  cancelButton: {
-    backgroundColor: "#f0f0f0",
-  },
-  confirmButton: {
-    backgroundColor: "#2196F3",
-  },
-  buttonText: {
     fontWeight: "bold",
   },
 });
