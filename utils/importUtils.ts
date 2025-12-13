@@ -1,9 +1,6 @@
 import useCaloriesStore from "@/store/calloriesStore";
-import useStore, {
-  Exercise,
-  Plan,
-  Training
-} from "@/store/store";
+import * as dbLayer from "@/store/dbLayer";
+import { Exercise, Plan, Training } from "@/store/store";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import * as XLSX from "xlsx";
@@ -219,7 +216,11 @@ export function validateImport(text: string): ValidationResult {
 
     // Check for nutrition section headers
     const upperLine = trimmedLine.toUpperCase();
-    if (upperLine === "ПИТАНИЕ" || upperLine === "NUTRITION" || upperLine === "КАЛЛОРАЖ") {
+    if (
+      upperLine === "ПИТАНИЕ" ||
+      upperLine === "NUTRITION" ||
+      upperLine === "КАЛЛОРАЖ"
+    ) {
       inNutritionSection = true;
       hasValidData = true;
       continue;
@@ -227,7 +228,9 @@ export function validateImport(text: string): ValidationResult {
 
     // If we're in nutrition section, validate nutrition format
     if (inNutritionSection) {
-      const nutritionMatch = trimmedLine.match(/^(\d+)\s+(ккал|kcal)\s+(\d+(?:[.,]\d+)?)\s+(кг|kg)\s+(\d{1,2}\.\d{1,2}\.\d{4})$/);
+      const nutritionMatch = trimmedLine.match(
+        /^(\d+)\s+(ккал|kcal)\s+(\d+(?:[.,]\d+)?)\s+(кг|kg)\s+(\d{1,2}\.\d{1,2}\.\d{4})$/
+      );
       if (nutritionMatch) {
         const calories = parseInt(nutritionMatch[1]);
         const weightStr = nutritionMatch[3].replace(",", ".");
@@ -241,7 +244,9 @@ export function validateImport(text: string): ValidationResult {
 
       // If line doesn't match nutrition format in nutrition section, it's an error
       hasErrors = true;
-      errorMessages.push(`Неверный формат строки в секции питания: ${trimmedLine}`);
+      errorMessages.push(
+        `Неверный формат строки в секции питания: ${trimmedLine}`
+      );
       continue;
     }
 
@@ -308,9 +313,9 @@ export function validateImport(text: string): ValidationResult {
   };
 }
 
-export function importData(text: string): void {
+export async function importData(text: string): Promise<void> {
   const lines = text.split("\n").filter((line) => line.trim());
-  const store = useStore.getState();
+
   const caloriesStore = useCaloriesStore.getState();
 
   let currentExercise = "";
@@ -326,14 +331,20 @@ export function importData(text: string): void {
 
     // Check for nutrition section headers
     const upperLine = trimmedLine.toUpperCase();
-    if (upperLine === "ПИТАНИЕ" || upperLine === "NUTRITION" || upperLine === "КАЛЛОРАЖ") {
+    if (
+      upperLine === "ПИТАНИЕ" ||
+      upperLine === "NUTRITION" ||
+      upperLine === "КАЛЛОРАЖ"
+    ) {
       inNutritionSection = true;
       continue;
     }
 
     // If we're in nutrition section, parse nutrition data
     if (inNutritionSection) {
-      const nutritionMatch = trimmedLine.match(/^(\d+)\s+(ккал|kcal)\s+(\d+(?:[.,]\d+)?)\s+(кг|kg)\s+(\d{1,2}\.\d{1,2}\.\d{4})$/);
+      const nutritionMatch = trimmedLine.match(
+        /^(\d+)\s+(ккал|kcal)\s+(\d+(?:[.,]\d+)?)\s+(кг|kg)\s+(\d{1,2}\.\d{1,2}\.\d{4})$/
+      );
       if (nutritionMatch) {
         const calories = parseInt(nutritionMatch[1]);
         const weightStr = nutritionMatch[3].replace(",", ".");
@@ -342,7 +353,10 @@ export function importData(text: string): void {
 
         // Convert date from DD.MM.YYYY to YYYY-MM-DD
         const [day, month, year] = dateStr.split(".");
-        const formattedDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+        const formattedDate = `${year}-${month.padStart(2, "0")}-${day.padStart(
+          2,
+          "0"
+        )}`;
 
         if (calories > 0 && weight > 0) {
           // Check if entry already exists for this date
@@ -401,14 +415,22 @@ export function importData(text: string): void {
                 };
                 exerciseMap.set(currentExercise, exercise);
                 importedTraining.exercises.push(exercise);
+
+                // Сохраняем упражнение в БД сразу после создания
+                await dbLayer.saveExercise({
+                  ...exercise,
+                  trainingId: importedTraining.id,
+                });
               }
 
-              store.addResult(importedPlan!.planName, importedTraining.id, {
+              // Сохраняем результат в БД
+              await dbLayer.saveResult({
                 exerciseId: exercise.id,
                 weight: weight,
                 reps: Math.round(reps),
                 date: date,
                 amplitude: "full",
+                isPlanned: false,
               });
             }
           }
@@ -432,14 +454,22 @@ export function importData(text: string): void {
             };
             exerciseMap.set(currentExercise, exercise);
             importedTraining.exercises.push(exercise);
+
+            // Сохраняем упражнение в БД сразу после создания
+            await dbLayer.saveExercise({
+              ...exercise,
+              trainingId: importedTraining.id,
+            });
           }
 
-          store.addResult(importedPlan!.planName, importedTraining.id, {
+          // Сохраняем результат в БД
+          await dbLayer.saveResult({
             exerciseId: exercise.id,
             weight: 0,
             reps: Math.round(reps),
             date: date,
             amplitude: "full",
+            isPlanned: false,
           });
         }
       } else if (
@@ -460,22 +490,31 @@ export function importData(text: string): void {
       currentExercise = exerciseName;
 
       if (!importedPlan) {
+        const planName = `Импортированный план ${new Date().toLocaleDateString()}`;
         importedPlan = {
-          planName: `Импортированный план ${new Date().toLocaleDateString()}`,
+          planName: planName,
           trainings: [],
         };
-        store.addPlan(importedPlan);
+        // Сохраняем план в БД
+        await dbLayer.savePlan(planName);
       }
 
       if (!importedTraining) {
+        const trainingId =
+          Date.now().toString() + Math.random().toString(36).substr(2, 9);
         importedTraining = {
-          id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+          id: trainingId,
           name: "Импортированная тренировка",
           exercises: [],
           results: [],
           plannedResults: [],
         };
-        store.addTraining(importedPlan.planName, importedTraining);
+        // Сохраняем тренировку в БД
+        await dbLayer.saveTraining(
+          trainingId,
+          importedPlan.planName,
+          importedTraining.name
+        );
       }
     }
   }

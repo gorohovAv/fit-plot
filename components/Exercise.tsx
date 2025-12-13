@@ -1,7 +1,7 @@
 import { getTranslation } from "@/utils/localization";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   StyleSheet,
   Text,
@@ -10,8 +10,8 @@ import {
   View,
 } from "react-native";
 import { Colors } from "../constants/Colors";
+import * as dbLayer from "../store/dbLayer";
 import useSettingsStore from "../store/settingsStore";
-import useStore from "../store/store";
 import useTimerStore from "../store/timerStore";
 import Timer from "./Timer";
 
@@ -75,7 +75,7 @@ export const Exercise: React.FC<ExerciseProps> = ({
     reps: "",
     amplitude: "full" as "full" | "partial",
   });
-  const { plans, addResult } = useStore();
+  const [exerciseResults, setExerciseResults] = useState<Result[]>([]);
   const { startTimer, stopTimer, isTimerRunning } = useTimerStore();
   const theme = useSettingsStore((state) => state.theme);
   const language = useSettingsStore((state) => state.language);
@@ -89,15 +89,33 @@ export const Exercise: React.FC<ExerciseProps> = ({
       : theme;
   const themeColors = Colors[colorScheme];
 
-  const exerciseResults =
-    plans
-      .find((plan) => plan.planName === planName)
-      ?.trainings.find((training) => training.id === workoutId)
-      ?.results.filter((res) => res.exerciseId === id)
-      .slice(-5) || [];
+  // Функция для загрузки результатов упражнения из БД
+  const loadExerciseResults = async () => {
+    try {
+      const results = await dbLayer.getResultsByExercise(id);
+      const formattedResults: Result[] = results
+        .filter((r: any) => !r.isPlanned)
+        .map((r: any) => ({
+          exerciseId: r.exerciseId,
+          weight: r.weight,
+          reps: r.reps,
+          amplitude: r.amplitude,
+          date: r.date,
+        }))
+        .slice(-5);
+      setExerciseResults(formattedResults);
+    } catch (error) {
+      console.error("Ошибка загрузки результатов упражнения из БД:", error);
+    }
+  };
 
-  const handleAddResult = () => {
-    const weight = parseFloat(result.weight.replace(',', '.')) || 0;
+  // Загружаем результаты при монтировании компонента
+  useEffect(() => {
+    loadExerciseResults();
+  }, [id]);
+
+  const handleAddResult = async () => {
+    const weight = parseFloat(result.weight.replace(",", ".")) || 0;
     const reps = parseInt(result.reps) || 0;
 
     if (weight <= 0 || reps <= 0) {
@@ -111,8 +129,17 @@ export const Exercise: React.FC<ExerciseProps> = ({
       amplitude: result.amplitude,
       date: new Date().toISOString(),
     };
-    addResult(planName, workoutId, newResult);
+
+    // Сохраняем результат в БД
+    await dbLayer.saveResult({
+      ...newResult,
+      isPlanned: false,
+    });
+
     setResult({ weight: "", reps: "", amplitude: "full" });
+
+    // Перезагружаем результаты из БД
+    await loadExerciseResults();
   };
 
   const handleTimerPress = () => {
@@ -159,10 +186,13 @@ export const Exercise: React.FC<ExerciseProps> = ({
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => {
-            navigation.navigate("analytics" as never, {
-              exerciseId: id,
-              exerciseName: name,
-            } as never);
+            navigation.navigate(
+              "analytics" as never,
+              {
+                exerciseId: id,
+                exerciseName: name,
+              } as never
+            );
           }}
           style={styles.actionButton}
         >
@@ -188,8 +218,11 @@ export const Exercise: React.FC<ExerciseProps> = ({
                   {res.weight} {getTranslation(language, "kg")} × {res.reps}{" "}
                   {getTranslation(language, "reps")}
                   {!isToday && (
-                    <Text style={[styles.dateText, { color: themeColors.icon }]}>
-                      {" "}({resultDate.toLocaleDateString()})
+                    <Text
+                      style={[styles.dateText, { color: themeColors.icon }]}
+                    >
+                      {" "}
+                      ({resultDate.toLocaleDateString()})
                     </Text>
                   )}
                 </Text>
@@ -213,9 +246,7 @@ export const Exercise: React.FC<ExerciseProps> = ({
           placeholderTextColor={themeColors.icon}
           keyboardType="numeric"
           value={result.weight}
-          onChangeText={(text) =>
-            setResult({ ...result, weight: text })
-          }
+          onChangeText={(text) => setResult({ ...result, weight: text })}
         />
         <Text style={[styles.xSymbol, { color: themeColors.text }]}>×</Text>
         <TextInput
@@ -231,9 +262,7 @@ export const Exercise: React.FC<ExerciseProps> = ({
           placeholderTextColor={themeColors.icon}
           keyboardType="numeric"
           value={result.reps}
-          onChangeText={(text) =>
-            setResult({ ...result, reps: text })
-          }
+          onChangeText={(text) => setResult({ ...result, reps: text })}
         />
         <TouchableOpacity
           onPress={() =>

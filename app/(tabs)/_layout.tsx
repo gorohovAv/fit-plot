@@ -1,12 +1,12 @@
-import { Tabs } from "expo-router";
-import React from "react";
-import { Platform } from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { Tabs } from "expo-router";
+import React, { useEffect } from "react";
+import { Platform, useColorScheme as useSystemColorScheme } from "react-native";
 
 import { HapticTab } from "@/components/HapticTab";
 import TabBarBackground from "@/components/ui/TabBarBackground";
 import { Colors } from "@/constants/Colors";
-import { useColorScheme as useSystemColorScheme } from "react-native";
+import * as dbLayer from "@/store/dbLayer";
 import useSettingsStore from "@/store/settingsStore";
 import { getTranslation } from "@/utils/localization";
 
@@ -15,6 +15,18 @@ export default function TabLayout() {
   const theme = useSettingsStore((state) => state.theme);
   const devMode = useSettingsStore((state) => state.devMode);
   const language = useSettingsStore((state) => state.language);
+
+  // Инициализируем БД один раз при монтировании компонента
+  useEffect(() => {
+    const initDB = async () => {
+      try {
+        await dbLayer.initDatabase();
+      } catch (error) {
+        console.error("Ошибка инициализации БД:", error);
+      }
+    };
+    initDB();
+  }, []);
 
   const colorScheme = theme === "system" ? systemColorScheme : theme;
   const colors = Colors[colorScheme ?? "light"];

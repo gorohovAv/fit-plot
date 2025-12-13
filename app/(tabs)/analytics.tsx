@@ -15,14 +15,15 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import * as dbLayer from "../../store/dbLayer";
-import useStore, {
+import {
   ExerciseType,
   MuscleGroup,
+  Plan,
   PlannedResult,
-  Result
+  Result,
 } from "../../store/store";
 
 type ChartData = {
@@ -73,7 +74,7 @@ type RawPlan = {
 };
 
 export default function AnalyticsScreen() {
-  const { plans } = useStore();
+  const [plans, setPlans] = useState<Plan[]>([]);
   const [selectedExercise, setSelectedExercise] = useState<string>("");
   const [selectedExerciseIds, setSelectedExerciseIds] = useState<string[]>([]);
   const [selectedPlannedIds, setSelectedPlannedIds] = useState<string[]>([]);
@@ -94,8 +95,12 @@ export default function AnalyticsScreen() {
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
 
   // Direct state for calories data
-  const [caloriesEntries, setCaloriesEntries] = useState<{ date: string; calories: number; weight: number }[]>([]);
-  const [maintenanceCalories, setMaintenanceCalories] = useState<number | null>(null);
+  const [caloriesEntries, setCaloriesEntries] = useState<
+    { date: string; calories: number; weight: number }[]
+  >([]);
+  const [maintenanceCalories, setMaintenanceCalories] = useState<number | null>(
+    null
+  );
 
   const font = useFont(require("../../assets/fonts/SpaceMono-Regular.ttf"));
   const route = useRoute();
@@ -107,6 +112,64 @@ export default function AnalyticsScreen() {
 
   const settingsStore = useSettingsStore();
 
+  // Функция для загрузки всех планов с данными из БД
+  const loadPlansFromDB = async () => {
+    try {
+      const planNames = await dbLayer.getAllPlans();
+      const loadedPlans: Plan[] = [];
+
+      for (const { planName } of planNames) {
+        const trainings = await dbLayer.getTrainingsByPlan(planName);
+        const planTrainings: any[] = [];
+
+        for (const training of trainings) {
+          const exercises = await dbLayer.getExercisesByTraining(training.id);
+          const exerciseIds = exercises.map((e) => e.id);
+          const rows = await dbLayer.getResultsForExerciseIds(exerciseIds);
+
+          const results: Result[] = [];
+          const plannedResults: PlannedResult[] = [];
+          for (const r of rows) {
+            if (r.isPlanned) {
+              plannedResults.push({
+                exerciseId: r.exerciseId,
+                plannedWeight: r.weight,
+                plannedReps: r.reps,
+                plannedDate: r.date,
+                amplitude: r.amplitude,
+              });
+            } else {
+              results.push({
+                exerciseId: r.exerciseId,
+                weight: r.weight,
+                reps: r.reps,
+                date: r.date,
+                amplitude: r.amplitude,
+              });
+            }
+          }
+
+          planTrainings.push({
+            id: training.id,
+            name: training.name,
+            exercises,
+            results,
+            plannedResults,
+          });
+        }
+
+        loadedPlans.push({
+          planName,
+          trainings: planTrainings,
+        });
+      }
+
+      setPlans(loadedPlans);
+    } catch (error) {
+      console.error("Ошибка загрузки планов из БД:", error);
+    }
+  };
+
   // Load calories data directly from DB
   const loadCaloriesFromDB = async () => {
     try {
@@ -115,23 +178,32 @@ export default function AnalyticsScreen() {
       const entries = await dbLayer.getCalorieEntries();
       const maintenance = await dbLayer.getMaintenanceCalories();
 
-      console.log(`[AnalyticsScreen] Loaded ${entries.length} calorie entries from DB`);
-      console.log(`[AnalyticsScreen] Loaded maintenance calories from DB:`, maintenance);
+      console.log(
+        `[AnalyticsScreen] Loaded ${entries.length} calorie entries from DB`
+      );
+      console.log(
+        `[AnalyticsScreen] Loaded maintenance calories from DB:`,
+        maintenance
+      );
 
       setCaloriesEntries(entries);
       setMaintenanceCalories(maintenance);
     } catch (error) {
-      console.error(`[AnalyticsScreen] Error loading calories data from DB:`, error);
+      console.error(
+        `[AnalyticsScreen] Error loading calories data from DB:`,
+        error
+      );
     }
   };
 
   // Function to get calorie entry by date for zones
   const getEntryByDate = (date: string) => {
-    return caloriesEntries.find(entry => entry.date === date);
+    return caloriesEntries.find((entry) => entry.date === date);
   };
 
-  // Load calories data on component mount
+  // Load all data on component mount
   useEffect(() => {
+    loadPlansFromDB();
     loadCaloriesFromDB();
   }, []);
 
@@ -156,17 +228,26 @@ export default function AnalyticsScreen() {
 
   useEffect(() => {
     if (route.params) {
-      const { exerciseId, exerciseName } = route.params as { exerciseId?: string; exerciseName?: string };
+      const { exerciseId, exerciseName } = route.params as {
+        exerciseId?: string;
+        exerciseName?: string;
+      };
       if (exerciseId && exerciseName) {
-        // Find the exercise in the exercises list
-        const exercise = exercises.find(ex => ex.id === exerciseId);
+        // Find the exercise in all exercises from all plans
+        const allExercises = plans
+          .flatMap((plan) =>
+            plan.trainings.flatMap((training) => training.exercises || [])
+          )
+          .filter((exercise) => exercise && exercise.id && exercise.name);
+
+        const exercise = allExercises.find((ex) => ex.id === exerciseId);
         if (exercise) {
           setSelectedExerciseIds([exerciseId]);
           setSelectedPlannedIds([]);
         }
       }
     }
-  }, [route.params, exercises]);
+  }, [route.params, plans]);
 
   useEffect(() => {
     setIsLoading(true);
@@ -443,8 +524,7 @@ export default function AnalyticsScreen() {
     }
 
     const buildHighlightZones = (): Zone[] => {
-      if (!maintenanceCalories || filteredDatasets.length === 0)
-        return [];
+      if (!maintenanceCalories || filteredDatasets.length === 0) return [];
 
       const allDataPoints = filteredDatasets.flatMap((dataset) => dataset.data);
       if (allDataPoints.length === 0) return [];

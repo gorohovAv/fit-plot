@@ -1,29 +1,21 @@
-import React, { useState } from "react";
+import { useRoute } from "@react-navigation/native";
+import React, { useEffect, useState } from "react";
 import {
-  View,
+  Appearance,
   FlatList,
-  TouchableOpacity,
-  Text,
-  TextInput,
-  StyleSheet,
-  Modal,
   KeyboardAvoidingView,
   Platform,
-  Appearance,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { Exercise as ExerciseComponent } from "../../components/Exercise";
-import { useRoute } from "@react-navigation/native";
-import useStore, {
-  MuscleGroup,
-  ExerciseType,
-  Exercise,
-} from "../../store/store";
-import { Picker } from "@react-native-picker/picker";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import ExerciseModal from "../../components/ExerciseModal";
 import { Colors } from "../../constants/Colors";
+import * as dbLayer from "../../store/dbLayer";
 import useSettingsStore from "../../store/settingsStore";
-import { getTranslation } from "../../utils/localization";
+import { Exercise, ExerciseType, MuscleGroup } from "../../store/store";
 
 export default function WorkoutScreen() {
   const route = useRoute();
@@ -31,7 +23,7 @@ export default function WorkoutScreen() {
     workoutId: string;
     planName: string;
   };
-  const { plans, addExercise, updateExerciseInStore } = useStore();
+  const [exercises, setExercises] = useState<Exercise[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [newExercise, setNewExercise] = useState({
     name: "",
@@ -39,6 +31,8 @@ export default function WorkoutScreen() {
     type: "free weight" as ExerciseType,
     unilateral: false,
     amplitude: "full" as "full" | "partial",
+    comment: "",
+    timerDuration: undefined as number | undefined,
   });
   const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
   const theme = useSettingsStore((state) => state.theme);
@@ -59,24 +53,43 @@ export default function WorkoutScreen() {
   }
   const themeColors = Colors[colorScheme];
 
-  const currentTraining = plans
-    .find((plan) => plan.planName === planName)
-    ?.trainings.find((training) => training.id === workoutId);
+  // Функция для загрузки упражнений тренировки из БД
+  const loadExercises = async () => {
+    try {
+      const loadedExercises = await dbLayer.getExercisesByTraining(workoutId);
+      setExercises(loadedExercises);
+    } catch (error) {
+      console.error("Ошибка загрузки упражнений из БД:", error);
+    }
+  };
 
-  const handleAddEditExercise = (exerciseData: typeof newExercise) => {
+  // Загружаем упражнения при монтировании компонента
+  useEffect(() => {
+    loadExercises();
+  }, [workoutId]);
+
+  const handleAddEditExercise = async (exerciseData: typeof newExercise) => {
     if (exerciseData.name.trim()) {
       if (editingExercise) {
         const updatedExercise: Exercise = {
           ...editingExercise,
           ...exerciseData,
         };
-        updateExerciseInStore(planName, workoutId, updatedExercise);
+        // Сохраняем обновленное упражнение в БД
+        await dbLayer.saveExercise({
+          ...updatedExercise,
+          trainingId: workoutId,
+        });
       } else {
         const exercise: Exercise = {
           id: Date.now().toString(),
           ...exerciseData,
         };
-        addExercise(planName, workoutId, exercise);
+        // Сохраняем новое упражнение в БД
+        await dbLayer.saveExercise({
+          ...exercise,
+          trainingId: workoutId,
+        });
       }
       setNewExercise({
         name: "",
@@ -84,27 +97,37 @@ export default function WorkoutScreen() {
         type: "free weight",
         unilateral: false,
         amplitude: "full",
+        comment: "",
+        timerDuration: undefined,
       });
       setEditingExercise(null);
       setIsModalVisible(false);
+
+      // Перезагружаем упражнения из БД
+      await loadExercises();
     }
   };
 
   const handleEditExercise = (exercise: Exercise) => {
     setEditingExercise(exercise);
     setNewExercise({
-      name: exercise.name,
-      muscleGroup: exercise.muscleGroup,
-      type: exercise.type,
-      unilateral: exercise.unilateral,
-      amplitude: exercise.amplitude,
+      name: exercise.name || "",
+      muscleGroup: exercise.muscleGroup || "chest",
+      type: exercise.type || "free weight",
+      unilateral: exercise.unilateral || false,
+      amplitude: exercise.amplitude || "full",
+      comment: exercise.comment || "",
+      timerDuration: exercise.timerDuration ?? undefined,
     });
     setIsModalVisible(true);
   };
 
-  const handleDeleteExercise = (exerciseId: string) => {
-    const { removeExercise } = useStore.getState();
-    removeExercise(planName, workoutId, exerciseId);
+  const handleDeleteExercise = async (exerciseId: string) => {
+    // Удаляем упражнение из БД
+    await dbLayer.deleteExercise(exerciseId);
+
+    // Перезагружаем упражнения из БД
+    await loadExercises();
   };
 
   return (
@@ -120,7 +143,7 @@ export default function WorkoutScreen() {
         }}
       >
         <FlatList
-          data={currentTraining?.exercises || []}
+          data={exercises}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <ExerciseComponent
@@ -153,6 +176,8 @@ export default function WorkoutScreen() {
               type: "free weight",
               unilateral: false,
               amplitude: "full",
+              comment: "",
+              timerDuration: undefined,
             });
             setIsModalVisible(true);
           }}

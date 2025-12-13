@@ -34,7 +34,15 @@ export default function ExerciseModal({
   isEdit: boolean;
 }) {
   const [showExerciseList, setShowExerciseList] = useState(false);
-  const [exercise, setExercise] = useState(initialExercise);
+  const [exercise, setExercise] = useState(initialExercise || {
+    name: "",
+    muscleGroup: "chest",
+    type: "free weight",
+    unilateral: false,
+    amplitude: "full",
+    comment: "",
+    timerDuration: undefined,
+  });
 
   const theme = useSettingsStore((state) => state.theme);
   const language = useSettingsStore((state) => state.language);
@@ -43,7 +51,23 @@ export default function ExerciseModal({
   const themeColors = Colors[currentTheme || "light"];
 
   React.useEffect(() => {
-    setExercise(initialExercise);
+    if (initialExercise) {
+      setExercise({
+        ...initialExercise,
+        comment: initialExercise.comment ?? "",
+        timerDuration: initialExercise.timerDuration ?? undefined,
+      });
+    } else {
+      setExercise({
+        name: "",
+        muscleGroup: "chest",
+        type: "free weight",
+        unilateral: false,
+        amplitude: "full",
+        comment: "",
+        timerDuration: undefined,
+      });
+    }
   }, [initialExercise, visible]);
 
   const handleSelectExercise = (item: any) => {
@@ -156,7 +180,7 @@ export default function ExerciseModal({
                   ]}
                   placeholder={getTranslation(language, "exerciseName")}
                   placeholderTextColor={themeColors.placeholderText}
-                  value={exercise.name}
+                  value={exercise?.name ?? ""}
                   onChangeText={(text) =>
                     setExercise({ ...exercise, name: text })
                   }
@@ -174,7 +198,7 @@ export default function ExerciseModal({
                   ]}
                   placeholder={getTranslation(language, "comment")}
                   placeholderTextColor={themeColors.placeholderText}
-                  value={exercise.comment ?? ""}
+                  value={exercise?.comment ?? ""}
                   onChangeText={(text) =>
                     setExercise({ ...exercise, comment: text })
                   }
@@ -192,7 +216,7 @@ export default function ExerciseModal({
                   placeholderTextColor={themeColors.placeholderText}
                   keyboardType="numeric"
                   value={
-                    exercise.timerDuration !== undefined
+                    exercise.timerDuration !== undefined && exercise.timerDuration !== null
                       ? exercise.timerDuration.toString()
                       : ""
                   }

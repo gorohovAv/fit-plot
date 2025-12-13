@@ -1,6 +1,6 @@
 import { getTranslation } from "@/utils/localization";
-import { useNavigation } from "@react-navigation/native";
-import React, { useEffect, useState } from "react";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   FlatList,
   StyleSheet,
@@ -12,15 +12,14 @@ import { PlanSelector } from "../../components/PlanSelector";
 import { TrainingModal } from "../../components/TrainingModal";
 import { Workout } from "../../components/Workout";
 import { Colors } from "../../constants/Colors";
+import * as dbLayer from "../../store/dbLayer";
 import useSettingsStore from "../../store/settingsStore";
-import useStore, { Plan, Training } from "../../store/store";
+import { Plan, Training } from "../../store/store";
 
 export default function WorkoutPlanScreen() {
   const navigation = useNavigation();
-  const { plans, addPlan, removeTraining, addTraining } = useStore();
-  const [selectedPlan, setSelectedPlan] = useState<Plan | null>(
-    plans[0] || null
-  );
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [showPlanSelector, setShowPlanSelector] = useState(false);
   const [showTrainingModal, setShowTrainingModal] = useState(false);
   const [trainingName, setTrainingName] = useState("");
@@ -34,18 +33,89 @@ export default function WorkoutPlanScreen() {
       ? Colors.light
       : Colors.light;
 
-  useEffect(() => {
-    if (selectedPlan) {
-      const updatedPlan = plans.find(
-        (plan) => plan.planName === selectedPlan.planName
-      );
-      if (updatedPlan) {
-        setSelectedPlan(updatedPlan);
-      }
-    }
-  }, [plans]);
+  // Функция для загрузки всех планов из БД
+  const loadPlans = async () => {
+    try {
+      const planNames = await dbLayer.getAllPlans();
+      const loadedPlans: Plan[] = [];
 
-  const handleAddTraining = () => {
+      for (const { planName } of planNames) {
+        const trainings = await dbLayer.getTrainingsByPlan(planName);
+        const planTrainings: Training[] = [];
+
+        for (const training of trainings) {
+          const exercises = await dbLayer.getExercisesByTraining(training.id);
+          const exerciseIds = exercises.map((e) => e.id);
+          const rows = await dbLayer.getResultsForExerciseIds(exerciseIds);
+
+          const results: any[] = [];
+          const plannedResults: any[] = [];
+          for (const r of rows) {
+            if (r.isPlanned) {
+              plannedResults.push({
+                exerciseId: r.exerciseId,
+                plannedWeight: r.weight,
+                plannedReps: r.reps,
+                plannedDate: r.date,
+                amplitude: r.amplitude,
+              });
+            } else {
+              results.push({
+                exerciseId: r.exerciseId,
+                weight: r.weight,
+                reps: r.reps,
+                date: r.date,
+                amplitude: r.amplitude,
+              });
+            }
+          }
+
+          planTrainings.push({
+            id: training.id,
+            name: training.name,
+            exercises,
+            results,
+            plannedResults,
+          });
+        }
+
+        loadedPlans.push({
+          planName,
+          trainings: planTrainings,
+        });
+      }
+
+      setPlans(loadedPlans);
+      // Устанавливаем первый план как выбранный, если он еще не выбран
+      if (!selectedPlan && loadedPlans.length > 0) {
+        setSelectedPlan(loadedPlans[0]);
+      } else if (selectedPlan) {
+        // Обновляем выбранный план, если он существует
+        const updatedPlan = loadedPlans.find(
+          (plan) => plan.planName === selectedPlan.planName
+        );
+        if (updatedPlan) {
+          setSelectedPlan(updatedPlan);
+        }
+      }
+    } catch (error) {
+      console.error("Ошибка загрузки планов из БД:", error);
+    }
+  };
+
+  // Загружаем планы при монтировании компонента и при фокусе экрана
+  useEffect(() => {
+    loadPlans();
+  }, []);
+
+  // Перезагружаем планы при возврате на экран (например, после импорта)
+  useFocusEffect(
+    useCallback(() => {
+      loadPlans();
+    }, [])
+  );
+
+  const handleAddTraining = async () => {
     if (!selectedPlan || !trainingName.trim()) return;
 
     const newTraining: Training = {
@@ -56,14 +126,18 @@ export default function WorkoutPlanScreen() {
       plannedResults: [],
     };
 
-    addTraining(selectedPlan.planName, newTraining);
+    // Сохраняем тренировку в БД
+    await dbLayer.saveTraining(
+      newTraining.id,
+      selectedPlan.planName,
+      newTraining.name
+    );
+
     setTrainingName("");
     setShowTrainingModal(false);
 
-    const updatedPlan = plans.find(
-      (plan) => plan.planName === selectedPlan.planName
-    );
-    setSelectedPlan(updatedPlan || null);
+    // Перезагружаем планы из БД
+    await loadPlans();
   };
 
   const handleCancelTraining = () => {
@@ -71,16 +145,15 @@ export default function WorkoutPlanScreen() {
     setTrainingName("");
   };
 
-  const handleDeleteTraining = (trainingId: string) => {
+  const handleDeleteTraining = async (trainingId: string) => {
     if (!selectedPlan) return;
-    removeTraining(selectedPlan.planName, trainingId);
-    const updatedPlan = plans.find(
-      (plan) => plan.planName === selectedPlan.planName
-    );
-    setSelectedPlan(updatedPlan || null);
+
+    // Удаляем тренировку из БД
+    await dbLayer.deleteTraining(trainingId);
+
+    // Перезагружаем планы из БД
+    await loadPlans();
   };
-
-
 
   return (
     <View
@@ -165,6 +238,8 @@ export default function WorkoutPlanScreen() {
           setSelectedPlan(plan);
           setShowPlanSelector(false);
         }}
+        plans={plans}
+        onPlansChange={loadPlans}
       />
     </View>
   );

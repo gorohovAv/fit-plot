@@ -1,20 +1,20 @@
-import React, { useState, useCallback } from "react";
+import { useThemeColor } from "@/hooks/useThemeColor";
+import useSettingsStore from "@/store/settingsStore";
+import { importData, validateImport } from "@/utils/importUtils";
+import { getTranslation } from "@/utils/localization";
+import { Ionicons } from "@expo/vector-icons";
+import * as DocumentPicker from "expo-document-picker";
+import React, { useCallback, useState } from "react";
 import {
-  View,
+  Alert,
+  ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
-  Alert,
-  ScrollView,
+  View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import * as DocumentPicker from "expo-document-picker";
-import { useThemeColor } from "@/hooks/useThemeColor";
 import { ImportValidator, ValidationStatus } from "./ImportValidator";
-import { validateImport, importData } from "@/utils/importUtils";
-import useSettingsStore from "@/store/settingsStore";
-import { getTranslation } from "@/utils/localization";
 
 interface ImportScreenProps {
   onBack: () => void;
@@ -77,7 +77,7 @@ export function ImportScreen({ onBack }: ImportScreenProps) {
     }
   };
 
-  const handleImport = () => {
+  const handleImport = async () => {
     if (validationStatus !== "valid") {
       Alert.alert(
         getTranslation(language, "error"),
@@ -87,7 +87,7 @@ export function ImportScreen({ onBack }: ImportScreenProps) {
     }
 
     try {
-      importData(importText);
+      await importData(importText);
       Alert.alert(
         getTranslation(language, "success"),
         getTranslation(language, "dataImportSuccess"),

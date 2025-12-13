@@ -1,31 +1,34 @@
 import React, { useState } from "react";
 import {
-  View,
-  Text,
-  Modal,
-  TouchableOpacity,
-  StyleSheet,
-  TextInput,
   FlatList,
-  Appearance,
+  Modal,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import useStore, { Plan } from "../store/store";
-import useSettingsStore from "../store/settingsStore";
 import { Colors } from "../constants/Colors";
-import { getTranslation, formatTranslation } from "../utils/localization";
+import * as dbLayer from "../store/dbLayer";
+import useSettingsStore from "../store/settingsStore";
+import { Plan } from "../store/store";
+import { formatTranslation, getTranslation } from "../utils/localization";
 
 type PlanSelectorProps = {
   visible: boolean;
   onClose: () => void;
   onSelect: (plan: Plan) => void;
+  plans: Plan[];
+  onPlansChange: () => void;
 };
 
 export const PlanSelector: React.FC<PlanSelectorProps> = ({
   visible,
   onClose,
   onSelect,
+  plans,
+  onPlansChange,
 }) => {
-  const { plans, addPlan, removePlan } = useStore();
   const [newPlanName, setNewPlanName] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
   const theme = useSettingsStore((state) => state.theme);
@@ -38,13 +41,19 @@ export const PlanSelector: React.FC<PlanSelectorProps> = ({
       : Colors.light;
   const themeColors = colorScheme;
 
-  const handleAddPlan = () => {
+  const handleAddPlan = async () => {
     if (newPlanName.trim()) {
+      // Сохраняем план в БД
+      await dbLayer.savePlan(newPlanName);
+
       const newPlan: Plan = {
         planName: newPlanName,
         trainings: [],
       };
-      addPlan(newPlan);
+
+      // Перезагружаем планы
+      onPlansChange();
+
       onSelect(newPlan);
       setNewPlanName("");
       setShowAddModal(false);
