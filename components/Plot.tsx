@@ -149,31 +149,68 @@ const Plot: React.FC<PlotProps> = ({
   const selectedPoints = React.useMemo(() => {
     if (!selectedDate || !datasets || datasets.length === 0) return [];
 
+    // Используем координату выбранной даты для X, чтобы точка была точно на линии
+    const selectedX = xScale(selectedDate);
+    const selectedTime = selectedDate.getTime();
+
     return datasets
       .map((dataset, datasetIndex) => {
-        // Находим ближайшую точку по дате
-        let closestPoint: DataPoint | null = null;
-        let minDistance = Infinity;
+        // Сортируем точки по дате для интерполяции
+        const sortedPoints = [...dataset.data]
+          .map((p) => ({ ...p, date: new Date(p.x).getTime() }))
+          .sort((a, b) => a.date - b.date)
+          .filter((p) => p.y > 0);
 
-        for (const point of dataset.data) {
-          const pointDate = new Date(point.x);
-          const distance = Math.abs(
-            pointDate.getTime() - selectedDate.getTime()
-          );
-          if (distance < minDistance) {
-            minDistance = distance;
-            closestPoint = point;
+        if (sortedPoints.length === 0) return null;
+
+        // Находим две ближайшие точки для интерполяции
+        let beforePoint: (typeof sortedPoints)[0] | null = null;
+        let afterPoint: (typeof sortedPoints)[0] | null = null;
+
+        for (let i = 0; i < sortedPoints.length; i++) {
+          if (sortedPoints[i].date <= selectedTime) {
+            beforePoint = sortedPoints[i];
+          }
+          if (sortedPoints[i].date >= selectedTime && !afterPoint) {
+            afterPoint = sortedPoints[i];
+            break;
           }
         }
 
-        if (!closestPoint || closestPoint.y <= 0) return null;
+        let interpolatedY: number;
+        let displayPoint: DataPoint;
 
-        const x = xScale(new Date(closestPoint.x));
-        const y = yScale(closestPoint.y);
+        if (beforePoint && afterPoint && beforePoint.date !== afterPoint.date) {
+          // Линейная интерполяция между двумя точками
+          const t =
+            (selectedTime - beforePoint.date) /
+            (afterPoint.date - beforePoint.date);
+          interpolatedY = beforePoint.y + t * (afterPoint.y - beforePoint.y);
+          displayPoint = {
+            x: selectedDate.toISOString(),
+            y: interpolatedY,
+          };
+        } else if (beforePoint) {
+          // Используем ближайшую точку до
+          interpolatedY = beforePoint.y;
+          displayPoint = beforePoint;
+        } else if (afterPoint) {
+          // Используем ближайшую точку после
+          interpolatedY = afterPoint.y;
+          displayPoint = afterPoint;
+        } else {
+          return null;
+        }
+
+        if (interpolatedY <= 0) return null;
+
+        // Используем координату выбранной даты для X, чтобы точка была точно на линии
+        const x = selectedX;
+        const y = yScale(interpolatedY);
 
         return {
           datasetIndex,
-          point: closestPoint,
+          point: displayPoint,
           x,
           y,
           color: lineColors[datasetIndex % lineColors.length],
@@ -188,10 +225,9 @@ const Plot: React.FC<PlotProps> = ({
       const { locationX, locationY } = event.nativeEvent;
 
       // locationX относительно Pressable (который имеет ширину chartWidth)
-      // Нужно преобразовать в координату в масштабе графика (innerWidth)
-      // locationX уже учитывает скролл (относительно содержимого ScrollView)
-      // Вычитаем отступ слева, чтобы получить координату в области графика
-      const xInChart = locationX - dynamicMargin.left;
+      // Нужно учесть текущий скролл и преобразовать в координату в масштабе графика (innerWidth)
+      // locationX - это координата относительно Pressable, нужно добавить scrollX
+      const xInChart = locationX + scrollX - dynamicMargin.left;
 
       // Проверяем, что тап внутри области графика
       if (
@@ -208,7 +244,7 @@ const Plot: React.FC<PlotProps> = ({
       const date = xScale.invert(xInChart);
       setSelectedDate(date);
     },
-    [dynamicMargin, innerWidth, innerHeight, xScale]
+    [dynamicMargin, innerWidth, innerHeight, xScale, scrollX]
   );
 
   if (!datasets || datasets.length === 0) {
@@ -298,7 +334,7 @@ const Plot: React.FC<PlotProps> = ({
         >
           <Pressable
             onPress={handleChartPress}
-            style={styles.pressableContainer}
+            style={[styles.pressableContainer, { width: chartWidth }]}
           >
             <View style={styles.canvasContainer}>
               <Canvas style={{ width: chartWidth, height }}>
@@ -409,13 +445,11 @@ const Plot: React.FC<PlotProps> = ({
 
       <View
         style={[
-          styles.chartContainer,
+          styles.axisContainer,
           {
-            marginLeft: dynamicMargin.left - 60,
+            width: width,
+            marginLeft: dynamicMargin.left,
             marginRight: dynamicMargin.right,
-            position: "absolute",
-            top: dynamicMargin.top + innerHeight,
-            bottom: 0,
             overflow: "hidden",
           },
         ]}
@@ -455,6 +489,10 @@ const styles = StyleSheet.create({
   chartContainer: {
     position: "relative",
     minHeight: 300,
+  },
+  axisContainer: {
+    position: "relative",
+    overflow: "hidden",
   },
   canvasContainer: {
     position: "relative",
