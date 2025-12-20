@@ -1,16 +1,62 @@
 import { openDatabaseAsync } from "expo-sqlite";
 
 let db: any = null;
+let initPromise: Promise<void> | null = null;
+let isInitialized = false;
+let isInitializing = false;
+
+// Функция для безопасного открытия БД с retry
+const openDatabaseWithRetry = async (retries = 3, delay = 100): Promise<any> => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await openDatabaseAsync("fitplot.db");
+    } catch (error: any) {
+      const isLastAttempt = i === retries - 1;
+      if (isLastAttempt) {
+        console.error(`Ошибка открытия БД после ${retries} попыток:`, error);
+        throw error;
+      }
+      console.warn(`Попытка ${i + 1} открытия БД не удалась, повтор через ${delay}ms:`, error);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      delay *= 2; // Увеличиваем задержку экспоненциально
+    }
+  }
+  throw new Error("Не удалось открыть БД после всех попыток");
+};
 
 export const getDatabase = async () => {
+  // Ждем завершения инициализации, если она идет
+  if (initPromise) {
+    await initPromise;
+  }
+
   if (!db) {
-    db = await openDatabaseAsync("fitplot.db");
+    db = await openDatabaseWithRetry();
   }
   return db;
 };
 
 export const initDatabase = async () => {
-  const database = await getDatabase();
+  // Если уже инициализирована, возвращаемся
+  if (isInitialized) {
+    return;
+  }
+
+  // Если инициализация уже идет, ждем её завершения
+  if (isInitializing && initPromise) {
+    await initPromise;
+    return;
+  }
+
+  // Начинаем инициализацию
+  isInitializing = true;
+  initPromise = (async () => {
+    try {
+      // Открываем БД напрямую, без вызова getDatabase, чтобы избежать циклической зависимости
+      if (!db) {
+        db = await openDatabaseWithRetry();
+      }
+      const database = db;
 
   const createTables = [
     `CREATE TABLE IF NOT EXISTS plans (
@@ -92,26 +138,73 @@ export const initDatabase = async () => {
   for (const sql of createIndexes) {
     await database.runAsync(sql);
   }
+
+      isInitialized = true;
+      console.log("БД успешно инициализирована");
+    } catch (error) {
+      console.error("Ошибка инициализации БД:", error);
+      // Сбрасываем состояние при ошибке, чтобы можно было повторить попытку
+      db = null;
+      isInitialized = false;
+      throw error;
+    } finally {
+      isInitializing = false;
+    }
+  })();
+
+  await initPromise;
+};
+
+// Вспомогательная функция для безопасного выполнения операций с БД
+const safeDbOperation = async <T>(
+  operation: (db: any) => Promise<T>,
+  retries = 3
+): Promise<T> => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const database = await getDatabase();
+      return await operation(database);
+    } catch (error: any) {
+      const isLastAttempt = i === retries - 1;
+      if (isLastAttempt) {
+        console.error("Ошибка операции с БД после всех попыток:", error);
+        throw error;
+      }
+      // Если ошибка связана с подключением, сбрасываем его
+      if (error?.message?.includes("NullPointerException") ||
+          error?.message?.includes("prepareAsync")) {
+        console.warn(`Попытка ${i + 1} операции с БД не удалась, сброс подключения:`, error);
+        db = null;
+        await new Promise(resolve => setTimeout(resolve, 100 * (i + 1)));
+      } else {
+        throw error; // Для других ошибок не повторяем
+      }
+    }
+  }
+  throw new Error("Не удалось выполнить операцию с БД");
 };
 
 // Методы для работы с планами
 export const savePlan = async (planName: string): Promise<void> => {
-  const database = await getDatabase();
-  await database.runAsync(
-    "INSERT OR REPLACE INTO plans (planName) VALUES (?)",
-    [planName]
-  );
+  await safeDbOperation(async (database) => {
+    await database.runAsync(
+      "INSERT OR REPLACE INTO plans (planName) VALUES (?)",
+      [planName]
+    );
+  });
 };
 
 export const deletePlan = async (planName: string): Promise<void> => {
-  const database = await getDatabase();
-  await database.runAsync("DELETE FROM plans WHERE planName = ?", [planName]);
+  await safeDbOperation(async (database) => {
+    await database.runAsync("DELETE FROM plans WHERE planName = ?", [planName]);
+  });
 };
 
 export const getAllPlans = async (): Promise<{ planName: string }[]> => {
-  const database = await getDatabase();
-  const result = await database.getAllAsync("SELECT planName FROM plans");
-  return result;
+  return await safeDbOperation(async (database) => {
+    const result = await database.getAllAsync("SELECT planName FROM plans");
+    return result;
+  });
 };
 
 // Методы для работы с тренировками
@@ -120,30 +213,33 @@ export const saveTraining = async (
   planName: string,
   name: string
 ): Promise<void> => {
-  const database = await getDatabase();
-  await database.runAsync(
-    "INSERT OR REPLACE INTO trainings (id, planName, name) VALUES (?, ?, ?)",
-    [trainingId, planName, name]
-  );
+  await safeDbOperation(async (database) => {
+    await database.runAsync(
+      "INSERT OR REPLACE INTO trainings (id, planName, name) VALUES (?, ?, ?)",
+      [trainingId, planName, name]
+    );
+  });
 };
 
 export const deleteTraining = async (trainingId: string): Promise<void> => {
-  const database = await getDatabase();
-  await database.runAsync("DELETE FROM trainings WHERE id = ?", [trainingId]);
-  await database.runAsync("DELETE FROM exercises WHERE trainingId = ?", [
-    trainingId,
-  ]);
+  await safeDbOperation(async (database) => {
+    await database.runAsync("DELETE FROM trainings WHERE id = ?", [trainingId]);
+    await database.runAsync("DELETE FROM exercises WHERE trainingId = ?", [
+      trainingId,
+    ]);
+  });
 };
 
 export const getTrainingsByPlan = async (
   planName: string
 ): Promise<{ id: string; name: string }[]> => {
-  const database = await getDatabase();
-  const result = await database.getAllAsync(
-    "SELECT id, name FROM trainings WHERE planName = ?",
-    [planName]
-  );
-  return result;
+  return await safeDbOperation(async (database) => {
+    const result = await database.getAllAsync(
+      "SELECT id, name FROM trainings WHERE planName = ?",
+      [planName]
+    );
+    return result;
+  });
 };
 
 // Методы для работы с упражнениями
@@ -158,45 +254,48 @@ export const saveExercise = async (exercise: {
   comment?: string;
   timerDuration?: number;
 }): Promise<void> => {
-  const database = await getDatabase();
-  await database.runAsync(
-    `INSERT OR REPLACE INTO exercises
-     (id, trainingId, name, muscleGroup, type, unilateral, amplitude, comment, timerDuration)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      exercise.id,
-      exercise.trainingId,
-      exercise.name,
-      exercise.muscleGroup,
-      exercise.type,
-      exercise.unilateral ? 1 : 0,
-      exercise.amplitude,
-      exercise.comment || null,
-      exercise.timerDuration || null,
-    ]
-  );
+  await safeDbOperation(async (database) => {
+    await database.runAsync(
+      `INSERT OR REPLACE INTO exercises
+       (id, trainingId, name, muscleGroup, type, unilateral, amplitude, comment, timerDuration)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        exercise.id,
+        exercise.trainingId,
+        exercise.name,
+        exercise.muscleGroup,
+        exercise.type,
+        exercise.unilateral ? 1 : 0,
+        exercise.amplitude,
+        exercise.comment || null,
+        exercise.timerDuration || null,
+      ]
+    );
+  });
 };
 
 export const deleteExercise = async (exerciseId: string): Promise<void> => {
-  const database = await getDatabase();
-  await database.runAsync("DELETE FROM exercises WHERE id = ?", [exerciseId]);
-  await database.runAsync("DELETE FROM results WHERE exerciseId = ?", [
-    exerciseId,
-  ]);
+  await safeDbOperation(async (database) => {
+    await database.runAsync("DELETE FROM exercises WHERE id = ?", [exerciseId]);
+    await database.runAsync("DELETE FROM results WHERE exerciseId = ?", [
+      exerciseId,
+    ]);
+  });
 };
 
 export const getExercisesByTraining = async (
   trainingId: string
 ): Promise<any[]> => {
-  const database = await getDatabase();
-  const result = await database.getAllAsync(
-    "SELECT * FROM exercises WHERE trainingId = ?",
-    [trainingId]
-  );
-  return result.map((row: any) => ({
-    ...row,
-    unilateral: Boolean(row.unilateral),
-  }));
+  return await safeDbOperation(async (database) => {
+    const result = await database.getAllAsync(
+      "SELECT * FROM exercises WHERE trainingId = ?",
+      [trainingId]
+    );
+    return result.map((row: any) => ({
+      ...row,
+      unilateral: Boolean(row.unilateral),
+    }));
+  });
 };
 
 // Методы для работы с результатами
@@ -208,27 +307,11 @@ export const saveResult = async (result: {
   amplitude: string;
   isPlanned?: boolean;
 }): Promise<void> => {
-  const database = await getDatabase();
-
-  // Проверяем, существует ли уже такой результат
-  const existing = await database.getFirstAsync(
-    `SELECT id FROM results
-     WHERE exerciseId = ? AND weight = ? AND reps = ? AND date = ? AND amplitude = ? AND isPlanned = ?`,
-    [
-      result.exerciseId,
-      result.weight,
-      result.reps,
-      result.date,
-      result.amplitude,
-      result.isPlanned ? 1 : 0,
-    ]
-  );
-
-  if (!existing) {
-    // Добавляем только если не существует
-    await database.runAsync(
-      `INSERT INTO results (exerciseId, weight, reps, date, amplitude, isPlanned)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+  await safeDbOperation(async (database) => {
+    // Проверяем, существует ли уже такой результат
+    const existing = await database.getFirstAsync(
+      `SELECT id FROM results
+       WHERE exerciseId = ? AND weight = ? AND reps = ? AND date = ? AND amplitude = ? AND isPlanned = ?`,
       [
         result.exerciseId,
         result.weight,
@@ -238,35 +321,53 @@ export const saveResult = async (result: {
         result.isPlanned ? 1 : 0,
       ]
     );
-  }
+
+    if (!existing) {
+      // Добавляем только если не существует
+      await database.runAsync(
+        `INSERT INTO results (exerciseId, weight, reps, date, amplitude, isPlanned)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          result.exerciseId,
+          result.weight,
+          result.reps,
+          result.date,
+          result.amplitude,
+          result.isPlanned ? 1 : 0,
+        ]
+      );
+    }
+  });
 };
 
 export const getResultsByExercise = async (
   exerciseId: string
 ): Promise<any[]> => {
-  const database = await getDatabase();
-  const result = await database.getAllAsync(
-    "SELECT * FROM results WHERE exerciseId = ? ORDER BY date DESC",
-    [exerciseId]
-  );
-  return result.map((row: any) => ({
-    ...row,
-    isPlanned: Boolean(row.isPlanned),
-  }));
+  return await safeDbOperation(async (database) => {
+    const result = await database.getAllAsync(
+      "SELECT * FROM results WHERE exerciseId = ? ORDER BY date DESC",
+      [exerciseId]
+    );
+    return result.map((row: any) => ({
+      ...row,
+      isPlanned: Boolean(row.isPlanned),
+    }));
+  });
 };
 
 export const getResultsForExerciseIds = async (exerciseIds: string[]) => {
   if (!exerciseIds || exerciseIds.length === 0) return [];
-  const database = await getDatabase();
-  const placeholders = exerciseIds.map(() => "?").join(",");
-  const rows = await database.getAllAsync(
-    `SELECT exerciseId, weight, reps, date, amplitude, isPlanned
-     FROM results
-     WHERE exerciseId IN (${placeholders})
-     ORDER BY date DESC`,
-    exerciseIds
-  );
-  return rows.map((r: any) => ({ ...r, isPlanned: Boolean(r.isPlanned) }));
+  return await safeDbOperation(async (database) => {
+    const placeholders = exerciseIds.map(() => "?").join(",");
+    const rows = await database.getAllAsync(
+      `SELECT exerciseId, weight, reps, date, amplitude, isPlanned
+       FROM results
+       WHERE exerciseId IN (${placeholders})
+       ORDER BY date DESC`,
+      exerciseIds
+    );
+    return rows.map((r: any) => ({ ...r, isPlanned: Boolean(r.isPlanned) }));
+  });
 };
 
 // Методы для работы с калориями
@@ -275,26 +376,29 @@ export const saveCalorieEntry = async (
   calories: number,
   weight: number
 ): Promise<void> => {
-  const database = await getDatabase();
-  await database.runAsync(
-    "INSERT OR REPLACE INTO calories (date, calories, weight) VALUES (?, ?, ?)",
-    [date, calories, weight]
-  );
+  await safeDbOperation(async (database) => {
+    await database.runAsync(
+      "INSERT OR REPLACE INTO calories (date, calories, weight) VALUES (?, ?, ?)",
+      [date, calories, weight]
+    );
+  });
 };
 
 export const deleteCalorieEntry = async (date: string): Promise<void> => {
-  const database = await getDatabase();
-  await database.runAsync("DELETE FROM calories WHERE date = ?", [date]);
+  await safeDbOperation(async (database) => {
+    await database.runAsync("DELETE FROM calories WHERE date = ?", [date]);
+  });
 };
 
 export const getCalorieEntries = async (): Promise<
   { date: string; calories: number; weight: number }[]
 > => {
-  const database = await getDatabase();
-  const result = await database.getAllAsync(
-    "SELECT date, calories, weight FROM calories ORDER BY date DESC"
-  );
-  return result;
+  return await safeDbOperation(async (database) => {
+    const result = await database.getAllAsync(
+      "SELECT date, calories, weight FROM calories ORDER BY date DESC"
+    );
+    return result;
+  });
 };
 
 // Методы для работы с настройками
@@ -302,63 +406,70 @@ export const saveSetting = async (
   key: string,
   value: string
 ): Promise<void> => {
-  const database = await getDatabase();
-  await database.runAsync(
-    "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
-    [key, value]
-  );
+  await safeDbOperation(async (database) => {
+    await database.runAsync(
+      "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
+      [key, value]
+    );
+  });
 };
 
 export const getSetting = async (key: string): Promise<string | null> => {
-  const database = await getDatabase();
-  const result = await database.getFirstAsync(
-    "SELECT value FROM settings WHERE key = ?",
-    [key]
-  );
-  return result ? result.value : null;
+  return await safeDbOperation(async (database) => {
+    const result = await database.getFirstAsync(
+      "SELECT value FROM settings WHERE key = ?",
+      [key]
+    );
+    return result ? result.value : null;
+  });
 };
 
 export const getAllSettings = async (): Promise<
   { key: string; value: string }[]
 > => {
-  const database = await getDatabase();
-  const result = await database.getAllAsync("SELECT key, value FROM settings");
-  return result;
+  return await safeDbOperation(async (database) => {
+    const result = await database.getAllAsync("SELECT key, value FROM settings");
+    return result;
+  });
 };
 
 // Методы для работы с шагами
 export const saveStepsFallback = async (steps: number): Promise<void> => {
-  const database = await getDatabase();
-  await database.runAsync("INSERT INTO stepsFallback (steps) VALUES (?)", [
-    steps,
-  ]);
+  await safeDbOperation(async (database) => {
+    await database.runAsync("INSERT INTO stepsFallback (steps) VALUES (?)", [
+      steps,
+    ]);
+  });
 };
 
 export const getLatestStepsFallback = async (): Promise<number> => {
-  const database = await getDatabase();
-  const result = await database.getFirstAsync(
-    "SELECT steps FROM stepsFallback ORDER BY timestamp DESC LIMIT 1"
-  );
-  return result ? result.steps : 0;
+  return await safeDbOperation(async (database) => {
+    const result = await database.getFirstAsync(
+      "SELECT steps FROM stepsFallback ORDER BY timestamp DESC LIMIT 1"
+    );
+    return result ? result.steps : 0;
+  });
 };
 
 export const getStepsForDate = async (date: string): Promise<number> => {
-  const database = await getDatabase();
-  const result = await database.getFirstAsync(
-    "SELECT steps FROM stepsFallback WHERE DATE(timestamp) = ? ORDER BY timestamp DESC LIMIT 1",
-    [date]
-  );
-  return result ? result.steps : 0;
+  return await safeDbOperation(async (database) => {
+    const result = await database.getFirstAsync(
+      "SELECT steps FROM stepsFallback WHERE DATE(timestamp) = ? ORDER BY timestamp DESC LIMIT 1",
+      [date]
+    );
+    return result ? result.steps : 0;
+  });
 };
 
 export const clearOldStepsFallback = async (
   daysToKeep: number = 7
 ): Promise<void> => {
-  const database = await getDatabase();
-  await database.runAsync(
-    "DELETE FROM stepsFallback WHERE timestamp < datetime('now', '-? days')",
-    [daysToKeep]
-  );
+  await safeDbOperation(async (database) => {
+    await database.runAsync(
+      "DELETE FROM stepsFallback WHERE timestamp < datetime('now', '-? days')",
+      [daysToKeep]
+    );
+  });
 };
 
 export const saveMaintenanceCalories = async (
@@ -368,11 +479,12 @@ export const saveMaintenanceCalories = async (
 };
 
 export const getMaintenanceCalories = async (): Promise<number | null> => {
-  const database = await getDatabase();
-  const result = await database.getFirstAsync(
-    "SELECT value FROM settings WHERE key = 'maintenanceCalories'"
-  );
-  return result ? parseFloat(result.value) : null;
+  return await safeDbOperation(async (database) => {
+    const result = await database.getFirstAsync(
+      "SELECT value FROM settings WHERE key = 'maintenanceCalories'"
+    );
+    return result ? parseFloat(result.value) : null;
+  });
 };
 
 export const logAllTables = async () => {

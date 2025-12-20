@@ -1,6 +1,6 @@
 import { StateCreator } from "zustand";
 import * as dbLayer from "./dbLayer";
-import { Plan, Settings, CalorieEntry, StoreState } from "./store";
+import { CalorieEntry, Plan, Settings, StoreState } from "./store";
 
 export interface SyncMiddleware {
   (config: StateCreator<StoreState>): StateCreator<StoreState>;
@@ -82,7 +82,10 @@ const syncToDatabase = async (prevState: StoreState, newState: StoreState) => {
 };
 
 // Функция для проверки изменений в планах
-const hasPlansChanged = (prevPlans: Plan[] = [], newPlans: Plan[] = []): boolean => {
+const hasPlansChanged = (
+  prevPlans: Plan[] = [],
+  newPlans: Plan[] = []
+): boolean => {
   if (prevPlans.length !== newPlans.length) return true;
 
   for (let i = 0; i < newPlans.length; i++) {
@@ -97,9 +100,14 @@ const hasPlansChanged = (prevPlans: Plan[] = [], newPlans: Plan[] = []): boolean
       const newTraining = newPlan.trainings[j];
 
       if (!prevTraining || prevTraining.id !== newTraining.id) return true;
-      if (prevTraining.exercises.length !== newTraining.exercises.length) return true;
-      if (prevTraining.results.length !== newTraining.results.length) return true;
-      if (prevTraining.plannedResults.length !== newTraining.plannedResults.length) return true;
+      if (prevTraining.exercises.length !== newTraining.exercises.length)
+        return true;
+      if (prevTraining.results.length !== newTraining.results.length)
+        return true;
+      if (
+        prevTraining.plannedResults.length !== newTraining.plannedResults.length
+      )
+        return true;
     }
   }
 
@@ -116,7 +124,7 @@ const syncPlansChanges = async (prevPlans: Plan[], newPlans: Plan[]) => {
   for (const plan of newPlans) {
     if (!plan || !plan.planName) continue;
 
-    const prevPlan = prevPlans.find(p => p.planName === plan.planName);
+    const prevPlan = prevPlans.find((p) => p.planName === plan.planName);
     const isNewPlan = !prevPlan;
 
     if (isNewPlan) {
@@ -129,11 +137,15 @@ const syncPlansChanges = async (prevPlans: Plan[], newPlans: Plan[]) => {
       for (const training of plan.trainings) {
         if (!training || !training.id || !training.name) continue;
 
-        const prevTraining = prevPlan?.trainings.find(t => t.id === training.id);
+        const prevTraining = prevPlan?.trainings.find(
+          (t) => t.id === training.id
+        );
         const isNewTraining = !prevTraining;
 
         if (isNewTraining) {
-          console.log(`Синхронизация: Добавление новой тренировки ${training.name} в план ${plan.planName}`);
+          console.log(
+            `Синхронизация: Добавление новой тренировки ${training.name} в план ${plan.planName}`
+          );
         }
 
         await dbLayer.saveTraining(training.id, plan.planName, training.name);
@@ -142,11 +154,15 @@ const syncPlansChanges = async (prevPlans: Plan[], newPlans: Plan[]) => {
           for (const exercise of training.exercises) {
             if (!exercise || !exercise.id) continue;
 
-            const prevExercise = prevTraining?.exercises.find(e => e.id === exercise.id);
+            const prevExercise = prevTraining?.exercises.find(
+              (e) => e.id === exercise.id
+            );
             const isNewExercise = !prevExercise;
 
             if (isNewExercise) {
-              console.log(`Синхронизация: Добавление нового упражнения ${exercise.name}`);
+              console.log(
+                `Синхронизация: Добавление нового упражнения ${exercise.name}`
+              );
             }
 
             await dbLayer.saveExercise({
@@ -159,18 +175,21 @@ const syncPlansChanges = async (prevPlans: Plan[], newPlans: Plan[]) => {
         // Синхронизируем только новые результаты
         if (training.results && Array.isArray(training.results)) {
           const prevResults = prevTraining?.results || [];
-          const newResults = training.results.filter(result => {
-            return !prevResults.some(prevResult =>
-              prevResult.exerciseId === result.exerciseId &&
-              prevResult.weight === result.weight &&
-              prevResult.reps === result.reps &&
-              prevResult.date === result.date &&
-              prevResult.amplitude === result.amplitude
+          const newResults = training.results.filter((result) => {
+            return !prevResults.some(
+              (prevResult) =>
+                prevResult.exerciseId === result.exerciseId &&
+                prevResult.weight === result.weight &&
+                prevResult.reps === result.reps &&
+                prevResult.date === result.date &&
+                prevResult.amplitude === result.amplitude
             );
           });
 
           if (newResults.length > 0) {
-            console.log(`Синхронизация: Добавление ${newResults.length} новых результатов для тренировки ${training.name}`);
+            console.log(
+              `Синхронизация: Добавление ${newResults.length} новых результатов для тренировки ${training.name}`
+            );
             for (const result of newResults) {
               if (!result || !result.exerciseId) continue;
               await dbLayer.saveResult({
@@ -184,18 +203,23 @@ const syncPlansChanges = async (prevPlans: Plan[], newPlans: Plan[]) => {
         // Синхронизируем только новые плановые результаты
         if (training.plannedResults && Array.isArray(training.plannedResults)) {
           const prevPlannedResults = prevTraining?.plannedResults || [];
-          const newPlannedResults = training.plannedResults.filter(plannedResult => {
-            return !prevPlannedResults.some(prevPlanned =>
-              prevPlanned.exerciseId === plannedResult.exerciseId &&
-              prevPlanned.plannedWeight === plannedResult.plannedWeight &&
-              prevPlanned.plannedReps === plannedResult.plannedReps &&
-              prevPlanned.plannedDate === plannedResult.plannedDate &&
-              prevPlanned.amplitude === plannedResult.amplitude
-            );
-          });
+          const newPlannedResults = training.plannedResults.filter(
+            (plannedResult) => {
+              return !prevPlannedResults.some(
+                (prevPlanned) =>
+                  prevPlanned.exerciseId === plannedResult.exerciseId &&
+                  prevPlanned.plannedWeight === plannedResult.plannedWeight &&
+                  prevPlanned.plannedReps === plannedResult.plannedReps &&
+                  prevPlanned.plannedDate === plannedResult.plannedDate &&
+                  prevPlanned.amplitude === plannedResult.amplitude
+              );
+            }
+          );
 
           if (newPlannedResults.length > 0) {
-            console.log(`Синхронизация: Добавление ${newPlannedResults.length} новых плановых результатов для тренировки ${training.name}`);
+            console.log(
+              `Синхронизация: Добавление ${newPlannedResults.length} новых плановых результатов для тренировки ${training.name}`
+            );
             for (const plannedResult of newPlannedResults) {
               if (!plannedResult || !plannedResult.exerciseId) continue;
               await dbLayer.saveResult({
@@ -316,17 +340,6 @@ const loadCaloriesFromDB = async () => {
 // соберём все exerciseIds по тренировке и вытащим результаты за раз
 const getResultsForExerciseIds = async (exerciseIds: string[]) => {
   if (exerciseIds.length === 0) return [];
-
-  const database = await dbLayer.getDatabase();
-  const placeholders = exerciseIds.map(() => "?").join(",");
-
-  const rows = await database.getAllAsync(
-    `SELECT exerciseId, weight, reps, date, amplitude, isPlanned
-     FROM results
-     WHERE exerciseId IN (${placeholders})
-     ORDER BY date DESC`,
-    exerciseIds
-  );
-
-  return rows.map((r: any) => ({ ...r, isPlanned: Boolean(r.isPlanned) }));
+  // Используем функцию из dbLayer, которая уже имеет защиту
+  return await dbLayer.getResultsForExerciseIds(exerciseIds);
 };

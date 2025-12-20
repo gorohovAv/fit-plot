@@ -37,10 +37,10 @@ export default function RootLayout() {
         await initializeFromDB();
         await initializeCaloriesFromDB();
         await initializeSettingsFromDB();
-
-        setInitializing(false);
       } catch (error) {
         console.error("Ошибка инициализации приложения:", error);
+      } finally {
+        setInitializing(false);
       }
     };
 
