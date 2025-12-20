@@ -117,14 +117,14 @@ const Plot: React.FC<PlotProps> = ({
       return d3
         .scaleTime()
         .domain([new Date(), new Date()])
-        .range([0, innerWidth]);
+        .range([dynamicMargin.left, dynamicMargin.left + innerWidth]);
     }
     return d3
       .scaleTime()
       .domain([d3.min(allDates) as Date, d3.max(allDates) as Date])
-      .range([0, innerWidth])
+      .range([dynamicMargin.left, dynamicMargin.left + innerWidth])
       .nice();
-  }, [allDates, innerWidth]);
+  }, [allDates, innerWidth, dynamicMargin]);
 
   const allValues =
     datasets?.flatMap((dataset) => dataset.data.map((d) => d.y)) || [];
@@ -142,8 +142,8 @@ const Plot: React.FC<PlotProps> = ({
     return d3
       .scaleLinear()
       .domain(globalYDomain as [number, number])
-      .range([innerHeight, 0]);
-  }, [globalYDomain, innerHeight]);
+      .range([dynamicMargin.top + innerHeight, dynamicMargin.top]);
+  }, [globalYDomain, innerHeight, dynamicMargin]);
 
   // Находим ближайшие точки для выбранной даты (должно быть до раннего возврата)
   const selectedPoints = React.useMemo(() => {
@@ -225,14 +225,14 @@ const Plot: React.FC<PlotProps> = ({
       const { locationX, locationY } = event.nativeEvent;
 
       // locationX относительно Pressable (который имеет ширину chartWidth)
-      // Нужно учесть текущий скролл и преобразовать в координату в масштабе графика (innerWidth)
-      // locationX - это координата относительно Pressable, нужно добавить scrollX
-      const xInChart = locationX + scrollX - dynamicMargin.left;
+      // Нужно учесть текущий скролл и преобразовать в координату в масштабе графика
+      // locationX - это координата относительно Pressable, добавляем scrollX
+      const xInChart = locationX + scrollX;
 
-      // Проверяем, что тап внутри области графика
+      // Проверяем, что тап внутри области графика с учетом отступов
       if (
-        xInChart < 0 ||
-        xInChart > innerWidth ||
+        xInChart < dynamicMargin.left ||
+        xInChart > dynamicMargin.left + innerWidth ||
         locationY < dynamicMargin.top ||
         locationY > dynamicMargin.top + innerHeight
       ) {
@@ -292,12 +292,12 @@ const Plot: React.FC<PlotProps> = ({
   const zoneRects = zones.map((zone) => {
     const x1 = xScale(new Date(zone.startDate));
     const x2 = xScale(new Date(zone.endDate));
-    const x = Math.max(0, Math.min(x1, x2));
+    const x = Math.max(dynamicMargin.left, Math.min(x1, x2));
     const w = Math.max(0, Math.abs(x2 - x1));
 
     return {
       x,
-      y: 0,
+      y: dynamicMargin.top,
       width: w,
       height: innerHeight,
       color: zone.color,
@@ -357,8 +357,8 @@ const Plot: React.FC<PlotProps> = ({
                 {zoneRects.map((zone, index) => (
                   <Rect
                     key={`zone-${index}`}
-                    x={zone.x + dynamicMargin.left}
-                    y={zone.y + dynamicMargin.top}
+                    x={zone.x}
+                    y={zone.y}
                     width={zone.width}
                     height={zone.height}
                     color={zone.color}
@@ -380,14 +380,14 @@ const Plot: React.FC<PlotProps> = ({
                 {selectedPoints.map((selectedPoint) => (
                   <React.Fragment key={selectedPoint.datasetIndex}>
                     <Circle
-                      cx={selectedPoint.x + dynamicMargin.left}
-                      cy={selectedPoint.y + dynamicMargin.top}
+                      cx={selectedPoint.x}
+                      cy={selectedPoint.y}
                       r={6}
                       color={selectedPoint.color}
                     />
                     <Circle
-                      cx={selectedPoint.x + dynamicMargin.left}
-                      cy={selectedPoint.y + dynamicMargin.top}
+                      cx={selectedPoint.x}
+                      cy={selectedPoint.y}
                       r={4}
                       color={axisColors.background}
                     />
@@ -406,7 +406,7 @@ const Plot: React.FC<PlotProps> = ({
                 >
                   {selectedPoints.map((selectedPoint) => {
                     // Позиция точки в координатах графика (selectedPoint.x уже в масштабе innerWidth)
-                    const xPosition = selectedPoint.x + dynamicMargin.left;
+                    const xPosition = selectedPoint.x;
                     const isLeftSide = xPosition < chartWidth / 2;
 
                     return (
@@ -419,7 +419,7 @@ const Plot: React.FC<PlotProps> = ({
                             right: isLeftSide
                               ? undefined
                               : chartWidth - xPosition,
-                            top: selectedPoint.y + dynamicMargin.top - 30,
+                            top: selectedPoint.y - 30,
                           },
                         ]}
                       >

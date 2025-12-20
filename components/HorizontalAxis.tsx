@@ -19,7 +19,10 @@ const HorizontalAxis: React.FC<HorizontalAxisProps> = ({
   color,
   xScale: providedXScale,
 }) => {
-  const innerWidth = width - margin.left - margin.right;
+  const useProvidedScale = !!providedXScale;
+  const innerWidth = useProvidedScale
+    ? width
+    : width - margin.left - margin.right;
   const allDates = data.map((point) => new Date(point.x));
 
   const xScale =
@@ -42,14 +45,14 @@ const HorizontalAxis: React.FC<HorizontalAxisProps> = ({
           {
             backgroundColor: color,
             width: innerWidth,
-            left: margin.left,
+            left: useProvidedScale ? 0 : margin.left,
             top: 0,
           },
         ]}
       />
 
       {ticks.map((tick, index) => {
-        const x = xScale(tick) + margin.left;
+        const x = xScale(tick) + (useProvidedScale ? 0 : margin.left);
         const dateStr = d3.timeFormat("%d.%m")(tick);
 
         return (
