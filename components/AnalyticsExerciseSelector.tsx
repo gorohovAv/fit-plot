@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
+  TextInput,
 } from "react-native";
 import { Checkbox } from "expo-checkbox";
 import { Exercise, PlannedResult } from "../store/store";
@@ -19,8 +20,15 @@ interface AnalyticsExerciseSelectorProps {
   plannedResults: PlannedResult[];
   selectedExerciseIds: string[];
   selectedPlannedIds: string[];
+  dateFilterStart: string;
+  dateFilterEnd: string;
   onClose: () => void;
-  onSave: (selectedIds: string[], selectedPlannedIds: string[]) => void;
+  onSave: (
+    selectedIds: string[],
+    selectedPlannedIds: string[],
+    dateStart: string,
+    dateEnd: string
+  ) => void;
 }
 
 const AnalyticsExerciseSelector: React.FC<AnalyticsExerciseSelectorProps> = ({
@@ -29,6 +37,8 @@ const AnalyticsExerciseSelector: React.FC<AnalyticsExerciseSelectorProps> = ({
   plannedResults,
   selectedExerciseIds,
   selectedPlannedIds,
+  dateFilterStart,
+  dateFilterEnd,
   onClose,
   onSave,
 }) => {
@@ -44,11 +54,15 @@ const AnalyticsExerciseSelector: React.FC<AnalyticsExerciseSelectorProps> = ({
     useState<string[]>(selectedExerciseIds);
   const [currentSelectedPlannedIds, setCurrentSelectedPlannedIds] =
     useState<string[]>(selectedPlannedIds);
+  const [currentDateStart, setCurrentDateStart] = useState<string>(dateFilterStart);
+  const [currentDateEnd, setCurrentDateEnd] = useState<string>(dateFilterEnd);
 
   useEffect(() => {
     setCurrentSelectedIds(selectedExerciseIds);
     setCurrentSelectedPlannedIds(selectedPlannedIds);
-  }, [selectedExerciseIds, selectedPlannedIds]);
+    setCurrentDateStart(dateFilterStart);
+    setCurrentDateEnd(dateFilterEnd);
+  }, [selectedExerciseIds, selectedPlannedIds, dateFilterStart, dateFilterEnd]);
 
   const handleCheckboxChange = (id: string) => {
     setCurrentSelectedIds((prevSelectedIds) => {
@@ -71,7 +85,7 @@ const AnalyticsExerciseSelector: React.FC<AnalyticsExerciseSelectorProps> = ({
   };
 
   const handleSave = () => {
-    onSave(currentSelectedIds, currentSelectedPlannedIds);
+    onSave(currentSelectedIds, currentSelectedPlannedIds, currentDateStart, currentDateEnd);
     onClose();
   };
 
@@ -102,6 +116,29 @@ const AnalyticsExerciseSelector: React.FC<AnalyticsExerciseSelectorProps> = ({
             {getTranslation(language, "selectExercises")}
           </Text>
           <ScrollView style={themedStyles.scrollView}>
+            <Text style={themedStyles.sectionTitle}>Фильтр по датам</Text>
+            <View style={themedStyles.dateInputContainer}>
+              <View style={themedStyles.dateInputGroup}>
+                <Text style={themedStyles.dateLabel}>Начало</Text>
+                <TextInput
+                  value={currentDateStart}
+                  onChangeText={setCurrentDateStart}
+                  placeholder="YYYY-MM-DD"
+                  style={themedStyles.dateInput}
+                  placeholderTextColor={Colors[colorScheme].placeholderText}
+                />
+              </View>
+              <View style={themedStyles.dateInputGroup}>
+                <Text style={themedStyles.dateLabel}>Конец</Text>
+                <TextInput
+                  value={currentDateEnd}
+                  onChangeText={setCurrentDateEnd}
+                  placeholder="YYYY-MM-DD"
+                  style={themedStyles.dateInput}
+                  placeholderTextColor={Colors[colorScheme].placeholderText}
+                />
+              </View>
+            </View>
             <Text style={themedStyles.sectionTitle}>Упражнения</Text>
             {exercises.map((exercise) => (
               <View key={exercise.id} style={themedStyles.checkboxContainer}>
@@ -254,6 +291,29 @@ function getThemedStyles(colors: typeof Colors.light) {
       color: "white",
       fontWeight: "bold",
       textAlign: "center",
+    },
+    dateInputContainer: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      marginBottom: 15,
+    },
+    dateInputGroup: {
+      flex: 1,
+      marginRight: 8,
+    },
+    dateLabel: {
+      fontSize: 14,
+      color: colors.text,
+      marginBottom: 4,
+      opacity: 0.8,
+    },
+    dateInput: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 8,
+      padding: 12,
+      color: colors.text,
+      backgroundColor: colors.inputBackground || colors.card,
     },
   });
 }

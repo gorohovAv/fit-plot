@@ -18,13 +18,7 @@ import {
   View,
 } from "react-native";
 import * as dbLayer from "../../store/dbLayer";
-import {
-  ExerciseType,
-  MuscleGroup,
-  Plan,
-  PlannedResult,
-  Result,
-} from "../../store/store";
+import { Plan, PlannedResult, Result } from "../../store/store";
 
 type ChartData = {
   x: string; // Дата
@@ -44,43 +38,16 @@ type Zone = {
 };
 
 // Определяем типы для "сырых" импортированных данных (без гарантированных ID)
-type RawExercise = {
-  id?: string; // ID может быть, но мы его перегенерируем
-  name: string;
-  muscleGroup: MuscleGroup;
-  type: ExerciseType;
-  unilateral: boolean;
-  amplitude: "full" | "partial";
-};
-
-type RawResult = {
-  exerciseId: string; // Этот ID будет ссылаться на исходный ID из JSON
-  weight: number;
-  reps: number;
-  date: string;
-  amplitude: "full" | "partial";
-};
-
-type RawTraining = {
-  id?: string; // ID может быть, но мы его перегенерируем
-  name: string;
-  exercises: RawExercise[];
-  results: RawResult[];
-};
-
-type RawPlan = {
-  planName: string;
-  trainings: RawTraining[];
-};
 
 export default function AnalyticsScreen() {
   const [plans, setPlans] = useState<Plan[]>([]);
-  const [selectedExercise, setSelectedExercise] = useState<string>("");
   const [selectedExerciseIds, setSelectedExerciseIds] = useState<string[]>([]);
   const [selectedPlannedIds, setSelectedPlannedIds] = useState<string[]>([]);
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
-  const [autoPeriod, setAutoPeriod] = useState<boolean>(true);
+  const [autoPeriod] = useState<boolean>(true);
+  const [dateFilterStart, setDateFilterStart] = useState<string>("");
+  const [dateFilterEnd, setDateFilterEnd] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [chartData, setChartData] = useState<{
     tonnage: Dataset[];
@@ -110,8 +77,6 @@ export default function AnalyticsScreen() {
     theme === "system" ? Appearance.getColorScheme?.() ?? "light" : theme;
   const themeColors = Colors[colorScheme];
 
-  const settingsStore = useSettingsStore();
-
   // Функция для загрузки всех планов с данными из БД
   const loadPlansFromDB = async () => {
     try {
@@ -140,6 +105,7 @@ export default function AnalyticsScreen() {
               });
             } else {
               results.push({
+                id: r.id,
                 exerciseId: r.exerciseId,
                 weight: r.weight,
                 reps: r.reps,
@@ -215,17 +181,6 @@ export default function AnalyticsScreen() {
     return `${year}-${month}-${day}`;
   };
 
-  // Хелпер для красивого отображения на графике (MM-DD)
-  const formatLabel = (dayStr: string) => {
-    if (!dayStr || typeof dayStr !== "string") return "";
-    const parts = dayStr.split("-");
-    if (parts.length !== 3) return "";
-    const [, month, day] = parts;
-    // Проверяем, что month и day существуют и это числа
-    if (!month || !day || isNaN(Number(month)) || isNaN(Number(day))) return "";
-    return `${month}-${day}`;
-  };
-
   useEffect(() => {
     if (route.params) {
       const { exerciseId, exerciseName } = route.params as {
@@ -253,6 +208,12 @@ export default function AnalyticsScreen() {
     setIsLoading(true);
 
     const processData = async () => {
+      const exercises = plans
+        .flatMap((plan) =>
+          plan.trainings.flatMap((training) => training.exercises || [])
+        )
+        .filter((exercise) => exercise && exercise.id && exercise.name);
+
       if (selectedExerciseIds.length === 0 && selectedPlannedIds.length === 0) {
         setChartData({
           tonnage: [],
@@ -270,7 +231,13 @@ export default function AnalyticsScreen() {
         plans
           .flatMap((plan) =>
             plan.trainings.flatMap((training) =>
-              training.results.filter((result) => result.exerciseId === id)
+              training.results.filter((result) => {
+                if (result.exerciseId !== id) return false;
+                if (dateFilterStart && result.date < dateFilterStart)
+                  return false;
+                if (dateFilterEnd && result.date > dateFilterEnd) return false;
+                return true;
+              })
             )
           )
           .forEach((result) => allResults.push(result));
@@ -283,9 +250,14 @@ export default function AnalyticsScreen() {
           plans
             .flatMap((plan) =>
               plan.trainings.flatMap((training) =>
-                training.plannedResults.filter(
-                  (planned) => planned.exerciseId === exercise.id
-                )
+                training.plannedResults.filter((planned) => {
+                  if (planned.exerciseId !== exercise.id) return false;
+                  if (dateFilterStart && planned.plannedDate < dateFilterStart)
+                    return false;
+                  if (dateFilterEnd && planned.plannedDate > dateFilterEnd)
+                    return false;
+                  return true;
+                })
               )
             )
             .forEach((planned) => allPlannedResults.push(planned));
@@ -459,6 +431,9 @@ export default function AnalyticsScreen() {
     autoPeriod,
     plans,
     route.params,
+    dateFilterStart,
+    dateFilterEnd,
+    language,
   ]);
 
   if (!font) {
@@ -469,13 +444,169 @@ export default function AnalyticsScreen() {
     .flatMap((plan) =>
       plan.trainings.flatMap((training) => training.exercises || [])
     )
-    .filter((exercise) => exercise && exercise.id && exercise.name); // Фильтруем некорректные упражнения
+    .filter((exercise) => exercise && exercise.id && exercise.name);
 
   const plannedResults = plans
     .flatMap((plan) =>
       plan.trainings.flatMap((training) => training.plannedResults || [])
     )
-    .filter((planned) => planned && planned.exerciseId && planned.plannedDate); // Фильтруем некорректные плановые результаты
+    .filter((planned) => planned && planned.exerciseId && planned.plannedDate);
+
+  const getAllResults = () => {
+    return plans
+      .flatMap((plan) =>
+        plan.trainings.flatMap((training) => training.results || [])
+      )
+      .filter((result) => {
+        if (dateFilterStart && result.date < dateFilterStart) return false;
+        if (dateFilterEnd && result.date > dateFilterEnd) return false;
+        return true;
+      });
+  };
+
+  const calculateMetrics = () => {
+    const allResults = getAllResults();
+    if (allResults.length === 0) {
+      return {
+        avgSetsPerWeek: null,
+        avgTonnageProgress: null,
+        avgWeightProgress: null,
+      };
+    }
+
+    const allDates = allResults.map((r) => r.date).sort();
+    const start = new Date(allDates[0]);
+    const end = new Date(allDates[allDates.length - 1]);
+    const daysDiff = Math.max(
+      1,
+      Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
+    );
+    const weeks = daysDiff / 7;
+    const avgSetsPerWeek = weeks > 0 ? allResults.length / weeks : null;
+
+    let avgTonnageProgress = null;
+    let avgWeightProgress = null;
+
+    if (daysDiff >= 30) {
+      const periods: { start: Date; end: Date }[] = [];
+      let currentStart = new Date(start);
+      while (currentStart <= end) {
+        const currentEnd = new Date(currentStart);
+        currentEnd.setDate(currentEnd.getDate() + 29);
+        if (currentEnd > end) currentEnd.setTime(end.getTime());
+        periods.push({
+          start: new Date(currentStart),
+          end: new Date(currentEnd),
+        });
+        currentStart = new Date(currentEnd);
+        currentStart.setDate(currentStart.getDate() + 1);
+      }
+
+      if (periods.length >= 2) {
+        const tonnageProgresses: number[] = [];
+        const weightProgresses: number[] = [];
+
+        for (let i = 0; i < periods.length - 1; i++) {
+          const period1 = periods[i];
+          const period2 = periods[i + 1];
+
+          const period1Results = allResults.filter((r) => {
+            const date = new Date(r.date);
+            return date >= period1.start && date <= period1.end;
+          });
+          const period2Results = allResults.filter((r) => {
+            const date = new Date(r.date);
+            return date >= period2.start && date <= period2.end;
+          });
+
+          const period1TonnageByExercise: Record<string, number> = {};
+          const period2TonnageByExercise: Record<string, number> = {};
+          const period1WeightByExercise: Record<string, number> = {};
+          const period2WeightByExercise: Record<string, number> = {};
+
+          period1Results.forEach((r) => {
+            if (!period1TonnageByExercise[r.exerciseId]) {
+              period1TonnageByExercise[r.exerciseId] = 0;
+              period1WeightByExercise[r.exerciseId] = 0;
+            }
+            period1TonnageByExercise[r.exerciseId] += r.weight * r.reps;
+            period1WeightByExercise[r.exerciseId] = Math.max(
+              period1WeightByExercise[r.exerciseId],
+              r.weight
+            );
+          });
+
+          period2Results.forEach((r) => {
+            if (!period2TonnageByExercise[r.exerciseId]) {
+              period2TonnageByExercise[r.exerciseId] = 0;
+              period2WeightByExercise[r.exerciseId] = 0;
+            }
+            period2TonnageByExercise[r.exerciseId] += r.weight * r.reps;
+            period2WeightByExercise[r.exerciseId] = Math.max(
+              period2WeightByExercise[r.exerciseId],
+              r.weight
+            );
+          });
+
+          const exerciseIds = new Set([
+            ...Object.keys(period1TonnageByExercise),
+            ...Object.keys(period2TonnageByExercise),
+          ]);
+
+          const tonnageDiffs: number[] = [];
+          const weightDiffs: number[] = [];
+
+          exerciseIds.forEach((exerciseId) => {
+            const tonnage1 = period1TonnageByExercise[exerciseId] || 0;
+            const tonnage2 = period2TonnageByExercise[exerciseId] || 0;
+            if (tonnage1 > 0 && tonnage2 > 0) {
+              tonnageDiffs.push(tonnage2 - tonnage1);
+            }
+
+            const weight1 = period1WeightByExercise[exerciseId] || 0;
+            const weight2 = period2WeightByExercise[exerciseId] || 0;
+            if (weight1 > 0 && weight2 > 0) {
+              weightDiffs.push(weight2 - weight1);
+            }
+          });
+
+          if (tonnageDiffs.length > 0) {
+            const avgTonnageDiff =
+              tonnageDiffs.reduce((a, b) => a + b, 0) / tonnageDiffs.length;
+            tonnageProgresses.push(avgTonnageDiff);
+          }
+
+          if (weightDiffs.length > 0) {
+            const avgWeightDiff =
+              weightDiffs.reduce((a, b) => a + b, 0) / weightDiffs.length;
+            weightProgresses.push(avgWeightDiff);
+          }
+        }
+
+        if (tonnageProgresses.length > 0) {
+          avgTonnageProgress =
+            tonnageProgresses.reduce((a, b) => a + b, 0) /
+            tonnageProgresses.length;
+        }
+
+        if (weightProgresses.length > 0) {
+          avgWeightProgress =
+            weightProgresses.reduce((a, b) => a + b, 0) /
+            weightProgresses.length;
+        }
+      }
+    }
+
+    return {
+      avgSetsPerWeek,
+      avgTonnageProgress,
+      avgWeightProgress,
+    };
+  };
+
+  const metrics = calculateMetrics();
+  const showMetrics =
+    selectedExerciseIds.length === 0 && selectedPlannedIds.length === 0;
 
   const renderChart = (
     datasets: Dataset[],
@@ -644,33 +775,95 @@ export default function AnalyticsScreen() {
       </View>
 
       {showResultsList ? (
-        <ResultsList plans={plans} />
+        <ResultsList
+          plans={plans}
+          dateFilterStart={dateFilterStart}
+          dateFilterEnd={dateFilterEnd}
+          onResultDeleted={() => {
+            loadPlansFromDB();
+          }}
+        />
       ) : (
-        chartData.tonnage.length > 0 && (
-          <>
-            {renderChart(
-              chartData.tonnage,
-              getTranslation(language, "generalTonnage"),
-              themeColors.chartLine,
-              getTranslation(language, "date"),
-              getTranslation(language, "tonnage")
-            )}
-            {renderChart(
-              chartData.maxWeight,
-              getTranslation(language, "maxWeight"),
-              themeColors.chartLine,
-              getTranslation(language, "date"),
-              getTranslation(language, "weight")
-            )}
-            {renderChart(
-              chartData.maxReps,
-              getTranslation(language, "maxReps"),
-              themeColors.chartLine,
-              getTranslation(language, "date"),
-              getTranslation(language, "reps")
-            )}
-          </>
-        )
+        <>
+          {showMetrics && (
+            <View style={styles.metricsContainer}>
+              <View
+                style={[
+                  styles.metricCard,
+                  { backgroundColor: themeColors.card },
+                ]}
+              >
+                <Text style={[styles.metricTitle, { color: themeColors.text }]}>
+                  Среднее количество подходов в неделю
+                </Text>
+                <Text style={[styles.metricValue, { color: themeColors.text }]}>
+                  {metrics.avgSetsPerWeek !== null
+                    ? metrics.avgSetsPerWeek.toFixed(1)
+                    : "—"}
+                </Text>
+              </View>
+              <View
+                style={[
+                  styles.metricCard,
+                  { backgroundColor: themeColors.card },
+                ]}
+              >
+                <Text style={[styles.metricTitle, { color: themeColors.text }]}>
+                  Средний прогресс тоннажа
+                </Text>
+                <Text style={[styles.metricValue, { color: themeColors.text }]}>
+                  {metrics.avgTonnageProgress !== null
+                    ? `${
+                        metrics.avgTonnageProgress > 0 ? "+" : ""
+                      }${metrics.avgTonnageProgress.toFixed(1)} кг`
+                    : "—"}
+                </Text>
+              </View>
+              <View
+                style={[
+                  styles.metricCard,
+                  { backgroundColor: themeColors.card },
+                ]}
+              >
+                <Text style={[styles.metricTitle, { color: themeColors.text }]}>
+                  Средний прогресс веса
+                </Text>
+                <Text style={[styles.metricValue, { color: themeColors.text }]}>
+                  {metrics.avgWeightProgress !== null
+                    ? `${
+                        metrics.avgWeightProgress > 0 ? "+" : ""
+                      }${metrics.avgWeightProgress.toFixed(1)} кг`
+                    : "—"}
+                </Text>
+              </View>
+            </View>
+          )}
+          {chartData.tonnage.length > 0 && (
+            <>
+              {renderChart(
+                chartData.tonnage,
+                getTranslation(language, "generalTonnage"),
+                themeColors.chartLine,
+                getTranslation(language, "date"),
+                getTranslation(language, "tonnage")
+              )}
+              {renderChart(
+                chartData.maxWeight,
+                getTranslation(language, "maxWeight"),
+                themeColors.chartLine,
+                getTranslation(language, "date"),
+                getTranslation(language, "weight")
+              )}
+              {renderChart(
+                chartData.maxReps,
+                getTranslation(language, "maxReps"),
+                themeColors.chartLine,
+                getTranslation(language, "date"),
+                getTranslation(language, "reps")
+              )}
+            </>
+          )}
+        </>
       )}
 
       <AnalyticsExerciseSelector
@@ -679,10 +872,19 @@ export default function AnalyticsScreen() {
         plannedResults={plannedResults}
         selectedExerciseIds={selectedExerciseIds}
         selectedPlannedIds={selectedPlannedIds}
+        dateFilterStart={dateFilterStart}
+        dateFilterEnd={dateFilterEnd}
         onClose={() => setIsModalVisible(false)}
-        onSave={(newSelectedIds, newSelectedPlannedIds) => {
+        onSave={(
+          newSelectedIds,
+          newSelectedPlannedIds,
+          newDateStart,
+          newDateEnd
+        ) => {
           setSelectedExerciseIds(newSelectedIds);
           setSelectedPlannedIds(newSelectedPlannedIds);
+          setDateFilterStart(newDateStart);
+          setDateFilterEnd(newDateEnd);
           setIsModalVisible(false);
         }}
       />
@@ -744,5 +946,22 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 10,
     fontSize: 14,
+  },
+  metricsContainer: {
+    marginBottom: 24,
+  },
+  metricCard: {
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  metricTitle: {
+    fontSize: 14,
+    marginBottom: 8,
+    opacity: 0.8,
+  },
+  metricValue: {
+    fontSize: 24,
+    fontWeight: "bold",
   },
 });

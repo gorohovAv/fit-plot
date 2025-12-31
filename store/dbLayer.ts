@@ -386,13 +386,19 @@ export const getResultsForExerciseIds = async (exerciseIds: string[]) => {
   return await safeDbOperation(async (database) => {
     const placeholders = exerciseIds.map(() => "?").join(",");
     const rows = await database.getAllAsync(
-      `SELECT exerciseId, weight, reps, date, amplitude, isPlanned
+      `SELECT id, exerciseId, weight, reps, date, amplitude, isPlanned
        FROM results
        WHERE exerciseId IN (${placeholders})
        ORDER BY date DESC`,
       exerciseIds
     );
     return rows.map((r: any) => ({ ...r, isPlanned: Boolean(r.isPlanned) }));
+  });
+};
+
+export const deleteResult = async (resultId: number): Promise<void> => {
+  await safeDbOperation(async (database) => {
+    await database.runAsync("DELETE FROM results WHERE id = ?", [resultId]);
   });
 };
 

@@ -5,107 +5,117 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Colors } from "../constants/Colors";
 import useSettingsStore from "../store/settingsStore";
 import { useColorScheme } from "../hooks/useColorScheme";
+import * as dbLayer from "../store/dbLayer";
+import { Appearance } from "react-native";
 
 type ResultsListProps = {
   plans: Plan[];
+  onResultDeleted?: () => void;
+  dateFilterStart?: string;
+  dateFilterEnd?: string;
 };
 
-type GroupedResult = {
-  muscleGroup: string;
+type ResultWithExercise = {
+  id?: number;
+  exerciseId: string;
   exerciseName: string;
   date: string;
   weight: number;
   reps: number;
-  exerciseId: string;
 };
 
-type GroupedResults = Record<string, Record<string, GroupedResult[]>>;
-
-const ResultsList: React.FC<ResultsListProps> = ({ plans }) => {
-  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
-    {}
-  );
+const ResultsList: React.FC<ResultsListProps> = ({
+  plans,
+  onResultDeleted,
+  dateFilterStart,
+  dateFilterEnd,
+}) => {
   const { theme: settingsTheme } = useSettingsStore();
   const systemTheme = useColorScheme() ?? "light";
-
   const currentTheme = settingsTheme === "system" ? systemTheme : settingsTheme;
+  const themeColors = Colors[currentTheme];
 
-  const toggleGroup = (groupId: string) => {
-    setExpandedGroups((prev) => ({
-      ...prev,
-      [groupId]: !prev[groupId],
-    }));
+  const formatDateTime = (dateStr: string) => {
+    try {
+      const date = new Date(dateStr);
+      const day = String(date.getDate()).padStart(2, "0");
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const year = date.getFullYear();
+      const hours = String(date.getHours()).padStart(2, "0");
+      const minutes = String(date.getMinutes()).padStart(2, "0");
+      return `${day}.${month}.${year} ${hours}:${minutes}`;
+    } catch (error) {
+      return dateStr;
+    }
   };
 
-  const groupedResults: GroupedResults = plans
+  const handleDelete = async (resultId: number | undefined) => {
+    if (!resultId) return;
+    try {
+      await dbLayer.deleteResult(resultId);
+      if (onResultDeleted) {
+        onResultDeleted();
+      }
+    } catch (error) {
+      console.error("Ошибка удаления результата:", error);
+    }
+  };
+
+  const allResults: ResultWithExercise[] = plans
     .flatMap((plan) =>
       plan.trainings.flatMap((training) =>
-        training.results.map((result) => {
-          const exercise = training.exercises.find(
-            (ex) => ex.id === result.exerciseId
-          );
-          return {
-            ...result,
-            muscleGroup: exercise?.muscleGroup || "unknown",
-            exerciseName: exercise?.name || "unknown",
-          };
-        })
+        training.results
+          .filter((result) => {
+            if (dateFilterStart && result.date < dateFilterStart) return false;
+            if (dateFilterEnd && result.date > dateFilterEnd) return false;
+            return true;
+          })
+          .map((result) => {
+            const exercise = training.exercises.find(
+              (ex) => ex.id === result.exerciseId
+            );
+            return {
+              id: result.id,
+              exerciseId: result.exerciseId,
+              exerciseName: exercise?.name || "unknown",
+              date: result.date,
+              weight: result.weight,
+              reps: result.reps,
+            };
+          })
       )
     )
-    .reduce((acc, result) => {
-      if (!acc[result.muscleGroup]) {
-        acc[result.muscleGroup] = {};
-      }
-      if (!acc[result.muscleGroup][result.exerciseName]) {
-        acc[result.muscleGroup][result.exerciseName] = [];
-      }
-      acc[result.muscleGroup][result.exerciseName].push(result);
-      return acc;
-    }, {} as GroupedResults);
-
-  const backgroundColor = Colors[currentTheme].background;
-  const groupHeaderColor = Colors[currentTheme].card;
-  const textColor = Colors[currentTheme].text;
-  const resultBg = Colors[currentTheme].background;
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   return (
-    <View style={[styles.container, { backgroundColor }]}>
-      {Object.entries(groupedResults).map(([muscleGroup, exercises]) => (
-        <View key={muscleGroup} style={styles.group}>
-          <TouchableOpacity
-            onPress={() => toggleGroup(muscleGroup)}
-            style={[styles.groupHeader, { backgroundColor: groupHeaderColor }]}
-          >
-            <Text style={[styles.groupTitle, { color: textColor }]}>
-              {muscleGroup}
+    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+      {allResults.map((result, index) => (
+        <View
+          key={`${result.id || index}-${result.date}`}
+          style={[styles.resultCard, { backgroundColor: themeColors.card }]}
+        >
+          <View style={styles.resultContent}>
+            <Text style={[styles.exerciseName, { color: themeColors.text }]}>
+              {result.exerciseName}
             </Text>
+            <Text style={[styles.resultText, { color: themeColors.text }]}>
+              {result.weight} кг × {result.reps} повторений
+            </Text>
+            <Text style={[styles.dateText, { color: themeColors.text }]}>
+              {formatDateTime(result.date)}
+            </Text>
+          </View>
+          {result.id && (
+            <TouchableOpacity
+              onPress={() => handleDelete(result.id)}
+              style={styles.deleteButton}
+            >
             <MaterialIcons
-              name={expandedGroups[muscleGroup] ? "expand-less" : "expand-more"}
+              name="close"
               size={24}
-              color={textColor}
+              color={themeColors.error}
             />
-          </TouchableOpacity>
-          {expandedGroups[muscleGroup] && (
-            <View style={styles.exercisesContainer}>
-              {Object.entries(exercises).map(([exerciseName, results]) => (
-                <View key={exerciseName} style={styles.exercise}>
-                  <Text style={[styles.exerciseTitle, { color: textColor }]}>
-                    {exerciseName}
-                  </Text>
-                  {results.map((result, index) => (
-                    <View
-                      key={index}
-                      style={[styles.result, { backgroundColor: resultBg }]}
-                    >
-                      <Text style={{ color: textColor }}>
-                        {result.date}: {result.weight} кг × {result.reps}{" "}
-                        повторений
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              ))}
-            </View>
+            </TouchableOpacity>
           )}
         </View>
       ))}
@@ -118,36 +128,34 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
   },
-  group: {
-    marginBottom: 16,
-  },
-  groupHeader: {
+  resultCard: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 8,
-    borderRadius: 4,
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+    minHeight: 60,
   },
-  groupTitle: {
+  resultContent: {
+    flex: 1,
+  },
+  exerciseName: {
     fontSize: 16,
     fontWeight: "bold",
+    marginBottom: 4,
   },
-  exercisesContainer: {
-    marginTop: 8,
-    paddingLeft: 16,
-  },
-  exercise: {
-    marginBottom: 8,
-  },
-  exerciseTitle: {
+  resultText: {
     fontSize: 14,
-    fontWeight: "bold",
     marginBottom: 4,
   },
-  result: {
-    padding: 4,
-    borderRadius: 4,
-    marginBottom: 4,
+  dateText: {
+    fontSize: 12,
+    opacity: 0.6,
+  },
+  deleteButton: {
+    padding: 8,
+    marginLeft: 8,
   },
 });
 

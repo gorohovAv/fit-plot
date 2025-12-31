@@ -32,6 +32,7 @@ export type Exercise = {
 };
 
 export type Result = {
+  id?: number;
   exerciseId: string;
   weight: number;
   reps: number;
