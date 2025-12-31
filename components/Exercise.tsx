@@ -10,6 +10,7 @@ import {
   View,
 } from "react-native";
 import { Colors } from "../constants/Colors";
+import { ExerciseVisibilityToggle } from "./ExerciseVisibilityToggle";
 import * as dbLayer from "../store/dbLayer";
 import useSettingsStore from "../store/settingsStore";
 import useTimerStore from "../store/timerStore";
@@ -76,6 +77,7 @@ export const Exercise: React.FC<ExerciseProps> = ({
     amplitude: "full" as "full" | "partial",
   });
   const [exerciseResults, setExerciseResults] = useState<Result[]>([]);
+  const [hidden, setHidden] = useState(false);
   const { startTimer, stopTimer, isTimerRunning } = useTimerStore();
   const theme = useSettingsStore((state) => state.theme);
   const language = useSettingsStore((state) => state.language);
@@ -109,9 +111,26 @@ export const Exercise: React.FC<ExerciseProps> = ({
     }
   };
 
+  const loadExerciseHidden = async () => {
+    try {
+      const { workoutId } = route.params as {
+        workoutId: string;
+        planName: string;
+      };
+      const exercises = await dbLayer.getExercisesByTraining(workoutId);
+      const exercise = exercises.find((e: any) => e.id === id);
+      if (exercise) {
+        setHidden(exercise.hidden ?? false);
+      }
+    } catch (error) {
+      console.error("Ошибка загрузки состояния скрытости упражнения:", error);
+    }
+  };
+
   // Загружаем результаты при монтировании компонента
   useEffect(() => {
     loadExerciseResults();
+    loadExerciseHidden();
   }, [id]);
 
   const handleAddResult = async () => {
@@ -148,6 +167,11 @@ export const Exercise: React.FC<ExerciseProps> = ({
     } else {
       startTimer(id, timerDuration ?? 60);
     }
+  };
+
+  const handleToggleVisibility = async (exerciseId: string, newHidden: boolean) => {
+    await dbLayer.updateExerciseHidden(exerciseId, newHidden);
+    setHidden(newHidden);
   };
 
   return (
@@ -198,6 +222,11 @@ export const Exercise: React.FC<ExerciseProps> = ({
         >
           <MaterialIcons name="analytics" size={20} color={themeColors.icon} />
         </TouchableOpacity>
+        <ExerciseVisibilityToggle
+          exerciseId={id}
+          hidden={hidden}
+          onToggle={handleToggleVisibility}
+        />
       </View>
 
       {exerciseResults.length > 0 && (

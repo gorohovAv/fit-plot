@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { Exercise as ExerciseComponent } from "../../components/Exercise";
 import ExerciseModal from "../../components/ExerciseModal";
+import { TrainingSettings } from "../../components/TrainingSettings";
 import { Colors } from "../../constants/Colors";
 import * as dbLayer from "../../store/dbLayer";
 import useSettingsStore from "../../store/settingsStore";
@@ -19,12 +20,14 @@ import { Exercise, ExerciseType, MuscleGroup } from "../../store/store";
 
 export default function WorkoutScreen() {
   const route = useRoute();
-  const { workoutId, planName } = route.params as {
+  const { workoutId, planName, showSettings: initialShowSettings } = route.params as {
     workoutId: string;
     planName: string;
+    showSettings?: boolean;
   };
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [showSettings, setShowSettings] = useState(initialShowSettings || false);
   const [newExercise, setNewExercise] = useState({
     name: "",
     muscleGroup: "chest" as MuscleGroup,
@@ -89,6 +92,7 @@ export default function WorkoutScreen() {
         await dbLayer.saveExercise({
           ...exercise,
           trainingId: workoutId,
+          hidden: true,
         });
       }
       setNewExercise({
@@ -130,6 +134,16 @@ export default function WorkoutScreen() {
     await loadExercises();
   };
 
+  if (showSettings) {
+    return (
+      <TrainingSettings
+        trainingId={workoutId}
+        exercises={exercises}
+        onBack={() => setShowSettings(false)}
+      />
+    );
+  }
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -143,7 +157,7 @@ export default function WorkoutScreen() {
         }}
       >
         <FlatList
-          data={exercises}
+          data={exercises.filter((ex: any) => ex.hidden !== false)}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <ExerciseComponent

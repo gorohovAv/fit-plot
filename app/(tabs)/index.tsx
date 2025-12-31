@@ -184,6 +184,13 @@ export default function WorkoutPlanScreen() {
               })
             }
             onDelete={() => handleDeleteTraining(item.id)}
+            onSettings={() =>
+              navigation.navigate("workout", {
+                workoutId: item.id,
+                planName: selectedPlan?.planName,
+                showSettings: true,
+              })
+            }
           />
         )}
         contentContainerStyle={{ flexGrow: 1 }}

@@ -7,19 +7,27 @@ type WorkoutProps = {
   title: string;
   onPress: () => void;
   onDelete: () => void;
+  onSettings?: () => void;
 };
 
 export const Workout: React.FC<WorkoutProps> = ({
   title,
   onPress,
   onDelete,
+  onSettings,
 }) => {
   const backgroundColor = useThemeColor({}, "background");
   const textColor = useThemeColor({}, "text");
   const errorColor = useThemeColor({}, "error");
+  const iconColor = useThemeColor({}, "icon");
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
+      {onSettings && (
+        <TouchableOpacity onPress={onSettings} style={styles.settingsButton}>
+          <MaterialIcons name="settings" size={24} color={iconColor} />
+        </TouchableOpacity>
+      )}
       <TouchableOpacity onPress={onPress} style={styles.titleContainer}>
         <Text style={[styles.title, { color: textColor }]}>{title}</Text>
       </TouchableOpacity>
@@ -38,6 +46,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+  },
+  settingsButton: {
+    marginRight: 8,
   },
   titleContainer: {
     flex: 1,

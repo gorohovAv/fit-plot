@@ -79,6 +79,7 @@ export const initDatabase = async () => {
       amplitude TEXT NOT NULL,
       comment TEXT,
       timerDuration INTEGER,
+      hidden BOOLEAN NOT NULL DEFAULT 0,
       FOREIGN KEY (trainingId) REFERENCES trainings (id)
     )`,
     `CREATE TABLE IF NOT EXISTS results (
@@ -107,11 +108,31 @@ export const initDatabase = async () => {
       steps INTEGER NOT NULL,
       timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
     )`,
+    `CREATE TABLE IF NOT EXISTS training_settings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      trainingId TEXT NOT NULL,
+      exerciseId TEXT NOT NULL,
+      setsCount INTEGER NOT NULL DEFAULT 0,
+      hidden BOOLEAN NOT NULL DEFAULT 0,
+      UNIQUE(trainingId, exerciseId),
+      FOREIGN KEY (trainingId) REFERENCES trainings (id),
+      FOREIGN KEY (exerciseId) REFERENCES exercises (id)
+    )`,
   ];
 
   // Создаем таблицы
   for (const sql of createTables) {
     await database.runAsync(sql);
+  }
+
+  try {
+    await database.runAsync(
+      "ALTER TABLE exercises ADD COLUMN hidden BOOLEAN NOT NULL DEFAULT 0"
+    );
+  } catch (error: any) {
+    if (!error?.message?.includes("duplicate column")) {
+      console.warn("Ошибка добавления колонки hidden в exercises:", error);
+    }
   }
 
   // Добавляем индексы для производительности
@@ -132,6 +153,8 @@ export const initDatabase = async () => {
 
     // Для поиска упражнений по группе мышц
     `CREATE INDEX IF NOT EXISTS idx_exercises_muscleGroup ON exercises(muscleGroup)`,
+    `CREATE INDEX IF NOT EXISTS idx_training_settings_trainingId ON training_settings(trainingId)`,
+    `CREATE INDEX IF NOT EXISTS idx_training_settings_exerciseId ON training_settings(exerciseId)`,
   ];
 
   // Создаем индексы
@@ -253,12 +276,13 @@ export const saveExercise = async (exercise: {
   amplitude: string;
   comment?: string;
   timerDuration?: number;
+  hidden?: boolean;
 }): Promise<void> => {
   await safeDbOperation(async (database) => {
     await database.runAsync(
       `INSERT OR REPLACE INTO exercises
-       (id, trainingId, name, muscleGroup, type, unilateral, amplitude, comment, timerDuration)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (id, trainingId, name, muscleGroup, type, unilateral, amplitude, comment, timerDuration, hidden)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         exercise.id,
         exercise.trainingId,
@@ -269,6 +293,7 @@ export const saveExercise = async (exercise: {
         exercise.amplitude,
         exercise.comment || null,
         exercise.timerDuration || null,
+        exercise.hidden ? 1 : 0,
       ]
     );
   });
@@ -294,6 +319,7 @@ export const getExercisesByTraining = async (
     return result.map((row: any) => ({
       ...row,
       unilateral: Boolean(row.unilateral),
+      hidden: row.hidden !== undefined ? Boolean(row.hidden) : false,
     }));
   });
 };
@@ -484,6 +510,54 @@ export const getMaintenanceCalories = async (): Promise<number | null> => {
       "SELECT value FROM settings WHERE key = 'maintenanceCalories'"
     );
     return result ? parseFloat(result.value) : null;
+  });
+};
+
+export const saveTrainingSetting = async (setting: {
+  trainingId: string;
+  exerciseId: string;
+  setsCount: number;
+  hidden: boolean;
+}): Promise<void> => {
+  await safeDbOperation(async (database) => {
+    await database.runAsync(
+      `INSERT OR REPLACE INTO training_settings
+       (trainingId, exerciseId, setsCount, hidden)
+       VALUES (?, ?, ?, ?)`,
+      [
+        setting.trainingId,
+        setting.exerciseId,
+        setting.setsCount,
+        setting.hidden ? 1 : 0,
+      ]
+    );
+  });
+};
+
+export const getTrainingSettings = async (
+  trainingId: string
+): Promise<any[]> => {
+  return await safeDbOperation(async (database) => {
+    const result = await database.getAllAsync(
+      "SELECT * FROM training_settings WHERE trainingId = ?",
+      [trainingId]
+    );
+    return result.map((row: any) => ({
+      ...row,
+      hidden: Boolean(row.hidden),
+    }));
+  });
+};
+
+export const updateExerciseHidden = async (
+  exerciseId: string,
+  hidden: boolean
+): Promise<void> => {
+  await safeDbOperation(async (database) => {
+    await database.runAsync(
+      "UPDATE exercises SET hidden = ? WHERE id = ?",
+      [hidden ? 1 : 0, exerciseId]
+    );
   });
 };
 
