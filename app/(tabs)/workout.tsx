@@ -64,11 +64,25 @@ export default function WorkoutScreen() {
 
   // Функция для загрузки упражнений тренировки из БД
   const loadExercises = async () => {
+    console.log("[WorkoutScreen] loadExercises called, workoutId:", workoutId);
     try {
       const loadedExercises = await dbLayer.getExercisesByTraining(workoutId);
+      console.log(
+        "[WorkoutScreen] Получили упражнения, количество:",
+        loadedExercises?.length || 0
+      );
+      console.log(
+        "[WorkoutScreen] Упражнения hidden:",
+        loadedExercises?.map((e: any) => ({
+          id: e.id,
+          name: e.name,
+          hidden: e.hidden,
+        }))
+      );
       setExercises(loadedExercises);
+      console.log("[WorkoutScreen] Упражнения установлены в state");
     } catch (error) {
-      console.error("Ошибка загрузки упражнений из БД:", error);
+      console.error("[WorkoutScreen] Ошибка загрузки упражнений из БД:", error);
     }
   };
 
@@ -163,7 +177,7 @@ export default function WorkoutScreen() {
         }}
       >
         <FlatList
-          data={exercises.filter((ex: any) => ex.hidden !== false)}
+          data={exercises.filter((ex: any) => !ex.hidden)}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <ExerciseComponent

@@ -81,14 +81,19 @@ export const Exercise: React.FC<ExerciseProps> = ({
   const { startTimer, stopTimer, isTimerRunning } = useTimerStore();
   const theme = useSettingsStore((state) => state.theme);
   const language = useSettingsStore((state) => state.language);
-  const colorScheme =
-    theme === "system"
-      ? typeof window !== "undefined" &&
-        window.matchMedia &&
-        window.matchMedia("(prefers-color-scheme: dark)").matches
+  let colorScheme: "light" | "dark" = "light";
+  if (theme === "dark") {
+    colorScheme = "dark";
+  } else if (theme === "light") {
+    colorScheme = "light";
+  } else {
+    colorScheme =
+      typeof window !== "undefined" &&
+      window.matchMedia &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches
         ? "dark"
-        : "light"
-      : theme;
+        : "light";
+  }
   const themeColors = Colors[colorScheme];
 
   // Функция для загрузки результатов упражнения из БД

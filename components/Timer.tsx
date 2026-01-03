@@ -69,14 +69,19 @@ const Timer: React.FC<TimerProps> = ({
   const timer = getTimer(exerciseId);
   const elapsed = timer?.elapsed || 0;
 
-  const colorScheme =
-    theme === "system"
-      ? typeof window !== "undefined" &&
-        window.matchMedia &&
-        window.matchMedia("(prefers-color-scheme: dark)").matches
+  let colorScheme: "light" | "dark" = "light";
+  if (theme === "dark") {
+    colorScheme = "dark";
+  } else if (theme === "light") {
+    colorScheme = "light";
+  } else {
+    colorScheme =
+      typeof window !== "undefined" &&
+      window.matchMedia &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches
         ? "dark"
-        : "light"
-      : theme;
+        : "light";
+  }
   const themeColors = Colors[colorScheme];
 
   useEffect(() => {

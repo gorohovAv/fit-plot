@@ -14,12 +14,14 @@ export const ExerciseVisibilityToggle: React.FC<
   ExerciseVisibilityToggleProps
 > = ({ exerciseId, hidden, onToggle }) => {
   const theme = useSettingsStore((state) => state.theme);
-  const colorScheme =
-    theme === "dark"
-      ? Colors.dark
-      : theme === "light"
-      ? Colors.light
-      : Colors.light;
+  let colorScheme: "light" | "dark" = "light";
+  if (theme === "dark") {
+    colorScheme = "dark";
+  } else if (theme === "light") {
+    colorScheme = "light";
+  } else {
+    colorScheme = "light";
+  }
   const themeColors = Colors[colorScheme];
 
   return (
