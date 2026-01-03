@@ -24,14 +24,13 @@ const openDatabaseWithRetry = async (
         error
       );
       await new Promise((resolve) => setTimeout(resolve, delay));
-      delay *= 2; // Увеличиваем задержку экспоненциально
+      delay *= 2;
     }
   }
   throw new Error("Не удалось открыть БД после всех попыток");
 };
 
 export const getDatabase = async () => {
-  // Ждем завершения инициализации, если она идет
   if (initPromise) {
     await initPromise;
   }
@@ -43,7 +42,6 @@ export const getDatabase = async () => {
 };
 
 export const initDatabase = async () => {
-  // Если уже инициализирована, возвращаемся
   if (isInitialized) {
     return;
   }
@@ -54,11 +52,9 @@ export const initDatabase = async () => {
     return;
   }
 
-  // Начинаем инициализацию
   isInitializing = true;
   initPromise = (async () => {
     try {
-      // Открываем БД напрямую, без вызова getDatabase, чтобы избежать циклической зависимости
       if (!db) {
         db = await openDatabaseWithRetry();
       }

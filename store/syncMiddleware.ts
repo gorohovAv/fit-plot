@@ -26,7 +26,6 @@ export const createSyncMiddleware = (): SyncMiddleware => {
 
       originalSet(partial, replace);
 
-      // НЕ синхронизируем во время инициализации
       if (!isInitializing) {
         syncToDatabase(prevState, fullState);
       }
@@ -36,11 +35,10 @@ export const createSyncMiddleware = (): SyncMiddleware => {
   };
 };
 
-// Экспортируем функции для управления флагом
 export const setInitializing = (value: boolean) => {
   isInitializing = value;
   if (value) {
-    lastSyncedState = null; // Сбрасываем последнее состояние при начале инициализации
+    lastSyncedState = null;
   }
 };
 
@@ -51,7 +49,6 @@ const syncToDatabase = async (prevState: StoreState, newState: StoreState) => {
       return;
     }
 
-    // Проверяем, изменились ли планы действительно
     if (newState.plans && hasPlansChanged(prevState.plans, newState.plans)) {
       await syncPlansChanges(prevState.plans || [], newState.plans);
       lastSyncedState = JSON.parse(JSON.stringify(newState)); // Глубокая копия
@@ -70,7 +67,6 @@ const syncToDatabase = async (prevState: StoreState, newState: StoreState) => {
       await syncCalories(newState.calories);
     }
 
-    // Добавляем синхронизацию maintenance calories
     if (newState.maintenanceCalories !== prevState.maintenanceCalories) {
       if (newState.maintenanceCalories !== null) {
         await dbLayer.saveMaintenanceCalories(newState.maintenanceCalories);
@@ -81,7 +77,6 @@ const syncToDatabase = async (prevState: StoreState, newState: StoreState) => {
   }
 };
 
-// Функция для проверки изменений в планах
 const hasPlansChanged = (
   prevPlans: Plan[] = [],
   newPlans: Plan[] = []
@@ -114,7 +109,6 @@ const hasPlansChanged = (
   return false;
 };
 
-// Улучшенная функция синхронизации только изменений
 const syncPlansChanges = async (prevPlans: Plan[], newPlans: Plan[]) => {
   if (!newPlans || !Array.isArray(newPlans)) {
     console.warn("syncPlansChanges: newPlans не является массивом");
@@ -172,7 +166,6 @@ const syncPlansChanges = async (prevPlans: Plan[], newPlans: Plan[]) => {
           }
         }
 
-        // Синхронизируем только новые результаты
         if (training.results && Array.isArray(training.results)) {
           const prevResults = prevTraining?.results || [];
           const newResults = training.results.filter((result) => {
@@ -200,7 +193,6 @@ const syncPlansChanges = async (prevPlans: Plan[], newPlans: Plan[]) => {
           }
         }
 
-        // Синхронизируем только новые плановые результаты
         if (training.plannedResults && Array.isArray(training.plannedResults)) {
           const prevPlannedResults = prevTraining?.plannedResults || [];
           const newPlannedResults = training.plannedResults.filter(
@@ -337,9 +329,9 @@ const loadSettingsFromDB = async () => {
 const loadCaloriesFromDB = async () => {
   return await dbLayer.getCalorieEntries();
 };
-// соберём все exerciseIds по тренировке и вытащим результаты за раз
+
 const getResultsForExerciseIds = async (exerciseIds: string[]) => {
   if (exerciseIds.length === 0) return [];
-  // Используем функцию из dbLayer, которая уже имеет защиту
+
   return await dbLayer.getResultsForExerciseIds(exerciseIds);
 };

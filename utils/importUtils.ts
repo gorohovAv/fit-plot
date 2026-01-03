@@ -214,7 +214,6 @@ export function validateImport(text: string): ValidationResult {
     const trimmedLine = line.trim();
     if (!trimmedLine) continue;
 
-    // Check for nutrition section headers
     const upperLine = trimmedLine.toUpperCase();
     if (
       upperLine === "ПИТАНИЕ" ||
@@ -226,7 +225,6 @@ export function validateImport(text: string): ValidationResult {
       continue;
     }
 
-    // If we're in nutrition section, validate nutrition format
     if (inNutritionSection) {
       const nutritionMatch = trimmedLine.match(
         /^(\d+)\s+(ккал|kcal)\s+(\d+(?:[.,]\d+)?)\s+(кг|kg)\s+(\d{1,2}\.\d{1,2}\.\d{4})$/
@@ -242,7 +240,6 @@ export function validateImport(text: string): ValidationResult {
         }
       }
 
-      // If line doesn't match nutrition format in nutrition section, it's an error
       hasErrors = true;
       errorMessages.push(
         `Неверный формат строки в секции питания: ${trimmedLine}`
@@ -250,7 +247,6 @@ export function validateImport(text: string): ValidationResult {
       continue;
     }
 
-    // Standard exercise parsing logic
     const parts = trimmedLine.split(/\s+/);
     let hasValidFormat = false;
 
@@ -329,7 +325,6 @@ export async function importData(text: string): Promise<void> {
     const trimmedLine = line.trim();
     if (!trimmedLine) continue;
 
-    // Check for nutrition section headers
     const upperLine = trimmedLine.toUpperCase();
     if (
       upperLine === "ПИТАНИЕ" ||
@@ -340,7 +335,6 @@ export async function importData(text: string): Promise<void> {
       continue;
     }
 
-    // If we're in nutrition section, parse nutrition data
     if (inNutritionSection) {
       const nutritionMatch = trimmedLine.match(
         /^(\d+)\s+(ккал|kcal)\s+(\d+(?:[.,]\d+)?)\s+(кг|kg)\s+(\d{1,2}\.\d{1,2}\.\d{4})$/
@@ -351,7 +345,6 @@ export async function importData(text: string): Promise<void> {
         const weight = parseFloat(weightStr);
         const dateStr = nutritionMatch[5];
 
-        // Convert date from DD.MM.YYYY to YYYY-MM-DD
         const [day, month, year] = dateStr.split(".");
         const formattedDate = `${year}-${month.padStart(2, "0")}-${day.padStart(
           2,
@@ -359,7 +352,6 @@ export async function importData(text: string): Promise<void> {
         )}`;
 
         if (calories > 0 && weight > 0) {
-          // Check if entry already exists for this date
           const existingEntry = caloriesStore.getEntryByDate(formattedDate);
           if (existingEntry) {
             caloriesStore.updateEntry(formattedDate, {
@@ -379,7 +371,6 @@ export async function importData(text: string): Promise<void> {
       continue;
     }
 
-    // Standard exercise parsing logic
     const parts = trimmedLine.split(/\s+/);
     let exerciseName = "";
     let date = currentDate;
@@ -416,14 +407,12 @@ export async function importData(text: string): Promise<void> {
                 exerciseMap.set(currentExercise, exercise);
                 importedTraining.exercises.push(exercise);
 
-                // Сохраняем упражнение в БД сразу после создания
                 await dbLayer.saveExercise({
                   ...exercise,
                   trainingId: importedTraining.id,
                 });
               }
 
-              // Сохраняем результат в БД
               await dbLayer.saveResult({
                 exerciseId: exercise.id,
                 weight: weight,
@@ -455,14 +444,12 @@ export async function importData(text: string): Promise<void> {
             exerciseMap.set(currentExercise, exercise);
             importedTraining.exercises.push(exercise);
 
-            // Сохраняем упражнение в БД сразу после создания
             await dbLayer.saveExercise({
               ...exercise,
               trainingId: importedTraining.id,
             });
           }
 
-          // Сохраняем результат в БД
           await dbLayer.saveResult({
             exerciseId: exercise.id,
             weight: 0,
@@ -495,7 +482,7 @@ export async function importData(text: string): Promise<void> {
           planName: planName,
           trainings: [],
         };
-        // Сохраняем план в БД
+
         await dbLayer.savePlan(planName);
       }
 
@@ -509,7 +496,7 @@ export async function importData(text: string): Promise<void> {
           results: [],
           plannedResults: [],
         };
-        // Сохраняем тренировку в БД
+
         await dbLayer.saveTraining(
           trainingId,
           importedPlan.planName,

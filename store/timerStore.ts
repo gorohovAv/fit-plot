@@ -2,8 +2,8 @@ import { create } from "zustand";
 
 interface TimerState {
   exerciseId: string;
-  duration: number; // total duration in seconds
-  elapsed: number;  // elapsed time in seconds
+  duration: number;
+  elapsed: number;
 }
 
 interface TimerStore {
@@ -31,12 +31,10 @@ const useTimerStore = create<TimerStore>((set, get) => ({
       };
 
       if (existingIndex >= 0) {
-        // Replace existing timer
         const newTimers = [...state.timers];
         newTimers[existingIndex] = newTimer;
         return { timers: newTimers };
       } else {
-        // Add new timer
         return { timers: [...state.timers, newTimer] };
       }
     });
