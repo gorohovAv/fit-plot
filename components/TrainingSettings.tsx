@@ -36,11 +36,7 @@ export const TrainingSettings: React.FC<TrainingSettingsProps> = ({
   const { language } = useSettingsStore();
 
   const colorScheme =
-    theme === "dark"
-      ? "dark"
-      : theme === "light"
-      ? "light"
-      : "light";
+    theme === "dark" ? "dark" : theme === "light" ? "light" : "light";
   const themeColors = Colors[colorScheme];
 
   useEffect(() => {
@@ -131,7 +127,10 @@ export const TrainingSettings: React.FC<TrainingSettingsProps> = ({
           <View
             style={[
               styles.settingCard,
-              { backgroundColor: themeColors.card, borderColor: themeColors.border },
+              {
+                backgroundColor: themeColors.card,
+                borderColor: themeColors.border,
+              },
             ]}
           >
             <Text

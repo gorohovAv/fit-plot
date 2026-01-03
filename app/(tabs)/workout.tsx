@@ -20,14 +20,20 @@ import { Exercise, ExerciseType, MuscleGroup } from "../../store/store";
 
 export default function WorkoutScreen() {
   const route = useRoute();
-  const { workoutId, planName, showSettings: initialShowSettings } = route.params as {
+  const {
+    workoutId,
+    planName,
+    showSettings: initialShowSettings,
+  } = route.params as {
     workoutId: string;
     planName: string;
     showSettings?: boolean;
   };
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [showSettings, setShowSettings] = useState(initialShowSettings || false);
+  const [showSettings, setShowSettings] = useState(
+    initialShowSettings || false
+  );
   const [newExercise, setNewExercise] = useState({
     name: "",
     muscleGroup: "chest" as MuscleGroup,

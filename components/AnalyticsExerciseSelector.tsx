@@ -1,18 +1,18 @@
-import React, { useState, useEffect } from "react";
+import { getTranslation } from "@/utils/localization";
+import { Checkbox } from "expo-checkbox";
+import React, { useEffect, useState } from "react";
 import {
   Modal,
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
   ScrollView,
+  StyleSheet,
+  Text,
   TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { Checkbox } from "expo-checkbox";
-import { Exercise, PlannedResult } from "../store/store";
 import { Colors } from "../constants/Colors";
 import useSettingsStore from "../store/settingsStore";
-import { getTranslation } from "@/utils/localization";
+import { Exercise, PlannedResult } from "../store/store";
 
 interface AnalyticsExerciseSelectorProps {
   isVisible: boolean;
@@ -54,7 +54,8 @@ const AnalyticsExerciseSelector: React.FC<AnalyticsExerciseSelectorProps> = ({
     useState<string[]>(selectedExerciseIds);
   const [currentSelectedPlannedIds, setCurrentSelectedPlannedIds] =
     useState<string[]>(selectedPlannedIds);
-  const [currentDateStart, setCurrentDateStart] = useState<string>(dateFilterStart);
+  const [currentDateStart, setCurrentDateStart] =
+    useState<string>(dateFilterStart);
   const [currentDateEnd, setCurrentDateEnd] = useState<string>(dateFilterEnd);
 
   useEffect(() => {
@@ -85,7 +86,12 @@ const AnalyticsExerciseSelector: React.FC<AnalyticsExerciseSelectorProps> = ({
   };
 
   const handleSave = () => {
-    onSave(currentSelectedIds, currentSelectedPlannedIds, currentDateStart, currentDateEnd);
+    onSave(
+      currentSelectedIds,
+      currentSelectedPlannedIds,
+      currentDateStart,
+      currentDateEnd
+    );
     onClose();
   };
 

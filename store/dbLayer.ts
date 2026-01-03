@@ -6,7 +6,10 @@ let isInitialized = false;
 let isInitializing = false;
 
 // Функция для безопасного открытия БД с retry
-const openDatabaseWithRetry = async (retries = 3, delay = 100): Promise<any> => {
+const openDatabaseWithRetry = async (
+  retries = 3,
+  delay = 100
+): Promise<any> => {
   for (let i = 0; i < retries; i++) {
     try {
       return await openDatabaseAsync("fitplot.db");
@@ -16,8 +19,11 @@ const openDatabaseWithRetry = async (retries = 3, delay = 100): Promise<any> => 
         console.error(`Ошибка открытия БД после ${retries} попыток:`, error);
         throw error;
       }
-      console.warn(`Попытка ${i + 1} открытия БД не удалась, повтор через ${delay}ms:`, error);
-      await new Promise(resolve => setTimeout(resolve, delay));
+      console.warn(
+        `Попытка ${i + 1} открытия БД не удалась, повтор через ${delay}ms:`,
+        error
+      );
+      await new Promise((resolve) => setTimeout(resolve, delay));
       delay *= 2; // Увеличиваем задержку экспоненциально
     }
   }
@@ -58,18 +64,18 @@ export const initDatabase = async () => {
       }
       const database = db;
 
-  const createTables = [
-    `CREATE TABLE IF NOT EXISTS plans (
+      const createTables = [
+        `CREATE TABLE IF NOT EXISTS plans (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       planName TEXT UNIQUE NOT NULL
     )`,
-    `CREATE TABLE IF NOT EXISTS trainings (
+        `CREATE TABLE IF NOT EXISTS trainings (
       id TEXT PRIMARY KEY,
       planName TEXT NOT NULL,
       name TEXT NOT NULL,
       FOREIGN KEY (planName) REFERENCES plans (planName)
     )`,
-    `CREATE TABLE IF NOT EXISTS exercises (
+        `CREATE TABLE IF NOT EXISTS exercises (
       id TEXT PRIMARY KEY,
       trainingId TEXT NOT NULL,
       name TEXT NOT NULL,
@@ -82,7 +88,7 @@ export const initDatabase = async () => {
       hidden BOOLEAN NOT NULL DEFAULT 0,
       FOREIGN KEY (trainingId) REFERENCES trainings (id)
     )`,
-    `CREATE TABLE IF NOT EXISTS results (
+        `CREATE TABLE IF NOT EXISTS results (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       exerciseId TEXT NOT NULL,
       weight REAL NOT NULL,
@@ -92,23 +98,23 @@ export const initDatabase = async () => {
       isPlanned BOOLEAN NOT NULL DEFAULT 0,
       FOREIGN KEY (exerciseId) REFERENCES exercises (id)
     )`,
-    `CREATE TABLE IF NOT EXISTS calories (
+        `CREATE TABLE IF NOT EXISTS calories (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       date TEXT UNIQUE NOT NULL,
       calories INTEGER NOT NULL,
       weight REAL NOT NULL
     )`,
-    `CREATE TABLE IF NOT EXISTS settings (
+        `CREATE TABLE IF NOT EXISTS settings (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       key TEXT UNIQUE NOT NULL,
       value TEXT NOT NULL
     )`,
-    `CREATE TABLE IF NOT EXISTS stepsFallback (
+        `CREATE TABLE IF NOT EXISTS stepsFallback (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       steps INTEGER NOT NULL,
       timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
     )`,
-    `CREATE TABLE IF NOT EXISTS training_settings (
+        `CREATE TABLE IF NOT EXISTS training_settings (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       trainingId TEXT NOT NULL,
       exerciseId TEXT NOT NULL,
@@ -118,49 +124,49 @@ export const initDatabase = async () => {
       FOREIGN KEY (trainingId) REFERENCES trainings (id),
       FOREIGN KEY (exerciseId) REFERENCES exercises (id)
     )`,
-  ];
+      ];
 
-  // Создаем таблицы
-  for (const sql of createTables) {
-    await database.runAsync(sql);
-  }
+      // Создаем таблицы
+      for (const sql of createTables) {
+        await database.runAsync(sql);
+      }
 
-  try {
-    await database.runAsync(
-      "ALTER TABLE exercises ADD COLUMN hidden BOOLEAN NOT NULL DEFAULT 0"
-    );
-  } catch (error: any) {
-    if (!error?.message?.includes("duplicate column")) {
-      console.warn("Ошибка добавления колонки hidden в exercises:", error);
-    }
-  }
+      try {
+        await database.runAsync(
+          "ALTER TABLE exercises ADD COLUMN hidden BOOLEAN NOT NULL DEFAULT 0"
+        );
+      } catch (error: any) {
+        if (!error?.message?.includes("duplicate column")) {
+          console.warn("Ошибка добавления колонки hidden в exercises:", error);
+        }
+      }
 
-  // Добавляем индексы для производительности
-  const createIndexes = [
-    // Самые критичные для loadPlansFromDB()
-    `CREATE INDEX IF NOT EXISTS idx_trainings_planName ON trainings(planName)`,
-    `CREATE INDEX IF NOT EXISTS idx_exercises_trainingId ON exercises(trainingId)`,
-    `CREATE INDEX IF NOT EXISTS idx_results_exerciseId ON results(exerciseId)`,
+      // Добавляем индексы для производительности
+      const createIndexes = [
+        // Самые критичные для loadPlansFromDB()
+        `CREATE INDEX IF NOT EXISTS idx_trainings_planName ON trainings(planName)`,
+        `CREATE INDEX IF NOT EXISTS idx_exercises_trainingId ON exercises(trainingId)`,
+        `CREATE INDEX IF NOT EXISTS idx_results_exerciseId ON results(exerciseId)`,
 
-    // Для фильтрации по датам в аналитике
-    `CREATE INDEX IF NOT EXISTS idx_results_date ON results(date)`,
+        // Для фильтрации по датам в аналитике
+        `CREATE INDEX IF NOT EXISTS idx_results_date ON results(date)`,
 
-    // Композитный индекс для самых частых запросов
-    `CREATE INDEX IF NOT EXISTS idx_results_exerciseId_date ON results(exerciseId, date)`,
+        // Композитный индекс для самых частых запросов
+        `CREATE INDEX IF NOT EXISTS idx_results_exerciseId_date ON results(exerciseId, date)`,
 
-    // Для stepsFallback запросов
-    `CREATE INDEX IF NOT EXISTS idx_stepsFallback_timestamp ON stepsFallback(timestamp)`,
+        // Для stepsFallback запросов
+        `CREATE INDEX IF NOT EXISTS idx_stepsFallback_timestamp ON stepsFallback(timestamp)`,
 
-    // Для поиска упражнений по группе мышц
-    `CREATE INDEX IF NOT EXISTS idx_exercises_muscleGroup ON exercises(muscleGroup)`,
-    `CREATE INDEX IF NOT EXISTS idx_training_settings_trainingId ON training_settings(trainingId)`,
-    `CREATE INDEX IF NOT EXISTS idx_training_settings_exerciseId ON training_settings(exerciseId)`,
-  ];
+        // Для поиска упражнений по группе мышц
+        `CREATE INDEX IF NOT EXISTS idx_exercises_muscleGroup ON exercises(muscleGroup)`,
+        `CREATE INDEX IF NOT EXISTS idx_training_settings_trainingId ON training_settings(trainingId)`,
+        `CREATE INDEX IF NOT EXISTS idx_training_settings_exerciseId ON training_settings(exerciseId)`,
+      ];
 
-  // Создаем индексы
-  for (const sql of createIndexes) {
-    await database.runAsync(sql);
-  }
+      // Создаем индексы
+      for (const sql of createIndexes) {
+        await database.runAsync(sql);
+      }
 
       isInitialized = true;
       console.log("БД успешно инициализирована");
@@ -194,11 +200,16 @@ const safeDbOperation = async <T>(
         throw error;
       }
       // Если ошибка связана с подключением, сбрасываем его
-      if (error?.message?.includes("NullPointerException") ||
-          error?.message?.includes("prepareAsync")) {
-        console.warn(`Попытка ${i + 1} операции с БД не удалась, сброс подключения:`, error);
+      if (
+        error?.message?.includes("NullPointerException") ||
+        error?.message?.includes("prepareAsync")
+      ) {
+        console.warn(
+          `Попытка ${i + 1} операции с БД не удалась, сброс подключения:`,
+          error
+        );
         db = null;
-        await new Promise(resolve => setTimeout(resolve, 100 * (i + 1)));
+        await new Promise((resolve) => setTimeout(resolve, 100 * (i + 1)));
       } else {
         throw error; // Для других ошибок не повторяем
       }
@@ -460,7 +471,9 @@ export const getAllSettings = async (): Promise<
   { key: string; value: string }[]
 > => {
   return await safeDbOperation(async (database) => {
-    const result = await database.getAllAsync("SELECT key, value FROM settings");
+    const result = await database.getAllAsync(
+      "SELECT key, value FROM settings"
+    );
     return result;
   });
 };
@@ -560,10 +573,10 @@ export const updateExerciseHidden = async (
   hidden: boolean
 ): Promise<void> => {
   await safeDbOperation(async (database) => {
-    await database.runAsync(
-      "UPDATE exercises SET hidden = ? WHERE id = ?",
-      [hidden ? 1 : 0, exerciseId]
-    );
+    await database.runAsync("UPDATE exercises SET hidden = ? WHERE id = ?", [
+      hidden ? 1 : 0,
+      exerciseId,
+    ]);
   });
 };
 

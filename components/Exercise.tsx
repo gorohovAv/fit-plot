@@ -10,10 +10,10 @@ import {
   View,
 } from "react-native";
 import { Colors } from "../constants/Colors";
-import { ExerciseVisibilityToggle } from "./ExerciseVisibilityToggle";
 import * as dbLayer from "../store/dbLayer";
 import useSettingsStore from "../store/settingsStore";
 import useTimerStore from "../store/timerStore";
+import { ExerciseVisibilityToggle } from "./ExerciseVisibilityToggle";
 import Timer from "./Timer";
 
 type MuscleGroup = string;
@@ -169,7 +169,10 @@ export const Exercise: React.FC<ExerciseProps> = ({
     }
   };
 
-  const handleToggleVisibility = async (exerciseId: string, newHidden: boolean) => {
+  const handleToggleVisibility = async (
+    exerciseId: string,
+    newHidden: boolean
+  ) => {
     await dbLayer.updateExerciseHidden(exerciseId, newHidden);
     setHidden(newHidden);
   };

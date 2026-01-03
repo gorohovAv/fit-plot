@@ -1,12 +1,11 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { Plan } from "../store/store";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import React from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Colors } from "../constants/Colors";
-import useSettingsStore from "../store/settingsStore";
 import { useColorScheme } from "../hooks/useColorScheme";
 import * as dbLayer from "../store/dbLayer";
-import { Appearance } from "react-native";
+import useSettingsStore from "../store/settingsStore";
+import { Plan } from "../store/store";
 
 type ResultsListProps = {
   plans: Plan[];
@@ -88,7 +87,9 @@ const ResultsList: React.FC<ResultsListProps> = ({
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   return (
-    <View style={[styles.container, { backgroundColor: themeColors.background }]}>
+    <View
+      style={[styles.container, { backgroundColor: themeColors.background }]}
+    >
       {allResults.map((result, index) => (
         <View
           key={`${result.id || index}-${result.date}`}
@@ -110,11 +111,7 @@ const ResultsList: React.FC<ResultsListProps> = ({
               onPress={() => handleDelete(result.id)}
               style={styles.deleteButton}
             >
-            <MaterialIcons
-              name="close"
-              size={24}
-              color={themeColors.error}
-            />
+              <MaterialIcons name="close" size={24} color={themeColors.error} />
             </TouchableOpacity>
           )}
         </View>

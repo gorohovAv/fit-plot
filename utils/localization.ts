@@ -160,12 +160,16 @@ Pull-ups
     exportDescription: "Choose the format to export your data:",
     exportToExcel: "Export to Excel",
     exportToText: "Export to Text",
+    exportToPDF: "Export to PDF",
     excelDescription:
       "Excel file with multiple sheets (plans, results, calories)",
     textDescription: "Text file in custom format",
+    pdfDescription: "PDF report with charts and metrics",
+    totalSets: "Total sets",
     dataExportSuccess: "Data exported successfully",
     dataExportError: "Failed to export data",
     exporting: "Exporting...",
+    notEnoughDataForPDF: "Need at least 10 different dates to export PDF",
 
     // Maintenance Calories
     maintenanceCalories: "Maintenance Calories",
@@ -338,12 +342,16 @@ Pull-ups
     exportDescription: "Выберите формат для экспорта данных:",
     exportToExcel: "Экспорт в Excel",
     exportToText: "Экспорт в текст",
+    exportToPDF: "Экспорт в PDF",
     excelDescription:
       "Excel файл с несколькими листами (планы, результаты, калории)",
     textDescription: "Текстовый файл в авторском формате",
+    pdfDescription: "PDF отчёт с графиками и метриками",
+    totalSets: "Общее количество подходов",
     dataExportSuccess: "Данные успешно экспортированы",
     dataExportError: "Не удалось экспортировать данные",
     exporting: "Экспорт...",
+    notEnoughDataForPDF: "Для экспорта PDF необходимо минимум 10 различных дат",
 
     // Maintenance Calories
     maintenanceCalories: "Калораж на поддержание",
