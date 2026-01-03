@@ -31,6 +31,11 @@ const openDatabaseWithRetry = async (
 };
 
 export const getDatabase = async () => {
+  // Если БД не инициализирована, инициализируем её
+  if (!isInitialized) {
+    await initDatabase();
+  }
+
   // Ждем завершения инициализации, если она идет
   if (initPromise) {
     await initPromise;
