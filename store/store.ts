@@ -29,6 +29,7 @@ export type Exercise = {
   amplitude: "full" | "partial";
   comment?: string;
   timerDuration?: number;
+  hidden?: boolean;
 };
 
 export type Result = {

@@ -1,5 +1,5 @@
-import { useRoute } from "@react-navigation/native";
-import React, { useEffect, useState } from "react";
+import { useNavigation, useRoute } from "@react-navigation/native";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Appearance,
   FlatList,
@@ -20,6 +20,7 @@ import { Exercise, ExerciseType, MuscleGroup } from "../../store/store";
 
 export default function WorkoutScreen() {
   const route = useRoute();
+  const navigation = useNavigation();
   const {
     workoutId,
     planName,
@@ -46,6 +47,7 @@ export default function WorkoutScreen() {
   const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
   const theme = useSettingsStore((state) => state.theme);
   const language = useSettingsStore((state) => state.language);
+  const previousShowSettings = useRef<boolean>(initialShowSettings || false);
 
   // определяем текущую тему
   let colorScheme: "light" | "dark" = "light";
@@ -90,6 +92,23 @@ export default function WorkoutScreen() {
   useEffect(() => {
     loadExercises();
   }, [workoutId]);
+
+  // Показываем настройки, если пришли в параметрах
+  useEffect(() => {
+    if (initialShowSettings) {
+      setShowSettings(true);
+    }
+  }, [initialShowSettings]);
+
+  // Перезагружаем упражнения при закрытии настроек
+  useEffect(() => {
+    if (previousShowSettings.current && !showSettings) {
+      loadExercises();
+      // сбрасываем флаг, чтобы повторный вход работал корректно
+      navigation.setParams?.({ showSettings: false } as any);
+    }
+    previousShowSettings.current = showSettings;
+  }, [showSettings, navigation]);
 
   const handleAddEditExercise = async (exerciseData: typeof newExercise) => {
     if (exerciseData.name.trim()) {
@@ -154,12 +173,26 @@ export default function WorkoutScreen() {
     await loadExercises();
   };
 
+  const handleToggleHidden = async (exerciseId: string, newHidden: boolean) => {
+    console.log(
+      "[WorkoutScreen] toggle hidden from card:",
+      exerciseId,
+      "->",
+      newHidden
+    );
+    await dbLayer.updateExerciseHidden(exerciseId, newHidden);
+    await loadExercises();
+  };
+
   if (showSettings) {
     return (
       <TrainingSettings
         trainingId={workoutId}
         exercises={exercises}
-        onBack={() => setShowSettings(false)}
+        onBack={() => {
+          setShowSettings(false);
+          navigation.setParams?.({ showSettings: false } as any);
+        }}
       />
     );
   }
@@ -196,6 +229,8 @@ export default function WorkoutScreen() {
               onEdit={() => handleEditExercise(item)}
               onDelete={() => handleDeleteExercise(item.id)}
               timerDuration={item.timerDuration}
+              hidden={item.hidden}
+              onToggleHidden={handleToggleHidden}
             />
           )}
         />

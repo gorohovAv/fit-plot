@@ -38,12 +38,14 @@ type ExerciseProps = {
   amplitude: "full" | "partial";
   comment?: string;
   timerDuration?: number;
+  hidden?: boolean;
   onRepsChange: (reps: number) => void;
   onSetsChange: (sets: number) => void;
   onComplete: () => void;
   completed: boolean;
   onEdit: () => void;
   onDelete: () => void;
+  onToggleHidden?: (exerciseId: string, hidden: boolean) => Promise<void> | void;
 };
 
 export const Exercise: React.FC<ExerciseProps> = ({
@@ -57,12 +59,14 @@ export const Exercise: React.FC<ExerciseProps> = ({
   amplitude,
   comment,
   timerDuration,
+  hidden: hiddenFromProps = false,
   onRepsChange,
   onSetsChange,
   onComplete,
   completed,
   onEdit,
   onDelete,
+  onToggleHidden,
 }) => {
   const route = useRoute();
   const { workoutId, planName } = route.params as {
@@ -77,7 +81,7 @@ export const Exercise: React.FC<ExerciseProps> = ({
     amplitude: "full" as "full" | "partial",
   });
   const [exerciseResults, setExerciseResults] = useState<Result[]>([]);
-  const [hidden, setHidden] = useState(false);
+  const [hidden, setHidden] = useState(Boolean(hiddenFromProps));
   const { startTimer, stopTimer, isTimerRunning } = useTimerStore();
   const theme = useSettingsStore((state) => state.theme);
   const language = useSettingsStore((state) => state.language);
@@ -102,6 +106,11 @@ export const Exercise: React.FC<ExerciseProps> = ({
       const results = await dbLayer.getResultsByExercise(id);
       const formattedResults: Result[] = results
         .filter((r: any) => !r.isPlanned)
+        .sort(
+          (a: any, b: any) =>
+            new Date(b.date).getTime() - new Date(a.date).getTime()
+        )
+        .slice(0, 5)
         .map((r: any) => ({
           exerciseId: r.exerciseId,
           weight: r.weight,
@@ -109,34 +118,22 @@ export const Exercise: React.FC<ExerciseProps> = ({
           amplitude: r.amplitude,
           date: r.date,
         }))
-        .slice(-5);
+        .reverse(); // показываем в порядке от старых к новым
       setExerciseResults(formattedResults);
     } catch (error) {
       console.error("Ошибка загрузки результатов упражнения из БД:", error);
     }
   };
 
-  const loadExerciseHidden = async () => {
-    try {
-      const { workoutId } = route.params as {
-        workoutId: string;
-        planName: string;
-      };
-      const exercises = await dbLayer.getExercisesByTraining(workoutId);
-      const exercise = exercises.find((e: any) => e.id === id);
-      if (exercise) {
-        setHidden(exercise.hidden ?? false);
-      }
-    } catch (error) {
-      console.error("Ошибка загрузки состояния скрытости упражнения:", error);
-    }
-  };
-
   // Загружаем результаты при монтировании компонента
   useEffect(() => {
     loadExerciseResults();
-    loadExerciseHidden();
   }, [id]);
+
+  // Следим за изменениями скрытости из родителя
+  useEffect(() => {
+    setHidden(Boolean(hiddenFromProps));
+  }, [hiddenFromProps]);
 
   const handleAddResult = async () => {
     const weight = parseFloat(result.weight.replace(",", ".")) || 0;
@@ -178,7 +175,17 @@ export const Exercise: React.FC<ExerciseProps> = ({
     exerciseId: string,
     newHidden: boolean
   ) => {
-    await dbLayer.updateExerciseHidden(exerciseId, newHidden);
+    console.log(
+      "[Exercise] toggle hidden icon:",
+      exerciseId,
+      "->",
+      newHidden
+    );
+    if (onToggleHidden) {
+      await onToggleHidden(exerciseId, newHidden);
+    } else {
+      await dbLayer.updateExerciseHidden(exerciseId, newHidden);
+    }
     setHidden(newHidden);
   };
 

@@ -1,6 +1,6 @@
 import { getTranslation } from "@/utils/localization";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
-import React, { useCallback, useEffect, useState } from "react";
+import { useNavigation } from "@react-navigation/native";
+import React, { useEffect, useState } from "react";
 import {
   FlatList,
   StyleSheet,
@@ -107,13 +107,6 @@ export default function WorkoutPlanScreen() {
   useEffect(() => {
     loadPlans();
   }, []);
-
-  // Перезагружаем планы при возврате на экран (например, после импорта)
-  useFocusEffect(
-    useCallback(() => {
-      loadPlans();
-    }, [])
-  );
 
   const handleAddTraining = async () => {
     if (!selectedPlan || !trainingName.trim()) return;

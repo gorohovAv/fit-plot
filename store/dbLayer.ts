@@ -568,12 +568,24 @@ export const updateExerciseHidden = async (
   exerciseId: string,
   hidden: boolean
 ): Promise<void> => {
+  console.log(
+    "[dbLayer] updateExerciseHidden ->",
+    exerciseId,
+    "hidden:",
+    hidden
+  );
   await safeDbOperation(async (database) => {
     await database.runAsync("UPDATE exercises SET hidden = ? WHERE id = ?", [
       hidden ? 1 : 0,
       exerciseId,
     ]);
   });
+  console.log(
+    "[dbLayer] updateExerciseHidden done <-",
+    exerciseId,
+    "hidden:",
+    hidden
+  );
 };
 
 export const logAllTables = async () => {

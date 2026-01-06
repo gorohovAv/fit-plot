@@ -1,5 +1,5 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   FlatList,
   StyleSheet,
@@ -33,17 +33,13 @@ export const TrainingSettings: React.FC<TrainingSettingsProps> = ({
 }) => {
   const [settings, setSettings] = useState<ExerciseSetting[]>([]);
   const theme = useSettingsStore((state) => state.theme);
-  const { language } = useSettingsStore();
+  // language не используется здесь
 
   const colorScheme =
     theme === "dark" ? "dark" : theme === "light" ? "light" : "light";
   const themeColors = Colors[colorScheme];
 
-  useEffect(() => {
-    loadSettings();
-  }, [trainingId, exercises]);
-
-  const loadSettings = async () => {
+  const loadSettings = useCallback(async () => {
     try {
       const trainingSettings = await dbLayer.getTrainingSettings(trainingId);
       const settingsMap = new Map(
@@ -56,7 +52,7 @@ export const TrainingSettings: React.FC<TrainingSettingsProps> = ({
           exerciseId: exercise.id,
           exerciseName: exercise.name,
           setsCount: setting?.setsCount ?? 0,
-          hidden: setting?.hidden ?? false,
+          hidden: setting?.hidden ?? exercise.hidden ?? false,
         };
       });
 
@@ -64,7 +60,11 @@ export const TrainingSettings: React.FC<TrainingSettingsProps> = ({
     } catch (error) {
       console.error("Ошибка загрузки настроек тренировки:", error);
     }
-  };
+  }, [exercises, trainingId]);
+
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
 
   const updateSetsCount = async (exerciseId: string, setsCount: number) => {
     const setting = settings.find((s) => s.exerciseId === exerciseId);
@@ -93,6 +93,13 @@ export const TrainingSettings: React.FC<TrainingSettingsProps> = ({
 
     const newHidden = !setting.hidden;
 
+    console.log(
+      "[TrainingSettings] toggle hidden from settings:",
+      exerciseId,
+      "->",
+      newHidden
+    );
+    await dbLayer.updateExerciseHidden(exerciseId, newHidden);
     await dbLayer.saveTrainingSetting({
       trainingId,
       exerciseId,
