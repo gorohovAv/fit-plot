@@ -108,6 +108,7 @@ export const translations = {
 
     // Common
     loading: "Loading...",
+    loadingData: "Loading data...",
     errorOccurred: "An error occurred",
     tryAgain: "Try again",
     confirm: "Confirm",
@@ -292,6 +293,7 @@ Pull-ups
 
     // Common
     loading: "Загрузка...",
+    loadingData: "Загрузка данных...",
     errorOccurred: "Произошла ошибка",
     tryAgain: "Попробуйте снова",
     confirm: "Подтвердить",

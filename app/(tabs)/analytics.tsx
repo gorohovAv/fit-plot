@@ -17,6 +17,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { BlurView } from "expo-blur";
 import * as dbLayer from "../../store/dbLayer";
 import { Plan, PlannedResult, Result } from "../../store/store";
 
@@ -60,6 +61,8 @@ export default function AnalyticsScreen() {
   });
   const [showResultsList, setShowResultsList] = useState<boolean>(false);
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
+  const [isRenderingResults, setIsRenderingResults] = useState<boolean>(false);
+  const [resultsViewPending, setResultsViewPending] = useState<boolean>(false);
 
   // Direct state for calories data
   const [caloriesEntries, setCaloriesEntries] = useState<
@@ -172,6 +175,17 @@ export default function AnalyticsScreen() {
     loadPlansFromDB();
     loadCaloriesFromDB();
   }, []);
+
+  // Reset results view pending state after a short delay to allow rendering
+  useEffect(() => {
+    if (resultsViewPending && showResultsList) {
+      const timer = setTimeout(() => {
+        setResultsViewPending(false);
+      }, 300); // Small delay to ensure user sees the transition
+
+      return () => clearTimeout(timer);
+    }
+  }, [resultsViewPending, showResultsList]);
 
   const getDayString = (dateStr: string) => {
     const d = new Date(dateStr);
@@ -626,7 +640,7 @@ export default function AnalyticsScreen() {
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={themeColors.primary} />
             <Text style={[styles.loadingText, { color: themeColors.text }]}>
-              Загрузка данных...
+              {getTranslation(language, "loadingData")}
             </Text>
           </View>
         </View>
@@ -745,149 +759,196 @@ export default function AnalyticsScreen() {
     <ScrollView
       style={[styles.container, { backgroundColor: themeColors.background }]}
     >
-      <View style={styles.form}>
-        {showResultsList ? (
-          <View style={styles.pickerPlaceholder} />
-        ) : (
-          <TouchableOpacity
-            onPress={() => setIsModalVisible(true)}
-            style={[styles.pickerButton, { borderColor: themeColors.border }]}
-          >
-            <Text
-              style={[styles.pickerButtonText, { color: themeColors.text }]}
-            >
-              {selectedExerciseIds.length > 0 || selectedPlannedIds.length > 0
-                ? formatTranslation(language, "selected", {
-                    count:
-                      selectedExerciseIds.length + selectedPlannedIds.length,
-                  })
-                : getTranslation(language, "selectExercises")}
+      {/* Full screen loader when data is loading */}
+      {isLoading && (
+        <BlurView
+          style={styles.fullScreenLoader}
+          intensity={50}
+          tint={colorScheme === "dark" ? "dark" : "light"}
+        >
+          <View style={styles.loaderContent}>
+            <ActivityIndicator size="large" color={themeColors.primary} />
+            <Text style={[styles.centeredLoadingText, { color: themeColors.text, marginTop: 16, textAlign: "center" }]}>
+              {getTranslation(language, "loadingData")}
             </Text>
-          </TouchableOpacity>
-        )}
-        <MaterialIcons
-          name={showResultsList ? "bar-chart" : "list"}
-          size={24}
-          color={themeColors.icon}
-          onPress={() => setShowResultsList(!showResultsList)}
-          style={styles.icon}
-        />
-      </View>
+          </View>
+        </BlurView>
+      )}
 
-      {showResultsList ? (
-        <ResultsList
-          plans={plans}
-          dateFilterStart={dateFilterStart}
-          dateFilterEnd={dateFilterEnd}
-          onResultDeleted={() => {
-            loadPlansFromDB();
-          }}
-        />
-      ) : (
+      {!isLoading && (
         <>
-          {showMetrics && (
-            <View style={styles.metricsContainer}>
-              <View
-                style={[
-                  styles.metricCard,
-                  { backgroundColor: themeColors.card },
-                ]}
+          <View style={styles.form}>
+            {showResultsList ? (
+              <View style={styles.pickerPlaceholder} />
+            ) : (
+              <TouchableOpacity
+                onPress={() => setIsModalVisible(true)}
+                style={[styles.pickerButton, { borderColor: themeColors.border }]}
               >
-                <Text style={[styles.metricTitle, { color: themeColors.text }]}>
-                  Среднее количество подходов в неделю
+                <Text
+                  style={[styles.pickerButtonText, { color: themeColors.text }]}
+                >
+                  {selectedExerciseIds.length > 0 || selectedPlannedIds.length > 0
+                    ? formatTranslation(language, "selected", {
+                        count:
+                          selectedExerciseIds.length + selectedPlannedIds.length,
+                      })
+                    : getTranslation(language, "selectExercises")}
                 </Text>
-                <Text style={[styles.metricValue, { color: themeColors.text }]}>
-                  {metrics.avgSetsPerWeek !== null
-                    ? metrics.avgSetsPerWeek.toFixed(1)
-                    : "—"}
+              </TouchableOpacity>
+            )}
+            <MaterialIcons
+              name={showResultsList ? "bar-chart" : "list"}
+              size={24}
+              color={themeColors.icon}
+              onPress={() => {
+                const newValue = !showResultsList;
+                if (newValue) {
+                  // When switching to results list view, set pending state
+                  setResultsViewPending(true);
+                }
+                setShowResultsList(newValue);
+              }}
+              style={styles.icon}
+            />
+          </View>
+
+          {showResultsList ? (
+            // Show loading indicator when showing ResultsList and data is still being processed
+            plans.length === 0 || (plans.length > 0 && isLoading) || resultsViewPending ? (
+              <View style={styles.resultsListLoader}>
+                <ActivityIndicator size="large" color={themeColors.primary} />
+                <Text style={[styles.centeredLoadingText, { color: themeColors.text, marginTop: 16, textAlign: "center" }]}>
+                  {getTranslation(language, "loadingData")}
                 </Text>
               </View>
-              <View
-                style={[
-                  styles.metricCard,
-                  { backgroundColor: themeColors.card },
-                ]}
-              >
-                <Text style={[styles.metricTitle, { color: themeColors.text }]}>
-                  Средний прогресс тоннажа
-                </Text>
-                <Text style={[styles.metricValue, { color: themeColors.text }]}>
-                  {metrics.avgTonnageProgress !== null
-                    ? `${
-                        metrics.avgTonnageProgress > 0 ? "+" : ""
-                      }${metrics.avgTonnageProgress.toFixed(1)} кг`
-                    : "—"}
-                </Text>
-              </View>
-              <View
-                style={[
-                  styles.metricCard,
-                  { backgroundColor: themeColors.card },
-                ]}
-              >
-                <Text style={[styles.metricTitle, { color: themeColors.text }]}>
-                  Средний прогресс веса
-                </Text>
-                <Text style={[styles.metricValue, { color: themeColors.text }]}>
-                  {metrics.avgWeightProgress !== null
-                    ? `${
-                        metrics.avgWeightProgress > 0 ? "+" : ""
-                      }${metrics.avgWeightProgress.toFixed(1)} кг`
-                    : "—"}
-                </Text>
-              </View>
-            </View>
-          )}
-          {chartData.tonnage.length > 0 && (
+            ) : (
+              <>
+                {isRenderingResults && (
+                  <View style={styles.resultsListLoader}>
+                    <ActivityIndicator size="large" color={themeColors.primary} />
+                    <Text style={[styles.centeredLoadingText, { color: themeColors.text, marginTop: 16, textAlign: "center" }]}>
+                      {getTranslation(language, "loadingData")}
+                    </Text>
+                  </View>
+                )}
+                <ResultsList
+                  plans={plans}
+                  dateFilterStart={dateFilterStart}
+                  dateFilterEnd={dateFilterEnd}
+                  onResultDeleted={() => {
+                    loadPlansFromDB();
+                  }}
+                />
+              </>
+            )
+          ) : (
             <>
-              {renderChart(
-                chartData.tonnage,
-                getTranslation(language, "generalTonnage"),
-                themeColors.chartLine,
-                getTranslation(language, "date"),
-                getTranslation(language, "tonnage")
+              {showMetrics && (
+                <View style={styles.metricsContainer}>
+                  <View
+                    style={[
+                      styles.metricCard,
+                      { backgroundColor: themeColors.card },
+                    ]}
+                  >
+                    <Text style={[styles.metricTitle, { color: themeColors.text }]}>
+                      Среднее количество подходов в неделю
+                    </Text>
+                    <Text style={[styles.metricValue, { color: themeColors.text }]}>
+                      {metrics.avgSetsPerWeek !== null
+                        ? metrics.avgSetsPerWeek.toFixed(1)
+                        : "—"}
+                    </Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.metricCard,
+                      { backgroundColor: themeColors.card },
+                    ]}
+                  >
+                    <Text style={[styles.metricTitle, { color: themeColors.text }]}>
+                      Средний прогресс тоннажа
+                    </Text>
+                    <Text style={[styles.metricValue, { color: themeColors.text }]}>
+                      {metrics.avgTonnageProgress !== null
+                        ? `${
+                            metrics.avgTonnageProgress > 0 ? "+" : ""
+                          }${metrics.avgTonnageProgress.toFixed(1)} кг`
+                        : "—"}
+                    </Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.metricCard,
+                      { backgroundColor: themeColors.card },
+                    ]}
+                  >
+                    <Text style={[styles.metricTitle, { color: themeColors.text }]}>
+                      Средний прогресс веса
+                    </Text>
+                    <Text style={[styles.metricValue, { color: themeColors.text }]}>
+                      {metrics.avgWeightProgress !== null
+                        ? `${
+                            metrics.avgWeightProgress > 0 ? "+" : ""
+                          }${metrics.avgWeightProgress.toFixed(1)} кг`
+                        : "—"}
+                    </Text>
+                  </View>
+                </View>
               )}
-              {renderChart(
-                chartData.maxWeight,
-                getTranslation(language, "maxWeight"),
-                themeColors.chartLine,
-                getTranslation(language, "date"),
-                getTranslation(language, "weight")
-              )}
-              {renderChart(
-                chartData.maxReps,
-                getTranslation(language, "maxReps"),
-                themeColors.chartLine,
-                getTranslation(language, "date"),
-                getTranslation(language, "reps")
+              {chartData.tonnage.length > 0 && (
+                <>
+                  {renderChart(
+                    chartData.tonnage,
+                    getTranslation(language, "generalTonnage"),
+                    themeColors.chartLine,
+                    getTranslation(language, "date"),
+                    getTranslation(language, "tonnage")
+                  )}
+                  {renderChart(
+                    chartData.maxWeight,
+                    getTranslation(language, "maxWeight"),
+                    themeColors.chartLine,
+                    getTranslation(language, "date"),
+                    getTranslation(language, "weight")
+                  )}
+                  {renderChart(
+                    chartData.maxReps,
+                    getTranslation(language, "maxReps"),
+                    themeColors.chartLine,
+                    getTranslation(language, "date"),
+                    getTranslation(language, "reps")
+                  )}
+                </>
               )}
             </>
           )}
+
+          <AnalyticsExerciseSelector
+            isVisible={isModalVisible}
+            exercises={exercises}
+            plannedResults={plannedResults}
+            selectedExerciseIds={selectedExerciseIds}
+            selectedPlannedIds={selectedPlannedIds}
+            dateFilterStart={dateFilterStart}
+            dateFilterEnd={dateFilterEnd}
+            onClose={() => setIsModalVisible(false)}
+            onSave={(
+              newSelectedIds,
+              newSelectedPlannedIds,
+              newDateStart,
+              newDateEnd
+            ) => {
+              setSelectedExerciseIds(newSelectedIds);
+              setSelectedPlannedIds(newSelectedPlannedIds);
+              setDateFilterStart(newDateStart);
+              setDateFilterEnd(newDateEnd);
+              setIsModalVisible(false);
+            }}
+          />
         </>
       )}
-
-      <AnalyticsExerciseSelector
-        isVisible={isModalVisible}
-        exercises={exercises}
-        plannedResults={plannedResults}
-        selectedExerciseIds={selectedExerciseIds}
-        selectedPlannedIds={selectedPlannedIds}
-        dateFilterStart={dateFilterStart}
-        dateFilterEnd={dateFilterEnd}
-        onClose={() => setIsModalVisible(false)}
-        onSave={(
-          newSelectedIds,
-          newSelectedPlannedIds,
-          newDateStart,
-          newDateEnd
-        ) => {
-          setSelectedExerciseIds(newSelectedIds);
-          setSelectedPlannedIds(newSelectedPlannedIds);
-          setDateFilterStart(newDateStart);
-          setDateFilterEnd(newDateEnd);
-          setIsModalVisible(false);
-        }}
-      />
     </ScrollView>
   );
 }
@@ -946,6 +1007,33 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 10,
     fontSize: 14,
+  },
+  fullScreenLoader: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 10,
+  },
+  loaderContent: {
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+    borderRadius: 10,
+  },
+  centeredLoadingText: {
+    fontSize: 16,
+    fontWeight: "normal",
+    marginTop: 16,
+  },
+  resultsListLoader: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 40,
   },
   metricsContainer: {
     marginBottom: 24,

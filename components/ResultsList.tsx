@@ -34,6 +34,7 @@ const ResultsList: React.FC<ResultsListProps> = ({
   const currentTheme = settingsTheme === "system" ? systemTheme : settingsTheme;
   const themeColors = Colors[currentTheme];
 
+
   const formatDateTime = (dateStr: string) => {
     try {
       const date = new Date(dateStr);
