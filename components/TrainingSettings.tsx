@@ -119,10 +119,10 @@ export const TrainingSettings: React.FC<TrainingSettingsProps> = ({
       style={[styles.container, { backgroundColor: themeColors.background }]}
     >
       <View style={styles.header}>
-        {/*
+        {
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
           <MaterialIcons name="arrow-back" size={24} color={themeColors.text} />
-        </TouchableOpacity>*/}
+        </TouchableOpacity>}
         <Text style={[styles.title, { color: themeColors.text }]}>
           Настройки тренировки
         </Text>

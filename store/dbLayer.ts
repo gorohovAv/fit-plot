@@ -124,13 +124,23 @@ export const initDatabase = async () => {
 
       // Создаем таблицы
       for (const sql of createTables) {
-        await database.runAsync(sql);
+        const statement = await database.prepareAsync(sql);
+        try {
+          await statement.executeAsync();
+        } finally {
+          await statement.finalizeAsync();
+        }
       }
 
       try {
-        await database.runAsync(
+        const alterStatement = await database.prepareAsync(
           "ALTER TABLE exercises ADD COLUMN hidden BOOLEAN NOT NULL DEFAULT 0"
         );
+        try {
+          await alterStatement.executeAsync();
+        } finally {
+          await alterStatement.finalizeAsync();
+        }
       } catch (error: any) {
         if (!error?.message?.includes("duplicate column")) {
           console.warn("Ошибка добавления колонки hidden в exercises:", error);
@@ -161,7 +171,12 @@ export const initDatabase = async () => {
 
       // Создаем индексы
       for (const sql of createIndexes) {
-        await database.runAsync(sql);
+        const statement = await database.prepareAsync(sql);
+        try {
+          await statement.executeAsync();
+        } finally {
+          await statement.finalizeAsync();
+        }
       }
 
       isInitialized = true;
@@ -217,16 +232,25 @@ const safeDbOperation = async <T>(
 // Методы для работы с планами
 export const savePlan = async (planName: string): Promise<void> => {
   await safeDbOperation(async (database) => {
-    await database.runAsync(
-      "INSERT OR REPLACE INTO plans (planName) VALUES (?)",
-      [planName]
+    const statement = await database.prepareAsync(
+      "INSERT OR REPLACE INTO plans (planName) VALUES (?)"
     );
+    try {
+      await statement.executeAsync([planName]);
+    } finally {
+      await statement.finalizeAsync();
+    }
   });
 };
 
 export const deletePlan = async (planName: string): Promise<void> => {
   await safeDbOperation(async (database) => {
-    await database.runAsync("DELETE FROM plans WHERE planName = ?", [planName]);
+    const statement = await database.prepareAsync("DELETE FROM plans WHERE planName = ?");
+    try {
+      await statement.executeAsync([planName]);
+    } finally {
+      await statement.finalizeAsync();
+    }
   });
 };
 
@@ -244,19 +268,34 @@ export const saveTraining = async (
   name: string
 ): Promise<void> => {
   await safeDbOperation(async (database) => {
-    await database.runAsync(
-      "INSERT OR REPLACE INTO trainings (id, planName, name) VALUES (?, ?, ?)",
-      [trainingId, planName, name]
+    const statement = await database.prepareAsync(
+      "INSERT OR REPLACE INTO trainings (id, planName, name) VALUES (?, ?, ?)"
     );
+    try {
+      await statement.executeAsync([trainingId, planName, name]);
+    } finally {
+      await statement.finalizeAsync();
+    }
   });
 };
 
 export const deleteTraining = async (trainingId: string): Promise<void> => {
   await safeDbOperation(async (database) => {
-    await database.runAsync("DELETE FROM trainings WHERE id = ?", [trainingId]);
-    await database.runAsync("DELETE FROM exercises WHERE trainingId = ?", [
-      trainingId,
-    ]);
+    // Delete from trainings table
+    const statement1 = await database.prepareAsync("DELETE FROM trainings WHERE id = ?");
+    try {
+      await statement1.executeAsync([trainingId]);
+    } finally {
+      await statement1.finalizeAsync();
+    }
+
+    // Delete from exercises table
+    const statement2 = await database.prepareAsync("DELETE FROM exercises WHERE trainingId = ?");
+    try {
+      await statement2.executeAsync([trainingId]);
+    } finally {
+      await statement2.finalizeAsync();
+    }
   });
 };
 
@@ -286,11 +325,13 @@ export const saveExercise = async (exercise: {
   hidden?: boolean;
 }): Promise<void> => {
   await safeDbOperation(async (database) => {
-    await database.runAsync(
+    const statement = await database.prepareAsync(
       `INSERT OR REPLACE INTO exercises
        (id, trainingId, name, muscleGroup, type, unilateral, amplitude, comment, timerDuration, hidden)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    );
+    try {
+      await statement.executeAsync([
         exercise.id,
         exercise.trainingId,
         exercise.name,
@@ -301,17 +342,30 @@ export const saveExercise = async (exercise: {
         exercise.comment || null,
         exercise.timerDuration || null,
         exercise.hidden ? 1 : 0,
-      ]
-    );
+      ]);
+    } finally {
+      await statement.finalizeAsync();
+    }
   });
 };
 
 export const deleteExercise = async (exerciseId: string): Promise<void> => {
   await safeDbOperation(async (database) => {
-    await database.runAsync("DELETE FROM exercises WHERE id = ?", [exerciseId]);
-    await database.runAsync("DELETE FROM results WHERE exerciseId = ?", [
-      exerciseId,
-    ]);
+    // Delete from exercises table
+    const statement1 = await database.prepareAsync("DELETE FROM exercises WHERE id = ?");
+    try {
+      await statement1.executeAsync([exerciseId]);
+    } finally {
+      await statement1.finalizeAsync();
+    }
+
+    // Delete from results table
+    const statement2 = await database.prepareAsync("DELETE FROM results WHERE exerciseId = ?");
+    try {
+      await statement2.executeAsync([exerciseId]);
+    } finally {
+      await statement2.finalizeAsync();
+    }
   });
 };
 
@@ -357,18 +411,22 @@ export const saveResult = async (result: {
 
     if (!existing) {
       // Добавляем только если не существует
-      await database.runAsync(
+      const statement = await database.prepareAsync(
         `INSERT INTO results (exerciseId, weight, reps, date, amplitude, isPlanned)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [
+         VALUES (?, ?, ?, ?, ?, ?)`
+      );
+      try {
+        await statement.executeAsync([
           result.exerciseId,
           result.weight,
           result.reps,
           result.date,
           result.amplitude,
           result.isPlanned ? 1 : 0,
-        ]
-      );
+        ]);
+      } finally {
+        await statement.finalizeAsync();
+      }
     }
   });
 };
@@ -405,7 +463,12 @@ export const getResultsForExerciseIds = async (exerciseIds: string[]) => {
 
 export const deleteResult = async (resultId: number): Promise<void> => {
   await safeDbOperation(async (database) => {
-    await database.runAsync("DELETE FROM results WHERE id = ?", [resultId]);
+    const statement = await database.prepareAsync("DELETE FROM results WHERE id = ?");
+    try {
+      await statement.executeAsync([resultId]);
+    } finally {
+      await statement.finalizeAsync();
+    }
   });
 };
 
@@ -416,16 +479,25 @@ export const saveCalorieEntry = async (
   weight: number
 ): Promise<void> => {
   await safeDbOperation(async (database) => {
-    await database.runAsync(
-      "INSERT OR REPLACE INTO calories (date, calories, weight) VALUES (?, ?, ?)",
-      [date, calories, weight]
+    const statement = await database.prepareAsync(
+      "INSERT OR REPLACE INTO calories (date, calories, weight) VALUES (?, ?, ?)"
     );
+    try {
+      await statement.executeAsync([date, calories, weight]);
+    } finally {
+      await statement.finalizeAsync();
+    }
   });
 };
 
 export const deleteCalorieEntry = async (date: string): Promise<void> => {
   await safeDbOperation(async (database) => {
-    await database.runAsync("DELETE FROM calories WHERE date = ?", [date]);
+    const statement = await database.prepareAsync("DELETE FROM calories WHERE date = ?");
+    try {
+      await statement.executeAsync([date]);
+    } finally {
+      await statement.finalizeAsync();
+    }
   });
 };
 
@@ -446,10 +518,14 @@ export const saveSetting = async (
   value: string
 ): Promise<void> => {
   await safeDbOperation(async (database) => {
-    await database.runAsync(
-      "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
-      [key, value]
+    const statement = await database.prepareAsync(
+      "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)"
     );
+    try {
+      await statement.executeAsync([key, value]);
+    } finally {
+      await statement.finalizeAsync();
+    }
   });
 };
 
@@ -477,9 +553,12 @@ export const getAllSettings = async (): Promise<
 // Методы для работы с шагами
 export const saveStepsFallback = async (steps: number): Promise<void> => {
   await safeDbOperation(async (database) => {
-    await database.runAsync("INSERT INTO stepsFallback (steps) VALUES (?)", [
-      steps,
-    ]);
+    const statement = await database.prepareAsync("INSERT INTO stepsFallback (steps) VALUES (?)");
+    try {
+      await statement.executeAsync([steps]);
+    } finally {
+      await statement.finalizeAsync();
+    }
   });
 };
 
@@ -506,10 +585,14 @@ export const clearOldStepsFallback = async (
   daysToKeep: number = 7
 ): Promise<void> => {
   await safeDbOperation(async (database) => {
-    await database.runAsync(
-      "DELETE FROM stepsFallback WHERE timestamp < datetime('now', '-? days')",
-      [daysToKeep]
+    const statement = await database.prepareAsync(
+      "DELETE FROM stepsFallback WHERE timestamp < datetime('now', '-? days')"
     );
+    try {
+      await statement.executeAsync([daysToKeep]);
+    } finally {
+      await statement.finalizeAsync();
+    }
   });
 };
 
@@ -535,17 +618,21 @@ export const saveTrainingSetting = async (setting: {
   hidden: boolean;
 }): Promise<void> => {
   await safeDbOperation(async (database) => {
-    await database.runAsync(
+    const statement = await database.prepareAsync(
       `INSERT OR REPLACE INTO training_settings
        (trainingId, exerciseId, setsCount, hidden)
-       VALUES (?, ?, ?, ?)`,
-      [
+       VALUES (?, ?, ?, ?)`
+    );
+    try {
+      await statement.executeAsync([
         setting.trainingId,
         setting.exerciseId,
         setting.setsCount,
         setting.hidden ? 1 : 0,
-      ]
-    );
+      ]);
+    } finally {
+      await statement.finalizeAsync();
+    }
   });
 };
 
@@ -575,10 +662,12 @@ export const updateExerciseHidden = async (
     hidden
   );
   await safeDbOperation(async (database) => {
-    await database.runAsync("UPDATE exercises SET hidden = ? WHERE id = ?", [
-      hidden ? 1 : 0,
-      exerciseId,
-    ]);
+    const statement = await database.prepareAsync("UPDATE exercises SET hidden = ? WHERE id = ?");
+    try {
+      await statement.executeAsync([hidden ? 1 : 0, exerciseId]);
+    } finally {
+      await statement.finalizeAsync();
+    }
   });
   console.log(
     "[dbLayer] updateExerciseHidden done <-",
