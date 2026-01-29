@@ -1,4 +1,4 @@
-import { openDatabaseAsync } from "expo-sqlite";
+import { open } from 'react-native-quick-sqlite';
 
 let db: any = null;
 let initPromise: Promise<void> | null = null;
@@ -12,7 +12,7 @@ const openDatabaseWithRetry = async (
 ): Promise<any> => {
   for (let i = 0; i < retries; i++) {
     try {
-      return await openDatabaseAsync("fitplot.db");
+      return open({ name: 'fitplot.db', location: 'default' });
     } catch (error: any) {
       const isLastAttempt = i === retries - 1;
       if (isLastAttempt) {
@@ -124,23 +124,13 @@ export const initDatabase = async () => {
 
       // Создаем таблицы
       for (const sql of createTables) {
-        const statement = await database.prepareAsync(sql);
-        try {
-          await statement.executeAsync();
-        } finally {
-          await statement.finalizeAsync();
-        }
+        database.execute(sql);
       }
 
       try {
-        const alterStatement = await database.prepareAsync(
+        database.execute(
           "ALTER TABLE exercises ADD COLUMN hidden BOOLEAN NOT NULL DEFAULT 0"
         );
-        try {
-          await alterStatement.executeAsync();
-        } finally {
-          await alterStatement.finalizeAsync();
-        }
       } catch (error: any) {
         if (!error?.message?.includes("duplicate column")) {
           console.warn("Ошибка добавления колонки hidden в exercises:", error);
@@ -171,12 +161,7 @@ export const initDatabase = async () => {
 
       // Создаем индексы
       for (const sql of createIndexes) {
-        const statement = await database.prepareAsync(sql);
-        try {
-          await statement.executeAsync();
-        } finally {
-          await statement.finalizeAsync();
-        }
+        database.execute(sql);
       }
 
       isInitialized = true;
@@ -197,13 +182,13 @@ export const initDatabase = async () => {
 
 // Вспомогательная функция для безопасного выполнения операций с БД
 const safeDbOperation = async <T>(
-  operation: (db: any) => Promise<T>,
+  operation: (db: any) => T,
   retries = 3
 ): Promise<T> => {
   for (let i = 0; i < retries; i++) {
     try {
       const database = await getDatabase();
-      return await operation(database);
+      return operation(database);
     } catch (error: any) {
       const isLastAttempt = i === retries - 1;
       if (isLastAttempt) {
@@ -231,33 +216,26 @@ const safeDbOperation = async <T>(
 
 // Методы для работы с планами
 export const savePlan = async (planName: string): Promise<void> => {
-  await safeDbOperation(async (database) => {
-    const statement = await database.prepareAsync(
-      "INSERT OR REPLACE INTO plans (planName) VALUES (?)"
+  await safeDbOperation((database) => {
+    const result = database.execute(
+      "INSERT OR REPLACE INTO plans (planName) VALUES (?)",
+      [planName]
     );
-    try {
-      await statement.executeAsync([planName]);
-    } finally {
-      await statement.finalizeAsync();
-    }
+    if (result.rowsAffected === 0) throw new Error("Operation failed");
   });
 };
 
 export const deletePlan = async (planName: string): Promise<void> => {
-  await safeDbOperation(async (database) => {
-    const statement = await database.prepareAsync("DELETE FROM plans WHERE planName = ?");
-    try {
-      await statement.executeAsync([planName]);
-    } finally {
-      await statement.finalizeAsync();
-    }
+  await safeDbOperation((database) => {
+    const result = database.execute("DELETE FROM plans WHERE planName = ?", [planName]);
+    if (result.rowsAffected === 0) throw new Error("Operation failed");
   });
 };
 
 export const getAllPlans = async (): Promise<{ planName: string }[]> => {
-  return await safeDbOperation(async (database) => {
-    const result = await database.getAllAsync("SELECT planName FROM plans");
-    return result;
+  return await safeDbOperation((database) => {
+    const result = database.execute("SELECT planName FROM plans");
+    return result.rows?._array || [];
   });
 };
 
@@ -267,34 +245,25 @@ export const saveTraining = async (
   planName: string,
   name: string
 ): Promise<void> => {
-  await safeDbOperation(async (database) => {
-    const statement = await database.prepareAsync(
-      "INSERT OR REPLACE INTO trainings (id, planName, name) VALUES (?, ?, ?)"
+  await safeDbOperation((database) => {
+    const result = database.execute(
+      "INSERT OR REPLACE INTO trainings (id, planName, name) VALUES (?, ?, ?)",
+      [trainingId, planName, name]
     );
-    try {
-      await statement.executeAsync([trainingId, planName, name]);
-    } finally {
-      await statement.finalizeAsync();
-    }
+    if (result.rowsAffected === 0) throw new Error("Operation failed");
   });
 };
 
 export const deleteTraining = async (trainingId: string): Promise<void> => {
-  await safeDbOperation(async (database) => {
-    // Delete from trainings table
-    const statement1 = await database.prepareAsync("DELETE FROM trainings WHERE id = ?");
+  await safeDbOperation((database) => {
+    database.execute('BEGIN TRANSACTION');
     try {
-      await statement1.executeAsync([trainingId]);
-    } finally {
-      await statement1.finalizeAsync();
-    }
-
-    // Delete from exercises table
-    const statement2 = await database.prepareAsync("DELETE FROM exercises WHERE trainingId = ?");
-    try {
-      await statement2.executeAsync([trainingId]);
-    } finally {
-      await statement2.finalizeAsync();
+      database.execute("DELETE FROM trainings WHERE id = ?", [trainingId]);
+      database.execute("DELETE FROM exercises WHERE trainingId = ?", [trainingId]);
+      database.execute('COMMIT');
+    } catch (error) {
+      database.execute('ROLLBACK');
+      throw error;
     }
   });
 };
@@ -302,12 +271,12 @@ export const deleteTraining = async (trainingId: string): Promise<void> => {
 export const getTrainingsByPlan = async (
   planName: string
 ): Promise<{ id: string; name: string }[]> => {
-  return await safeDbOperation(async (database) => {
-    const result = await database.getAllAsync(
+  return await safeDbOperation((database) => {
+    const result = database.execute(
       "SELECT id, name FROM trainings WHERE planName = ?",
       [planName]
     );
-    return result;
+    return result.rows?._array || [];
   });
 };
 
@@ -324,14 +293,12 @@ export const saveExercise = async (exercise: {
   timerDuration?: number;
   hidden?: boolean;
 }): Promise<void> => {
-  await safeDbOperation(async (database) => {
-    const statement = await database.prepareAsync(
+  await safeDbOperation((database) => {
+    const result = database.execute(
       `INSERT OR REPLACE INTO exercises
        (id, trainingId, name, muscleGroup, type, unilateral, amplitude, comment, timerDuration, hidden)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    );
-    try {
-      await statement.executeAsync([
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
         exercise.id,
         exercise.trainingId,
         exercise.name,
@@ -342,29 +309,22 @@ export const saveExercise = async (exercise: {
         exercise.comment || null,
         exercise.timerDuration || null,
         exercise.hidden ? 1 : 0,
-      ]);
-    } finally {
-      await statement.finalizeAsync();
-    }
+      ]
+    );
+    if (result.rowsAffected === 0) throw new Error("Operation failed");
   });
 };
 
 export const deleteExercise = async (exerciseId: string): Promise<void> => {
-  await safeDbOperation(async (database) => {
-    // Delete from exercises table
-    const statement1 = await database.prepareAsync("DELETE FROM exercises WHERE id = ?");
+  await safeDbOperation((database) => {
+    database.execute('BEGIN TRANSACTION');
     try {
-      await statement1.executeAsync([exerciseId]);
-    } finally {
-      await statement1.finalizeAsync();
-    }
-
-    // Delete from results table
-    const statement2 = await database.prepareAsync("DELETE FROM results WHERE exerciseId = ?");
-    try {
-      await statement2.executeAsync([exerciseId]);
-    } finally {
-      await statement2.finalizeAsync();
+      database.execute("DELETE FROM exercises WHERE id = ?", [exerciseId]);
+      database.execute("DELETE FROM results WHERE exerciseId = ?", [exerciseId]);
+      database.execute('COMMIT');
+    } catch (error) {
+      database.execute('ROLLBACK');
+      throw error;
     }
   });
 };
@@ -372,12 +332,12 @@ export const deleteExercise = async (exerciseId: string): Promise<void> => {
 export const getExercisesByTraining = async (
   trainingId: string
 ): Promise<any[]> => {
-  return await safeDbOperation(async (database) => {
-    const result = await database.getAllAsync(
+  return await safeDbOperation((database) => {
+    const result = database.execute(
       "SELECT * FROM exercises WHERE trainingId = ?",
       [trainingId]
     );
-    return result.map((row: any) => ({
+    return (result.rows?._array || []).map((row: any) => ({
       ...row,
       unilateral: Boolean(row.unilateral),
       hidden: row.hidden !== undefined ? Boolean(row.hidden) : false,
@@ -394,9 +354,9 @@ export const saveResult = async (result: {
   amplitude: string;
   isPlanned?: boolean;
 }): Promise<void> => {
-  await safeDbOperation(async (database) => {
+  await safeDbOperation((database) => {
     // Проверяем, существует ли уже такой результат
-    const existing = await database.getFirstAsync(
+    const existingResult = database.execute(
       `SELECT id FROM results
        WHERE exerciseId = ? AND weight = ? AND reps = ? AND date = ? AND amplitude = ? AND isPlanned = ?`,
       [
@@ -408,25 +368,23 @@ export const saveResult = async (result: {
         result.isPlanned ? 1 : 0,
       ]
     );
+    const existing = existingResult.rows?._array?.[0] || null;
 
     if (!existing) {
       // Добавляем только если не существует
-      const statement = await database.prepareAsync(
+      const insertResult = database.execute(
         `INSERT INTO results (exerciseId, weight, reps, date, amplitude, isPlanned)
-         VALUES (?, ?, ?, ?, ?, ?)`
-      );
-      try {
-        await statement.executeAsync([
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
           result.exerciseId,
           result.weight,
           result.reps,
           result.date,
           result.amplitude,
           result.isPlanned ? 1 : 0,
-        ]);
-      } finally {
-        await statement.finalizeAsync();
-      }
+        ]
+      );
+      if (insertResult.rowsAffected === 0) throw new Error("Operation failed");
     }
   });
 };
@@ -434,12 +392,12 @@ export const saveResult = async (result: {
 export const getResultsByExercise = async (
   exerciseId: string
 ): Promise<any[]> => {
-  return await safeDbOperation(async (database) => {
-    const result = await database.getAllAsync(
+  return await safeDbOperation((database) => {
+    const result = database.execute(
       "SELECT * FROM results WHERE exerciseId = ? ORDER BY date DESC",
       [exerciseId]
     );
-    return result.map((row: any) => ({
+    return (result.rows?._array || []).map((row: any) => ({
       ...row,
       isPlanned: Boolean(row.isPlanned),
     }));
@@ -448,27 +406,23 @@ export const getResultsByExercise = async (
 
 export const getResultsForExerciseIds = async (exerciseIds: string[]) => {
   if (!exerciseIds || exerciseIds.length === 0) return [];
-  return await safeDbOperation(async (database) => {
+  return await safeDbOperation((database) => {
     const placeholders = exerciseIds.map(() => "?").join(",");
-    const rows = await database.getAllAsync(
+    const result = database.execute(
       `SELECT id, exerciseId, weight, reps, date, amplitude, isPlanned
        FROM results
        WHERE exerciseId IN (${placeholders})
        ORDER BY date DESC`,
       exerciseIds
     );
-    return rows.map((r: any) => ({ ...r, isPlanned: Boolean(r.isPlanned) }));
+    return (result.rows?._array || []).map((r: any) => ({ ...r, isPlanned: Boolean(r.isPlanned) }));
   });
 };
 
 export const deleteResult = async (resultId: number): Promise<void> => {
-  await safeDbOperation(async (database) => {
-    const statement = await database.prepareAsync("DELETE FROM results WHERE id = ?");
-    try {
-      await statement.executeAsync([resultId]);
-    } finally {
-      await statement.finalizeAsync();
-    }
+  await safeDbOperation((database) => {
+    const result = database.execute("DELETE FROM results WHERE id = ?", [resultId]);
+    if (result.rowsAffected === 0) throw new Error("Operation failed");
   });
 };
 
@@ -478,37 +432,30 @@ export const saveCalorieEntry = async (
   calories: number,
   weight: number
 ): Promise<void> => {
-  await safeDbOperation(async (database) => {
-    const statement = await database.prepareAsync(
-      "INSERT OR REPLACE INTO calories (date, calories, weight) VALUES (?, ?, ?)"
+  await safeDbOperation((database) => {
+    const result = database.execute(
+      "INSERT OR REPLACE INTO calories (date, calories, weight) VALUES (?, ?, ?)",
+      [date, calories, weight]
     );
-    try {
-      await statement.executeAsync([date, calories, weight]);
-    } finally {
-      await statement.finalizeAsync();
-    }
+    if (result.rowsAffected === 0) throw new Error("Operation failed");
   });
 };
 
 export const deleteCalorieEntry = async (date: string): Promise<void> => {
-  await safeDbOperation(async (database) => {
-    const statement = await database.prepareAsync("DELETE FROM calories WHERE date = ?");
-    try {
-      await statement.executeAsync([date]);
-    } finally {
-      await statement.finalizeAsync();
-    }
+  await safeDbOperation((database) => {
+    const result = database.execute("DELETE FROM calories WHERE date = ?", [date]);
+    if (result.rowsAffected === 0) throw new Error("Operation failed");
   });
 };
 
 export const getCalorieEntries = async (): Promise<
   { date: string; calories: number; weight: number }[]
 > => {
-  return await safeDbOperation(async (database) => {
-    const result = await database.getAllAsync(
+  return await safeDbOperation((database) => {
+    const result = database.execute(
       "SELECT date, calories, weight FROM calories ORDER BY date DESC"
     );
-    return result;
+    return result.rows?._array || [];
   });
 };
 
@@ -517,82 +464,72 @@ export const saveSetting = async (
   key: string,
   value: string
 ): Promise<void> => {
-  await safeDbOperation(async (database) => {
-    const statement = await database.prepareAsync(
-      "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)"
+  await safeDbOperation((database) => {
+    const result = database.execute(
+      "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
+      [key, value]
     );
-    try {
-      await statement.executeAsync([key, value]);
-    } finally {
-      await statement.finalizeAsync();
-    }
+    if (result.rowsAffected === 0) throw new Error("Operation failed");
   });
 };
 
 export const getSetting = async (key: string): Promise<string | null> => {
-  return await safeDbOperation(async (database) => {
-    const result = await database.getFirstAsync(
+  return await safeDbOperation((database) => {
+    const result = database.execute(
       "SELECT value FROM settings WHERE key = ?",
       [key]
     );
-    return result ? result.value : null;
+    return result.rows?._array?.[0]?.value || null;
   });
 };
 
 export const getAllSettings = async (): Promise<
   { key: string; value: string }[]
 > => {
-  return await safeDbOperation(async (database) => {
-    const result = await database.getAllAsync(
+  return await safeDbOperation((database) => {
+    const result = database.execute(
       "SELECT key, value FROM settings"
     );
-    return result;
+    return result.rows?._array || [];
   });
 };
 
 // Методы для работы с шагами
 export const saveStepsFallback = async (steps: number): Promise<void> => {
-  await safeDbOperation(async (database) => {
-    const statement = await database.prepareAsync("INSERT INTO stepsFallback (steps) VALUES (?)");
-    try {
-      await statement.executeAsync([steps]);
-    } finally {
-      await statement.finalizeAsync();
-    }
+  await safeDbOperation((database) => {
+    const result = database.execute("INSERT INTO stepsFallback (steps) VALUES (?)", [steps]);
+    if (result.rowsAffected === 0) throw new Error("Operation failed");
   });
 };
 
 export const getLatestStepsFallback = async (): Promise<number> => {
-  return await safeDbOperation(async (database) => {
-    const result = await database.getFirstAsync(
+  return await safeDbOperation((database) => {
+    const result = database.execute(
       "SELECT steps FROM stepsFallback ORDER BY timestamp DESC LIMIT 1"
     );
-    return result ? result.steps : 0;
+    return result.rows?._array?.[0]?.steps || 0;
   });
 };
 
 export const getStepsForDate = async (date: string): Promise<number> => {
-  return await safeDbOperation(async (database) => {
-    const result = await database.getFirstAsync(
+  return await safeDbOperation((database) => {
+    const result = database.execute(
       "SELECT steps FROM stepsFallback WHERE DATE(timestamp) = ? ORDER BY timestamp DESC LIMIT 1",
       [date]
     );
-    return result ? result.steps : 0;
+    return result.rows?._array?.[0]?.steps || 0;
   });
 };
 
 export const clearOldStepsFallback = async (
   daysToKeep: number = 7
 ): Promise<void> => {
-  await safeDbOperation(async (database) => {
-    const statement = await database.prepareAsync(
-      "DELETE FROM stepsFallback WHERE timestamp < datetime('now', '-? days')"
+  await safeDbOperation((database) => {
+    const result = database.execute(
+      "DELETE FROM stepsFallback WHERE timestamp < datetime('now', '-? days')",
+      [daysToKeep]
     );
-    try {
-      await statement.executeAsync([daysToKeep]);
-    } finally {
-      await statement.finalizeAsync();
-    }
+    if (result.rowsAffected === 0) throw new Error("Operation failed");
   });
 };
 
@@ -603,11 +540,12 @@ export const saveMaintenanceCalories = async (
 };
 
 export const getMaintenanceCalories = async (): Promise<number | null> => {
-  return await safeDbOperation(async (database) => {
-    const result = await database.getFirstAsync(
+  return await safeDbOperation((database) => {
+    const result = database.execute(
       "SELECT value FROM settings WHERE key = 'maintenanceCalories'"
     );
-    return result ? parseFloat(result.value) : null;
+    const row = result.rows?._array?.[0];
+    return row ? parseFloat(row.value) : null;
   });
 };
 
@@ -617,34 +555,31 @@ export const saveTrainingSetting = async (setting: {
   setsCount: number;
   hidden: boolean;
 }): Promise<void> => {
-  await safeDbOperation(async (database) => {
-    const statement = await database.prepareAsync(
+  await safeDbOperation((database) => {
+    const result = database.execute(
       `INSERT OR REPLACE INTO training_settings
        (trainingId, exerciseId, setsCount, hidden)
-       VALUES (?, ?, ?, ?)`
-    );
-    try {
-      await statement.executeAsync([
+       VALUES (?, ?, ?, ?)`,
+      [
         setting.trainingId,
         setting.exerciseId,
         setting.setsCount,
         setting.hidden ? 1 : 0,
-      ]);
-    } finally {
-      await statement.finalizeAsync();
-    }
+      ]
+    );
+    if (result.rowsAffected === 0) throw new Error("Operation failed");
   });
 };
 
 export const getTrainingSettings = async (
   trainingId: string
 ): Promise<any[]> => {
-  return await safeDbOperation(async (database) => {
-    const result = await database.getAllAsync(
+  return await safeDbOperation((database) => {
+    const result = database.execute(
       "SELECT * FROM training_settings WHERE trainingId = ?",
       [trainingId]
     );
-    return result.map((row: any) => ({
+    return (result.rows?._array || []).map((row: any) => ({
       ...row,
       hidden: Boolean(row.hidden),
     }));
@@ -661,13 +596,9 @@ export const updateExerciseHidden = async (
     "hidden:",
     hidden
   );
-  await safeDbOperation(async (database) => {
-    const statement = await database.prepareAsync("UPDATE exercises SET hidden = ? WHERE id = ?");
-    try {
-      await statement.executeAsync([hidden ? 1 : 0, exerciseId]);
-    } finally {
-      await statement.finalizeAsync();
-    }
+  await safeDbOperation((database) => {
+    const result = database.execute("UPDATE exercises SET hidden = ? WHERE id = ?", [hidden ? 1 : 0, exerciseId]);
+    if (result.rowsAffected === 0) throw new Error("Operation failed");
   });
   console.log(
     "[dbLayer] updateExerciseHidden done <-",
