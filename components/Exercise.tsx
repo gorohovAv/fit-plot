@@ -104,13 +104,14 @@ export const Exercise: React.FC<ExerciseProps> = ({
   const loadExerciseResults = async () => {
     try {
       const results = await dbLayer.getResultsByExercise(id);
+      const maxMicrohistorySize = useSettingsStore.getState().maxMicrohistorySize;
       const formattedResults: Result[] = results
         .filter((r: any) => !r.isPlanned)
         .sort(
           (a: any, b: any) =>
             new Date(b.date).getTime() - new Date(a.date).getTime()
         )
-        .slice(0, 5)
+        .slice(0, maxMicrohistorySize)
         .map((r: any) => ({
           exerciseId: r.exerciseId,
           weight: r.weight,
@@ -129,6 +130,18 @@ export const Exercise: React.FC<ExerciseProps> = ({
   useEffect(() => {
     loadExerciseResults();
   }, [id]);
+
+  // Subscribe to maxMicrohistorySize changes
+  useEffect(() => {
+    const unsubscribe = useSettingsStore.subscribe(
+      (state) => state.maxMicrohistorySize,
+      () => {
+        loadExerciseResults();
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
 
   // Следим за изменениями скрытости из родителя
   useEffect(() => {

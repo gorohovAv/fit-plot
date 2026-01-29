@@ -10,6 +10,8 @@ export const translations = {
     developerMode: "Developer mode",
     importData: "Import data",
     language: "Language",
+    maxMicrohistorySize: "Max microhistory size",
+    microhistoryDescription: "Write more if you do more sets",
 
     // Calories
     calories: "Calories",
@@ -192,6 +194,8 @@ Pull-ups
     developerMode: "Режим разработчика",
     importData: "Импорт данных",
     language: "Язык",
+    maxMicrohistorySize: "Макс. размер микроистории",
+    microhistoryDescription: "Напишите больше, если делаете больше подходов",
 
     // Calories
     calories: "Калории",

@@ -21,10 +21,12 @@ export default function SettingsScreen() {
     weight,
     devMode,
     language,
+    maxMicrohistorySize,
     setTheme,
     setWeight,
     setDevMode,
     setLanguage,
+    setMaxMicrohistorySize,
   } = useSettingsStore();
   const systemTheme = useColorScheme();
   const currentTheme = theme === "system" ? systemTheme : theme;
@@ -151,6 +153,31 @@ export default function SettingsScreen() {
         placeholderTextColor={colors.icon}
       />
 
+      <Text style={[styles.label, { color: colors.text }]}>
+        {getTranslation(language, "maxMicrohistorySize")}
+      </Text>
+      <Text style={[styles.description, { color: colors.icon }]}>
+        {getTranslation(language, "microhistoryDescription")}
+      </Text>
+      <TextInput
+        style={[
+          styles.input,
+          {
+            borderColor: colors.border,
+            color: colors.text,
+            backgroundColor: colors.card,
+          },
+        ]}
+        keyboardType="numeric"
+        value={maxMicrohistorySize.toString()}
+        onChangeText={(text) => {
+          const num = parseInt(text);
+          if (!isNaN(num) && num > 0) setMaxMicrohistorySize(num);
+        }}
+        placeholder={getTranslation(language, "maxMicrohistorySize")}
+        placeholderTextColor={colors.icon}
+      />
+
       <Text style={[styles.label, { color: colors.text }]}>{getTranslation(language, "language")}</Text>
       <View style={styles.row}>
         <TouchableOpacity
@@ -247,6 +274,7 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 24 },
   label: { fontSize: 16, marginVertical: 12 },
+  description: { fontSize: 14, marginVertical: 4, opacity: 0.7 },
   row: { flexDirection: "row", marginBottom: 16, gap: 8 },
   themeOption: {
     borderRadius: 8,
