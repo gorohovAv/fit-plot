@@ -131,7 +131,7 @@ export default function WorkoutScreen() {
         await dbLayer.saveExercise({
           ...exercise,
           trainingId: workoutId,
-          hidden: true,
+          hidden: false,
         });
       }
       setNewExercise({

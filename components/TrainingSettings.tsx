@@ -170,9 +170,9 @@ export const TrainingSettings: React.FC<TrainingSettingsProps> = ({
               style={styles.checkbox}
             >
               <MaterialIcons
-                name={item.hidden ? "check-box" : "check-box-outline-blank"}
+                name={item.hidden ? "check-box-outline-blank" : "check-box"}
                 size={24}
-                color={item.hidden ? themeColors.tint : themeColors.icon}
+                color={item.hidden ? themeColors.icon : themeColors.tint}
               />
             </TouchableOpacity>
           </View>
