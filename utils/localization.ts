@@ -58,7 +58,7 @@ export const translations = {
     exercise: "Exercise",
     weightKg: "Weight (kg)",
     repetitions: "Repetitions",
-    dateWithinMonth: "Date (within month)",
+    dateWithinMonth: "Date (YYYY-MM-DD)",
     saveResult: "Save",
     monthLabel: "MMMM YYYY",
 
@@ -243,7 +243,7 @@ Pull-ups
     exercise: "Упражнение",
     weightKg: "Вес (кг)",
     repetitions: "Повторения",
-    dateWithinMonth: "Дата (в пределах месяца)",
+    dateWithinMonth: "Дата (ГГГГ-ММ-ДД)",
     saveResult: "Сохранить",
     monthLabel: "MMMM YYYY",
 
@@ -376,7 +376,7 @@ export type TranslationKey = keyof typeof translations.english;
 
 export const getTranslation = (
   language: Language,
-  key: TranslationKey
+  key: TranslationKey,
 ): string => {
   return translations[language][key];
 };
@@ -384,7 +384,7 @@ export const getTranslation = (
 export const formatTranslation = (
   language: Language,
   key: TranslationKey,
-  params: Record<string, string | number> = {}
+  params: Record<string, string | number> = {},
 ): string => {
   let translation = getTranslation(language, key);
 

@@ -19,7 +19,7 @@ type DataPoint = {
 type Dataset = {
   data: DataPoint[];
   axisLabel: string;
-  name?: string; // Optional dataset name for legend
+  name?: string;
 };
 
 type Zone = {
@@ -85,32 +85,30 @@ const Plot: React.FC<PlotProps> = ({
   const [selectedDate, setSelectedDate] = React.useState<Date | null>(null);
   const [scrollX, setScrollX] = React.useState(0);
 
-  console.log("=== PLOT RENDER DEBUG ===");
-  console.log("datasets:", datasets);
-  console.log("datasets.length:", datasets?.length);
-  console.log("lineColors:", lineColors);
-  console.log("lineColors.length:", lineColors?.length);
+  //console.log("=== PLOT RENDER DEBUG ===");
+  //console.log("datasets:", datasets);
+  //console.log("datasets.length:", datasets?.length);
+  //console.log("lineColors:", lineColors);
+  //console.log("lineColors.length:", lineColors?.length);
 
-  // Убираем вертикальные оси, уменьшаем боковые отступы
   const dynamicMargin = React.useMemo(
     () => ({
       ...margin,
       left: 20,
       right: 20,
     }),
-    [margin]
+    [margin],
   );
 
   const chartWidth = Math.max(width * 2, 800);
   const innerWidth = chartWidth - dynamicMargin.left - dynamicMargin.right;
   const innerHeight = height - dynamicMargin.top - dynamicMargin.bottom;
 
-  // Вычисляем масштабы до проверки на пустые данные
   const allDataPoints = datasets?.flatMap((dataset) => dataset.data) || [];
   const allDates = allDataPoints.map((point) => new Date(point.x));
 
-  console.log("allDataPoints.length:", allDataPoints.length);
-  console.log("allDates:", allDates);
+  //console.log("allDataPoints.length:", allDataPoints.length);
+  //console.log("allDates:", allDates);
 
   const xScale = React.useMemo(() => {
     if (allDates.length === 0) {
@@ -131,11 +129,10 @@ const Plot: React.FC<PlotProps> = ({
   const globalYMin = Math.min(0, d3.min(allValues) ?? 0);
   const globalYMax = d3.max(allValues) ?? 0;
 
-  // Fix Y-axis scaling - use proper padding and ensure lines don't exceed axis bounds
-  const globalYPadding = Math.max((globalYMax - globalYMin) * 0.1, 1); // Increase padding to 10% with minimum of 1
+  const globalYPadding = Math.max((globalYMax - globalYMin) * 0.1, 1);
   const globalYDomain = React.useMemo(
     () => [globalYMin - globalYPadding, globalYMax + globalYPadding],
-    [globalYMin, globalYMax, globalYPadding]
+    [globalYMin, globalYMax, globalYPadding],
   );
 
   const yScale = React.useMemo(() => {
@@ -145,7 +142,6 @@ const Plot: React.FC<PlotProps> = ({
       .range([dynamicMargin.top + innerHeight, dynamicMargin.top]);
   }, [globalYDomain, innerHeight, dynamicMargin]);
 
-  // Находим ближайшие точки для выбранной даты (должно быть до раннего возврата)
   const selectedPoints = React.useMemo(() => {
     if (!selectedDate || !datasets || datasets.length === 0) return [];
 
@@ -155,7 +151,6 @@ const Plot: React.FC<PlotProps> = ({
 
     return datasets
       .map((dataset, datasetIndex) => {
-        // Сортируем точки по дате для интерполяции
         const sortedPoints = [...dataset.data]
           .map((p) => ({ ...p, date: new Date(p.x).getTime() }))
           .sort((a, b) => a.date - b.date)
@@ -163,7 +158,6 @@ const Plot: React.FC<PlotProps> = ({
 
         if (sortedPoints.length === 0) return null;
 
-        // Находим две ближайшие точки для интерполяции
         let beforePoint: (typeof sortedPoints)[0] | null = null;
         let afterPoint: (typeof sortedPoints)[0] | null = null;
 
@@ -181,7 +175,6 @@ const Plot: React.FC<PlotProps> = ({
         let displayPoint: DataPoint;
 
         if (beforePoint && afterPoint && beforePoint.date !== afterPoint.date) {
-          // Линейная интерполяция между двумя точками
           const t =
             (selectedTime - beforePoint.date) /
             (afterPoint.date - beforePoint.date);
@@ -191,11 +184,9 @@ const Plot: React.FC<PlotProps> = ({
             y: interpolatedY,
           };
         } else if (beforePoint) {
-          // Используем ближайшую точку до
           interpolatedY = beforePoint.y;
           displayPoint = beforePoint;
         } else if (afterPoint) {
-          // Используем ближайшую точку после
           interpolatedY = afterPoint.y;
           displayPoint = afterPoint;
         } else {
@@ -204,7 +195,6 @@ const Plot: React.FC<PlotProps> = ({
 
         if (interpolatedY <= 0) return null;
 
-        // Используем координату выбранной даты для X, чтобы точка была точно на линии
         const x = selectedX;
         const y = yScale(interpolatedY);
 
@@ -219,7 +209,6 @@ const Plot: React.FC<PlotProps> = ({
       .filter((p): p is NonNullable<typeof p> => p !== null);
   }, [selectedDate, datasets, lineColors, xScale, yScale]);
 
-  // Обработчик тапа на график (должен быть до раннего возврата)
   const handleChartPress = React.useCallback(
     (event: any) => {
       const { locationX, locationY } = event.nativeEvent;
@@ -229,7 +218,6 @@ const Plot: React.FC<PlotProps> = ({
       // locationX - это координата относительно Pressable, добавляем scrollX
       const xInChart = locationX + scrollX;
 
-      // Проверяем, что тап внутри области графика с учетом отступов
       if (
         xInChart < dynamicMargin.left ||
         xInChart > dynamicMargin.left + innerWidth ||
@@ -240,11 +228,10 @@ const Plot: React.FC<PlotProps> = ({
         return;
       }
 
-      // Преобразуем координату X в дату
       const date = xScale.invert(xInChart);
       setSelectedDate(date);
     },
-    [dynamicMargin, innerWidth, innerHeight, xScale, scrollX]
+    [dynamicMargin, innerWidth, innerHeight, xScale, scrollX],
   );
 
   if (!datasets || datasets.length === 0) {
@@ -252,14 +239,13 @@ const Plot: React.FC<PlotProps> = ({
     return <View style={styles.container} />;
   }
 
-  // Определяем уникальные единицы измерения
   const uniqueAxisLabels = [
     ...new Set(datasets.map((dataset) => dataset.axisLabel)),
   ];
-  console.log("Unique axis labels:", uniqueAxisLabels);
+  //console.log("Unique axis labels:", uniqueAxisLabels);
 
   const linePaths = datasets.map((dataset, datasetIndex) => {
-    console.log(`Creating linePath for dataset ${datasetIndex}:`, dataset);
+    //console.log(`Creating linePath for dataset ${datasetIndex}:`, dataset);
 
     const lineGenerator = d3
       .line<DataPoint>()
@@ -270,9 +256,9 @@ const Plot: React.FC<PlotProps> = ({
 
     const pathData = lineGenerator(dataset.data) || "";
     const color = lineColors[datasetIndex % lineColors.length];
-    console.log(
-      `Dataset ${datasetIndex} path length: ${pathData.length}, color: ${color}`
-    );
+    //console.log(
+    //`Dataset ${datasetIndex} path length: ${pathData.length}, color: ${color}`
+    //);
 
     return {
       path: pathData,

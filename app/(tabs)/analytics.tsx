@@ -7,6 +7,7 @@ import { formatTranslation, getTranslation } from "@/utils/localization";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useRoute } from "@react-navigation/native";
 import { useFont } from "@shopify/react-native-skia";
+import { BlurView } from "expo-blur";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -17,19 +18,18 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { BlurView } from "expo-blur";
 import * as dbLayer from "../../store/dbLayer";
 import { Plan, PlannedResult, Result } from "../../store/store";
 
 type ChartData = {
-  x: string; // Дата
-  y: number; // Значение (тоннаж, вес, повторения)
+  x: string;
+  y: number;
 }[];
 
 type Dataset = {
   data: ChartData;
   axisLabel: string;
-  name?: string; // Optional dataset name for legend
+  name?: string;
 };
 
 type Zone = {
@@ -37,8 +37,6 @@ type Zone = {
   endDate: string;
   color: string;
 };
-
-// Определяем типы для "сырых" импортированных данных (без гарантированных ID)
 
 export default function AnalyticsScreen() {
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -64,12 +62,11 @@ export default function AnalyticsScreen() {
   const [isRenderingResults, setIsRenderingResults] = useState<boolean>(false);
   const [resultsViewPending, setResultsViewPending] = useState<boolean>(false);
 
-  // Direct state for calories data
   const [caloriesEntries, setCaloriesEntries] = useState<
     { date: string; calories: number; weight: number }[]
   >([]);
   const [maintenanceCalories, setMaintenanceCalories] = useState<number | null>(
-    null
+    null,
   );
 
   const font = useFont(require("../../assets/fonts/SpaceMono-Regular.ttf"));
@@ -77,10 +74,9 @@ export default function AnalyticsScreen() {
   const theme = useSettingsStore((state) => state.theme);
   const { language } = useSettingsStore();
   const colorScheme =
-    theme === "system" ? Appearance.getColorScheme?.() ?? "light" : theme;
+    theme === "system" ? (Appearance.getColorScheme?.() ?? "light") : theme;
   const themeColors = Colors[colorScheme];
 
-  // Функция для загрузки всех планов с данными из БД
   const loadPlansFromDB = async () => {
     try {
       const planNames = await dbLayer.getAllPlans();
@@ -139,7 +135,6 @@ export default function AnalyticsScreen() {
     }
   };
 
-  // Load calories data directly from DB
   const loadCaloriesFromDB = async () => {
     try {
       console.log(`[AnalyticsScreen] Loading calories data directly from DB`);
@@ -148,11 +143,11 @@ export default function AnalyticsScreen() {
       const maintenance = await dbLayer.getMaintenanceCalories();
 
       console.log(
-        `[AnalyticsScreen] Loaded ${entries.length} calorie entries from DB`
+        `[AnalyticsScreen] Loaded ${entries.length} calorie entries from DB`,
       );
       console.log(
         `[AnalyticsScreen] Loaded maintenance calories from DB:`,
-        maintenance
+        maintenance,
       );
 
       setCaloriesEntries(entries);
@@ -160,12 +155,11 @@ export default function AnalyticsScreen() {
     } catch (error) {
       console.error(
         `[AnalyticsScreen] Error loading calories data from DB:`,
-        error
+        error,
       );
     }
   };
 
-  // Function to get calorie entry by date for zones
   const getEntryByDate = (date: string) => {
     return caloriesEntries.find((entry) => entry.date === date);
   };
@@ -205,7 +199,7 @@ export default function AnalyticsScreen() {
         // Find the exercise in all exercises from all plans
         const allExercises = plans
           .flatMap((plan) =>
-            plan.trainings.flatMap((training) => training.exercises || [])
+            plan.trainings.flatMap((training) => training.exercises || []),
           )
           .filter((exercise) => exercise && exercise.id && exercise.name);
 
@@ -224,7 +218,7 @@ export default function AnalyticsScreen() {
     const processData = async () => {
       const exercises = plans
         .flatMap((plan) =>
-          plan.trainings.flatMap((training) => training.exercises || [])
+          plan.trainings.flatMap((training) => training.exercises || []),
         )
         .filter((exercise) => exercise && exercise.id && exercise.name);
 
@@ -251,8 +245,8 @@ export default function AnalyticsScreen() {
                   return false;
                 if (dateFilterEnd && result.date > dateFilterEnd) return false;
                 return true;
-              })
-            )
+              }),
+            ),
           )
           .forEach((result) => allResults.push(result));
       });
@@ -271,20 +265,20 @@ export default function AnalyticsScreen() {
                   if (dateFilterEnd && planned.plannedDate > dateFilterEnd)
                     return false;
                   return true;
-                })
-              )
+                }),
+              ),
             )
             .forEach((planned) => allPlannedResults.push(planned));
         }
       });
 
       allResults.sort(
-        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
       );
 
       allPlannedResults.sort(
         (a, b) =>
-          new Date(a.plannedDate).getTime() - new Date(b.plannedDate).getTime()
+          new Date(a.plannedDate).getTime() - new Date(b.plannedDate).getTime(),
       );
 
       if (allResults.length === 0 && allPlannedResults.length === 0) {
@@ -314,21 +308,27 @@ export default function AnalyticsScreen() {
 
       selectedExerciseIds.forEach((exerciseId) => {
         const exerciseResults = allResults.filter(
-          (r) => r.exerciseId === exerciseId
+          (r) => r.exerciseId === exerciseId,
         );
         const exercise = exercises.find((ex) => ex.id === exerciseId);
 
         if (exerciseResults.length > 0 && exercise) {
-          const groupedByDay = exerciseResults.reduce((acc, result) => {
-            const day = getDayString(result.date);
-            if (!acc[day]) {
-              acc[day] = { tonnage: 0, maxWeight: 0, maxReps: 0 };
-            }
-            acc[day].tonnage += result.weight * result.reps;
-            acc[day].maxWeight = Math.max(acc[day].maxWeight, result.weight);
-            acc[day].maxReps = Math.max(acc[day].maxReps, result.reps);
-            return acc;
-          }, {} as Record<string, { tonnage: number; maxWeight: number; maxReps: number }>);
+          const groupedByDay = exerciseResults.reduce(
+            (acc, result) => {
+              const day = getDayString(result.date);
+              if (!acc[day]) {
+                acc[day] = { tonnage: 0, maxWeight: 0, maxReps: 0 };
+              }
+              acc[day].tonnage += result.weight * result.reps;
+              acc[day].maxWeight = Math.max(acc[day].maxWeight, result.weight);
+              acc[day].maxReps = Math.max(acc[day].maxReps, result.reps);
+              return acc;
+            },
+            {} as Record<
+              string,
+              { tonnage: number; maxWeight: number; maxReps: number }
+            >,
+          );
 
           const sortedDays = Object.keys(groupedByDay).sort();
 
@@ -368,7 +368,7 @@ export default function AnalyticsScreen() {
 
         if (exercise) {
           const exercisePlannedResults = allPlannedResults.filter(
-            (pr) => pr.exerciseId === exercise.id
+            (pr) => pr.exerciseId === exercise.id,
           );
 
           if (exercisePlannedResults.length > 0) {
@@ -381,18 +381,18 @@ export default function AnalyticsScreen() {
                 acc[day].tonnage += planned.plannedWeight * planned.plannedReps;
                 acc[day].maxWeight = Math.max(
                   acc[day].maxWeight,
-                  planned.plannedWeight
+                  planned.plannedWeight,
                 );
                 acc[day].maxReps = Math.max(
                   acc[day].maxReps,
-                  planned.plannedReps
+                  planned.plannedReps,
                 );
                 return acc;
               },
               {} as Record<
                 string,
                 { tonnage: number; maxWeight: number; maxReps: number }
-              >
+              >,
             );
 
             const sortedPlannedDays = Object.keys(groupedPlannedByDay).sort();
@@ -456,20 +456,20 @@ export default function AnalyticsScreen() {
 
   const exercises = plans
     .flatMap((plan) =>
-      plan.trainings.flatMap((training) => training.exercises || [])
+      plan.trainings.flatMap((training) => training.exercises || []),
     )
     .filter((exercise) => exercise && exercise.id && exercise.name);
 
   const plannedResults = plans
     .flatMap((plan) =>
-      plan.trainings.flatMap((training) => training.plannedResults || [])
+      plan.trainings.flatMap((training) => training.plannedResults || []),
     )
     .filter((planned) => planned && planned.exerciseId && planned.plannedDate);
 
   const getAllResults = () => {
     return plans
       .flatMap((plan) =>
-        plan.trainings.flatMap((training) => training.results || [])
+        plan.trainings.flatMap((training) => training.results || []),
       )
       .filter((result) => {
         if (dateFilterStart && result.date < dateFilterStart) return false;
@@ -493,7 +493,7 @@ export default function AnalyticsScreen() {
     const end = new Date(allDates[allDates.length - 1]);
     const daysDiff = Math.max(
       1,
-      Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
+      Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)),
     );
     const weeks = daysDiff / 7;
     const avgSetsPerWeek = weeks > 0 ? allResults.length / weeks : null;
@@ -546,7 +546,7 @@ export default function AnalyticsScreen() {
             period1TonnageByExercise[r.exerciseId] += r.weight * r.reps;
             period1WeightByExercise[r.exerciseId] = Math.max(
               period1WeightByExercise[r.exerciseId],
-              r.weight
+              r.weight,
             );
           });
 
@@ -558,7 +558,7 @@ export default function AnalyticsScreen() {
             period2TonnageByExercise[r.exerciseId] += r.weight * r.reps;
             period2WeightByExercise[r.exerciseId] = Math.max(
               period2WeightByExercise[r.exerciseId],
-              r.weight
+              r.weight,
             );
           });
 
@@ -627,7 +627,7 @@ export default function AnalyticsScreen() {
     title: string,
     colors: string[],
     xLabel: string,
-    yLabel: string
+    yLabel: string,
   ) => {
     if (isLoading) {
       return (
@@ -659,7 +659,7 @@ export default function AnalyticsScreen() {
             item.x &&
             typeof item.x === "string" &&
             item.x.split("-").length === 3 &&
-            !item.x.includes("undefined")
+            !item.x.includes("undefined"),
         ),
       }))
       .filter((dataset) => dataset.data.length > 0);
@@ -768,7 +768,12 @@ export default function AnalyticsScreen() {
         >
           <View style={styles.loaderContent}>
             <ActivityIndicator size="large" color={themeColors.primary} />
-            <Text style={[styles.centeredLoadingText, { color: themeColors.text, marginTop: 16, textAlign: "center" }]}>
+            <Text
+              style={[
+                styles.centeredLoadingText,
+                { color: themeColors.text, marginTop: 16, textAlign: "center" },
+              ]}
+            >
               {getTranslation(language, "loadingData")}
             </Text>
           </View>
@@ -783,15 +788,20 @@ export default function AnalyticsScreen() {
             ) : (
               <TouchableOpacity
                 onPress={() => setIsModalVisible(true)}
-                style={[styles.pickerButton, { borderColor: themeColors.border }]}
+                style={[
+                  styles.pickerButton,
+                  { borderColor: themeColors.border },
+                ]}
               >
                 <Text
                   style={[styles.pickerButtonText, { color: themeColors.text }]}
                 >
-                  {selectedExerciseIds.length > 0 || selectedPlannedIds.length > 0
+                  {selectedExerciseIds.length > 0 ||
+                  selectedPlannedIds.length > 0
                     ? formatTranslation(language, "selected", {
                         count:
-                          selectedExerciseIds.length + selectedPlannedIds.length,
+                          selectedExerciseIds.length +
+                          selectedPlannedIds.length,
                       })
                     : getTranslation(language, "selectExercises")}
                 </Text>
@@ -804,7 +814,6 @@ export default function AnalyticsScreen() {
               onPress={() => {
                 const newValue = !showResultsList;
                 if (newValue) {
-                  // When switching to results list view, set pending state
                   setResultsViewPending(true);
                 }
                 setShowResultsList(newValue);
@@ -814,11 +823,21 @@ export default function AnalyticsScreen() {
           </View>
 
           {showResultsList ? (
-            // Show loading indicator when showing ResultsList and data is still being processed
-            plans.length === 0 || (plans.length > 0 && isLoading) || resultsViewPending ? (
+            plans.length === 0 ||
+            (plans.length > 0 && isLoading) ||
+            resultsViewPending ? (
               <View style={styles.resultsListLoader}>
                 <ActivityIndicator size="large" color={themeColors.primary} />
-                <Text style={[styles.centeredLoadingText, { color: themeColors.text, marginTop: 16, textAlign: "center" }]}>
+                <Text
+                  style={[
+                    styles.centeredLoadingText,
+                    {
+                      color: themeColors.text,
+                      marginTop: 16,
+                      textAlign: "center",
+                    },
+                  ]}
+                >
                   {getTranslation(language, "loadingData")}
                 </Text>
               </View>
@@ -826,8 +845,20 @@ export default function AnalyticsScreen() {
               <>
                 {isRenderingResults && (
                   <View style={styles.resultsListLoader}>
-                    <ActivityIndicator size="large" color={themeColors.primary} />
-                    <Text style={[styles.centeredLoadingText, { color: themeColors.text, marginTop: 16, textAlign: "center" }]}>
+                    <ActivityIndicator
+                      size="large"
+                      color={themeColors.primary}
+                    />
+                    <Text
+                      style={[
+                        styles.centeredLoadingText,
+                        {
+                          color: themeColors.text,
+                          marginTop: 16,
+                          textAlign: "center",
+                        },
+                      ]}
+                    >
                       {getTranslation(language, "loadingData")}
                     </Text>
                   </View>
@@ -852,10 +883,14 @@ export default function AnalyticsScreen() {
                       { backgroundColor: themeColors.card },
                     ]}
                   >
-                    <Text style={[styles.metricTitle, { color: themeColors.text }]}>
+                    <Text
+                      style={[styles.metricTitle, { color: themeColors.text }]}
+                    >
                       Среднее количество подходов в неделю
                     </Text>
-                    <Text style={[styles.metricValue, { color: themeColors.text }]}>
+                    <Text
+                      style={[styles.metricValue, { color: themeColors.text }]}
+                    >
                       {metrics.avgSetsPerWeek !== null
                         ? metrics.avgSetsPerWeek.toFixed(1)
                         : "—"}
@@ -867,10 +902,14 @@ export default function AnalyticsScreen() {
                       { backgroundColor: themeColors.card },
                     ]}
                   >
-                    <Text style={[styles.metricTitle, { color: themeColors.text }]}>
+                    <Text
+                      style={[styles.metricTitle, { color: themeColors.text }]}
+                    >
                       Средний прогресс тоннажа
                     </Text>
-                    <Text style={[styles.metricValue, { color: themeColors.text }]}>
+                    <Text
+                      style={[styles.metricValue, { color: themeColors.text }]}
+                    >
                       {metrics.avgTonnageProgress !== null
                         ? `${
                             metrics.avgTonnageProgress > 0 ? "+" : ""
@@ -884,10 +923,14 @@ export default function AnalyticsScreen() {
                       { backgroundColor: themeColors.card },
                     ]}
                   >
-                    <Text style={[styles.metricTitle, { color: themeColors.text }]}>
+                    <Text
+                      style={[styles.metricTitle, { color: themeColors.text }]}
+                    >
                       Средний прогресс веса
                     </Text>
-                    <Text style={[styles.metricValue, { color: themeColors.text }]}>
+                    <Text
+                      style={[styles.metricValue, { color: themeColors.text }]}
+                    >
                       {metrics.avgWeightProgress !== null
                         ? `${
                             metrics.avgWeightProgress > 0 ? "+" : ""
@@ -904,21 +947,21 @@ export default function AnalyticsScreen() {
                     getTranslation(language, "generalTonnage"),
                     themeColors.chartLine,
                     getTranslation(language, "date"),
-                    getTranslation(language, "tonnage")
+                    getTranslation(language, "tonnage"),
                   )}
                   {renderChart(
                     chartData.maxWeight,
                     getTranslation(language, "maxWeight"),
                     themeColors.chartLine,
                     getTranslation(language, "date"),
-                    getTranslation(language, "weight")
+                    getTranslation(language, "weight"),
                   )}
                   {renderChart(
                     chartData.maxReps,
                     getTranslation(language, "maxReps"),
                     themeColors.chartLine,
                     getTranslation(language, "date"),
-                    getTranslation(language, "reps")
+                    getTranslation(language, "reps"),
                   )}
                 </>
               )}
@@ -938,7 +981,7 @@ export default function AnalyticsScreen() {
               newSelectedIds,
               newSelectedPlannedIds,
               newDateStart,
-              newDateEnd
+              newDateEnd,
             ) => {
               setSelectedExerciseIds(newSelectedIds);
               setSelectedPlannedIds(newSelectedPlannedIds);
