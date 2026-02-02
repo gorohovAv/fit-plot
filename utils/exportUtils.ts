@@ -113,22 +113,10 @@ export async function exportToExcel(data: ExportData): Promise<void> {
 }
 
 export function exportToText(data: ExportData): string {
+  console.log("Starting export to text...");
   let text = "";
 
-  data.plans.forEach((plan) => {
-    plan.trainings.forEach((training) => {
-      text += `${training.name}\n`;
-
-      training.exercises.forEach((exercise, index) => {
-        text += `${index + 1}) ${exercise.name}\n`;
-      });
-
-      text += "\n";
-    });
-  });
-
-  text += "\n";
-
+  // Export exercise results grouped by exercise name
   data.plans.forEach((plan) => {
     plan.trainings.forEach((training) => {
       training.exercises.forEach((exercise) => {
@@ -138,9 +126,33 @@ export function exportToText(data: ExportData): string {
 
         if (exerciseResults.length > 0) {
           text += `${exercise.name}\n`;
+          console.log(`Processing exercise: ${exercise.name}`);
 
-          exerciseResults.forEach((result) => {
-            text += `${result.weight}х${result.reps} ${result.date}\n`;
+          // Group results by date
+          const resultsByDate = exerciseResults.reduce((acc, result) => {
+            if (!acc[result.date]) {
+              acc[result.date] = [];
+            }
+            acc[result.date].push(`${result.weight}х${result.reps}`);
+            return acc;
+          }, {} as Record<string, string[]>);
+
+          // Format dates in DD.MM.YYYY format and sort chronologically
+          const sortedDates = Object.keys(resultsByDate).sort((a, b) => {
+            const dateA = new Date(a);
+            const dateB = new Date(b);
+            return dateA.getTime() - dateB.getTime();
+          });
+
+          sortedDates.forEach(date => {
+            const dateObj = new Date(date);
+            const day = dateObj.getDate().toString().padStart(2, '0');
+            const month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+            const year = dateObj.getFullYear();
+            const formattedDate = `${day}.${month}.${year}`;
+
+            text += `${resultsByDate[date].join(' ')} ${formattedDate}\n`;
+            console.log(`  ${resultsByDate[date].join(' ')} ${formattedDate}`);
           });
 
           text += "\n";
@@ -150,12 +162,21 @@ export function exportToText(data: ExportData): string {
   });
 
   if (data.calories.length > 0) {
-    text += "CALORIES\n";
+    text += "ПИТАНИЕ\n";
+    console.log("Adding nutrition data...");
     data.calories.forEach((entry) => {
-      text += `${entry.weight}kg ${entry.calories} kcal ${entry.date}\n`;
+      const dateObj = new Date(entry.date);
+      const day = dateObj.getDate().toString().padStart(2, '0');
+      const month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+      const year = dateObj.getFullYear();
+      const formattedDate = `${day}.${month}.${year}`;
+
+      text += `${entry.calories} ккал ${entry.weight} кг ${formattedDate}\n`;
+      console.log(`  ${entry.calories} ккал ${entry.weight} кг ${formattedDate}`);
     });
   }
 
+  console.log("Export completed. Total length:", text.length);
   return text;
 }
 

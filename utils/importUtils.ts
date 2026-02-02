@@ -67,7 +67,7 @@ export async function exportToExcel(data: ExportData): Promise<void> {
     plan.trainings.forEach((training) => {
       training.results.forEach((result) => {
         const exercise = training.exercises.find(
-          (ex) => ex.id === result.exerciseId
+          (ex) => ex.id === result.exerciseId,
         );
         resultsData.push({
           Plan: plan.planName,
@@ -131,7 +131,7 @@ export function exportToText(data: ExportData): string {
     plan.trainings.forEach((training) => {
       training.exercises.forEach((exercise) => {
         const exerciseResults = training.results.filter(
-          (result) => result.exerciseId === exercise.id
+          (result) => result.exerciseId === exercise.id,
         );
 
         if (exerciseResults.length > 0) {
@@ -159,7 +159,7 @@ export function exportToText(data: ExportData): string {
 
 export async function exportDataToFile(
   data: ExportData,
-  format: "excel" | "text"
+  format: "excel" | "text",
 ): Promise<void> {
   if (format === "excel") {
     await exportToExcel(data);
@@ -227,12 +227,13 @@ export function validateImport(text: string): ValidationResult {
 
     if (inNutritionSection) {
       const nutritionMatch = trimmedLine.match(
-        /^(\d+)\s+(ккал|kcal)\s+(\d+(?:[.,]\d+)?)\s+(кг|kg)\s+(\d{1,2}\.\d{1,2}\.\d{4})$/
+        /^(\d+)\s+(ккал|kcal)\s+(\d+(?:[.,]\d+)?)\s+(кг|kg)\s+(\d{1,2}\.\d{1,2}\.\d{4})$/,
       );
       if (nutritionMatch) {
         const calories = parseInt(nutritionMatch[1]);
         const weightStr = nutritionMatch[3].replace(",", ".");
         const weight = parseFloat(weightStr);
+        const dateStr = nutritionMatch[5];
 
         if (calories > 0 && weight > 0) {
           hasValidData = true;
@@ -242,8 +243,19 @@ export function validateImport(text: string): ValidationResult {
 
       hasErrors = true;
       errorMessages.push(
-        `Неверный формат строки в секции питания: ${trimmedLine}`
+        `Неверный формат строки в секции питания: ${trimmedLine}`,
       );
+      continue;
+    }
+
+    const isExerciseName =
+      !trimmedLine.includes("х") &&
+      !trimmedLine.includes("x") &&
+      !trimmedLine.match(/^\d{1,2}\.\d{1,2}\.\d{4}$/) &&
+      !trimmedLine.match(/^\d+[.,]?\d*\s*x\s*\d+[.,]?\d*/i);
+
+    if (isExerciseName) {
+      hasValidData = true;
       continue;
     }
 
@@ -264,14 +276,9 @@ export function validateImport(text: string): ValidationResult {
             hasValidData = true;
           }
         }
-      } else if (
-        !isNaN(parseFloat(part.replace(",", "."))) &&
-        parseFloat(part.replace(",", ".")) > 0
-      ) {
-        hasValidFormat = true;
-        hasValidData = true;
       } else if (part.match(/^\d{1,2}\.\d{1,2}\.\d{4}$/)) {
         hasValidFormat = true;
+        hasValidData = true;
       } else if (
         part.length > 0 &&
         !part.match(/^\d+$/) &&
@@ -315,7 +322,6 @@ export async function importData(text: string): Promise<void> {
   const caloriesStore = useCaloriesStore.getState();
 
   let currentExercise = "";
-  let currentDate = new Date().toISOString().split("T")[0];
   let importedPlan: Plan | null = null;
   let importedTraining: Training | null = null;
   let exerciseMap = new Map<string, Exercise>();
@@ -337,7 +343,7 @@ export async function importData(text: string): Promise<void> {
 
     if (inNutritionSection) {
       const nutritionMatch = trimmedLine.match(
-        /^(\d+)\s+(ккал|kcal)\s+(\d+(?:[.,]\d+)?)\s+(кг|kg)\s+(\d{1,2}\.\d{1,2}\.\d{4})$/
+        /^(\d+)\s+(ккал|kcal)\s+(\d+(?:[.,]\d+)?)\s+(кг|kg)\s+(\d{1,2}\.\d{1,2}\.\d{4})$/,
       );
       if (nutritionMatch) {
         const calories = parseInt(nutritionMatch[1]);
@@ -348,7 +354,7 @@ export async function importData(text: string): Promise<void> {
         const [day, month, year] = dateStr.split(".");
         const formattedDate = `${year}-${month.padStart(2, "0")}-${day.padStart(
           2,
-          "0"
+          "0",
         )}`;
 
         if (calories > 0 && weight > 0) {
@@ -371,110 +377,14 @@ export async function importData(text: string): Promise<void> {
       continue;
     }
 
-    const parts = trimmedLine.split(/\s+/);
-    let exerciseName = "";
-    let date = currentDate;
+    const isExerciseName =
+      !trimmedLine.includes("х") &&
+      !trimmedLine.includes("x") &&
+      !trimmedLine.match(/^\d{1,2}\.\d{1,2}\.\d{4}$/) &&
+      !trimmedLine.match(/^\d+[.,]?\d*\s*x\s*\d+[.,]?\d*/i);
 
-    for (let i = 0; i < parts.length; i++) {
-      const part = parts[i];
-
-      if (part.match(/^\d{1,2}\.\d{1,2}\.\d{4}$/)) {
-        const [day, month, year] = part.split(".");
-        date = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-        currentDate = date;
-      } else if (part.includes("х") || part.includes("x")) {
-        const weightReps = part.split(/[хx]/);
-        if (weightReps.length === 2) {
-          const weightStr = weightReps[0].replace(",", ".");
-          const repsStr = weightReps[1].replace(",", ".");
-          const weight = parseFloat(weightStr);
-          const reps = parseFloat(repsStr);
-
-          if (!isNaN(weight) && !isNaN(reps) && weight >= 0 && reps > 0) {
-            if (currentExercise && importedTraining) {
-              let exercise = exerciseMap.get(currentExercise);
-              if (!exercise) {
-                exercise = {
-                  id:
-                    Date.now().toString() +
-                    Math.random().toString(36).substr(2, 9),
-                  name: currentExercise,
-                  muscleGroup: "chest",
-                  type: "free weight",
-                  unilateral: false,
-                  amplitude: "full",
-                };
-                exerciseMap.set(currentExercise, exercise);
-                importedTraining.exercises.push(exercise);
-
-                await dbLayer.saveExercise({
-                  ...exercise,
-                  trainingId: importedTraining.id,
-                });
-              }
-
-              await dbLayer.saveResult({
-                exerciseId: exercise.id,
-                weight: weight,
-                reps: Math.round(reps),
-                date: date,
-                amplitude: "full",
-                isPlanned: false,
-              });
-            }
-          }
-        }
-      } else if (
-        !isNaN(parseFloat(part.replace(",", "."))) &&
-        parseFloat(part.replace(",", ".")) > 0
-      ) {
-        const reps = parseFloat(part.replace(",", "."));
-        if (currentExercise && importedTraining) {
-          let exercise = exerciseMap.get(currentExercise);
-          if (!exercise) {
-            exercise = {
-              id:
-                Date.now().toString() + Math.random().toString(36).substr(2, 9),
-              name: currentExercise,
-              muscleGroup: "chest",
-              type: "free weight",
-              unilateral: false,
-              amplitude: "full",
-            };
-            exerciseMap.set(currentExercise, exercise);
-            importedTraining.exercises.push(exercise);
-
-            await dbLayer.saveExercise({
-              ...exercise,
-              trainingId: importedTraining.id,
-            });
-          }
-
-          await dbLayer.saveResult({
-            exerciseId: exercise.id,
-            weight: 0,
-            reps: Math.round(reps),
-            date: date,
-            amplitude: "full",
-            isPlanned: false,
-          });
-        }
-      } else if (
-        part.length > 0 &&
-        !part.match(/^\d+$/) &&
-        !part.includes("х") &&
-        !part.includes("x")
-      ) {
-        if (!exerciseName) {
-          exerciseName = part;
-        } else {
-          exerciseName += " " + part;
-        }
-      }
-    }
-
-    if (exerciseName) {
-      currentExercise = exerciseName;
+    if (isExerciseName) {
+      currentExercise = trimmedLine;
 
       if (!importedPlan) {
         const planName = `Импортированный план ${new Date().toLocaleDateString()}`;
@@ -500,8 +410,67 @@ export async function importData(text: string): Promise<void> {
         await dbLayer.saveTraining(
           trainingId,
           importedPlan.planName,
-          importedTraining.name
+          importedTraining.name,
         );
+      }
+      continue;
+    }
+
+    if (currentExercise) {
+      const parts = trimmedLine.split(/\s+/);
+      const datePart = parts[parts.length - 1];
+
+      if (datePart.match(/^\d{1,2}\.\d{1,2}\.\d{4}$/)) {
+        const [day, month, year] = datePart.split(".");
+        const formattedDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+
+        for (let i = 0; i < parts.length - 1; i++) {
+          const part = parts[i];
+
+          if (part.includes("х") || part.includes("x")) {
+            const weightReps = part.split(/[хx]/);
+            if (weightReps.length === 2) {
+              const weightStr = weightReps[0].replace(",", ".");
+              const repsStr = weightReps[1].replace(",", ".");
+              const weight = parseFloat(weightStr);
+              const reps = parseFloat(repsStr);
+
+              if (!isNaN(weight) && !isNaN(reps) && weight >= 0 && reps > 0) {
+                if (currentExercise && importedTraining) {
+                  let exercise = exerciseMap.get(currentExercise);
+                  if (!exercise) {
+                    exercise = {
+                      id:
+                        Date.now().toString() +
+                        Math.random().toString(36).substr(2, 9),
+                      name: currentExercise,
+                      muscleGroup: "chest",
+                      type: "free weight",
+                      unilateral: false,
+                      amplitude: "full",
+                    };
+                    exerciseMap.set(currentExercise, exercise);
+                    importedTraining.exercises.push(exercise);
+
+                    await dbLayer.saveExercise({
+                      ...exercise,
+                      trainingId: importedTraining.id,
+                    });
+                  }
+
+                  await dbLayer.saveResult({
+                    exerciseId: exercise.id,
+                    weight: weight,
+                    reps: Math.round(reps),
+                    date: formattedDate,
+                    amplitude: "full",
+                    isPlanned: false,
+                  });
+                }
+              }
+            }
+          }
+        }
       }
     }
   }
