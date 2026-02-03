@@ -610,16 +610,20 @@ export const updateExerciseHidden = async (
 
 // Migration function for old version data
 export const migrateOldVersionData = async (exercisesData: any[]): Promise<void> => {
+  console.log("Starting migration of old version data...");
   // Create a plan for the imported data
   const planName = `Старая версия ${new Date().toLocaleDateString('ru-RU')}`;
   await savePlan(planName);
+  console.log(`Created plan: ${planName}`);
 
   // Create a training for the imported data
   const trainingId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
   await saveTraining(trainingId, planName, "Импортированная тренировка");
+  console.log(`Created training: ${trainingId}`);
 
   // Process each exercise
   for (const exerciseData of exercisesData) {
+    console.log(`Processing exercise: ${exerciseData.name}, with ${exerciseData.results.length} results`);
     // Create exercise
     const exerciseId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
     await saveExercise({
@@ -637,6 +641,7 @@ export const migrateOldVersionData = async (exercisesData: any[]): Promise<void>
 
     // Save all results for this exercise
     for (const result of exerciseData.results) {
+      console.log(`Saving result: ${result.weight} x ${result.reps} on ${result.date}`);
       await saveResult({
         exerciseId,
         weight: result.weight,
@@ -647,6 +652,7 @@ export const migrateOldVersionData = async (exercisesData: any[]): Promise<void>
       });
     }
   }
+  console.log("Migration completed successfully");
 };
 
 // Helper function to infer muscle group from exercise name

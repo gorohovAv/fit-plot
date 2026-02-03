@@ -58,15 +58,18 @@ export default function SettingsScreen() {
       const response = await fetch(file.uri);
       const text = await response.text();
 
+      console.log("Importing text:", text.substring(0, 200) + "..."); // Log first 200 chars
       await importOldVersionData(text);
+      console.log("Import completed successfully");
       Alert.alert(
         getTranslation(language, "success"),
         getTranslation(language, "dataImportSuccess")
       );
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Import error:", error);
       Alert.alert(
         getTranslation(language, "error"),
-        getTranslation(language, "dataImportError")
+        `${getTranslation(language, "dataImportError")}: ${error.message || error}`
       );
     }
   };
