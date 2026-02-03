@@ -14,6 +14,9 @@ import {
 import { ExportScreen } from "@/components/ExportScreen";
 import { ImportScreen } from "@/components/ImportScreen";
 import { getTranslation } from "@/utils/localization";
+import { importOldVersionData } from "@/utils/oldVersionImport";
+import * as DocumentPicker from "expo-document-picker";
+import { Alert } from "react-native";
 
 export default function SettingsScreen() {
   const {
@@ -41,6 +44,32 @@ export default function SettingsScreen() {
   if (showExport) {
     return <ExportScreen onBack={() => setShowExport(false)} />;
   }
+
+  const handleMigration = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: "text/*",
+        copyToCacheDirectory: true,
+      });
+
+      if (result.canceled) return;
+
+      const file = result.assets[0];
+      const response = await fetch(file.uri);
+      const text = await response.text();
+
+      await importOldVersionData(text);
+      Alert.alert(
+        getTranslation(language, "success"),
+        getTranslation(language, "dataImportSuccess")
+      );
+    } catch (error) {
+      Alert.alert(
+        getTranslation(language, "error"),
+        getTranslation(language, "dataImportError")
+      );
+    }
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -254,6 +283,22 @@ export default function SettingsScreen() {
 
       <TouchableOpacity
         style={[
+          styles.migrationButton,
+          {
+            borderColor: colors.border,
+            backgroundColor: colors.card,
+          },
+        ]}
+        onPress={handleMigration}
+      >
+        <Ionicons name="sync-outline" size={20} color={colors.text} />
+        <Text style={[styles.migrationButtonText, { color: colors.text }]}>
+          {getTranslation(language, "migrateFromOldVersion")}
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[
           styles.exportButton,
           {
             borderColor: colors.border,
@@ -329,6 +374,20 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   exportButtonText: {
+    marginLeft: 8,
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  migrationButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 16,
+    marginTop: 16,
+  },
+  migrationButtonText: {
     marginLeft: 8,
     fontSize: 16,
     fontWeight: "500",

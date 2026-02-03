@@ -608,6 +608,74 @@ export const updateExerciseHidden = async (
   );
 };
 
+// Migration function for old version data
+export const migrateOldVersionData = async (exercisesData: any[]): Promise<void> => {
+  // Create a plan for the imported data
+  const planName = `Старая версия ${new Date().toLocaleDateString('ru-RU')}`;
+  await savePlan(planName);
+
+  // Create a training for the imported data
+  const trainingId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+  await saveTraining(trainingId, planName, "Импортированная тренировка");
+
+  // Process each exercise
+  for (const exerciseData of exercisesData) {
+    // Create exercise
+    const exerciseId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+    await saveExercise({
+      id: exerciseId,
+      trainingId,
+      name: exerciseData.name,
+      muscleGroup: inferMuscleGroup(exerciseData.name), // Infer muscle group from name
+      type: "free weight", // Default to free weight
+      unilateral: false, // Default to bilateral
+      amplitude: "full", // Default to full amplitude
+      comment: "",
+      timerDuration: null,
+      hidden: false
+    });
+
+    // Save all results for this exercise
+    for (const result of exerciseData.results) {
+      await saveResult({
+        exerciseId,
+        weight: result.weight,
+        reps: Math.round(result.reps),
+        date: result.date,
+        amplitude: "full",
+        isPlanned: false
+      });
+    }
+  }
+};
+
+// Helper function to infer muscle group from exercise name
+const inferMuscleGroup = (exerciseName: string): string => {
+  const lowerName = exerciseName.toLowerCase();
+
+  // Define keywords for each muscle group
+  const muscleGroups = {
+    back: ["тяга", "подтяг", "горизонт", "вертикаль"],
+    chest: ["жим", "пресс"],
+    legs: ["присед", "выпад", "икры", "бедра"],
+    shoulders: ["дельты", "плеч", "махи"],
+    arms: ["бицепс", "трицепс", "пресс", "предплеч"],
+    abs: ["пресс"]
+  };
+
+  // Check each muscle group
+  for (const [group, keywords] of Object.entries(muscleGroups)) {
+    for (const keyword of keywords) {
+      if (lowerName.includes(keyword)) {
+        return group;
+      }
+    }
+  }
+
+  // Default to chest if no match found
+  return "chest";
+};
+
 export const logAllTables = async () => {
   /*
   const database = await getDatabase();
