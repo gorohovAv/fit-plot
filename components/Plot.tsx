@@ -1,4 +1,4 @@
-import { Canvas, Circle, Path, Rect } from "@shopify/react-native-skia";
+import { Canvas, Circle, Line, Path, Rect } from "@shopify/react-native-skia";
 import * as d3 from "d3";
 import React from "react";
 import {
@@ -143,19 +143,32 @@ const Plot: React.FC<PlotProps> = ({
   }, [globalYDomain, innerHeight, dynamicMargin]);
 
   const selectedPoints = React.useMemo(() => {
-    if (!selectedDate || !datasets || datasets.length === 0) return [];
+    if (!selectedDate || !datasets || datasets.length === 0) {
+      console.log("=== SELECTED POINTS DEBUG ===");
+      console.log("No selected date or datasets, returning empty array");
+      return [];
+    }
 
+    console.log("=== SELECTED POINTS DEBUG ===");
+    console.log("Processing selected date:", selectedDate.toISOString());
+    
     // Используем координату выбранной даты для X, чтобы точка была точно на линии
     const selectedX = xScale(selectedDate);
+    console.log("Calculated selectedX from xScale:", selectedX);
     const selectedTime = selectedDate.getTime();
+    console.log("Selected time in milliseconds:", selectedTime);
 
     return datasets
       .map((dataset, datasetIndex) => {
+        console.log(`Processing dataset ${datasetIndex}`);
+        
         const sortedPoints = [...dataset.data]
           .map((p) => ({ ...p, date: new Date(p.x).getTime() }))
           .sort((a, b) => a.date - b.date)
           .filter((p) => p.y > 0);
 
+        console.log(`Dataset ${datasetIndex} has ${sortedPoints.length} valid points after filtering`);
+        
         if (sortedPoints.length === 0) return null;
 
         let beforePoint: (typeof sortedPoints)[0] | null = null;
@@ -171,6 +184,9 @@ const Plot: React.FC<PlotProps> = ({
           }
         }
 
+        console.log(`Dataset ${datasetIndex}: beforePoint date:`, beforePoint ? new Date(beforePoint.date).toISOString() : 'null');
+        console.log(`Dataset ${datasetIndex}: afterPoint date:`, afterPoint ? new Date(afterPoint.date).toISOString() : 'null');
+
         let interpolatedY: number;
         let displayPoint: DataPoint;
 
@@ -183,20 +199,28 @@ const Plot: React.FC<PlotProps> = ({
             x: selectedDate.toISOString(),
             y: interpolatedY,
           };
+          console.log(`Dataset ${datasetIndex}: Interpolated Y value:`, interpolatedY);
         } else if (beforePoint) {
           interpolatedY = beforePoint.y;
           displayPoint = beforePoint;
+          console.log(`Dataset ${datasetIndex}: Using beforePoint Y value:`, interpolatedY);
         } else if (afterPoint) {
           interpolatedY = afterPoint.y;
           displayPoint = afterPoint;
+          console.log(`Dataset ${datasetIndex}: Using afterPoint Y value:`, interpolatedY);
         } else {
+          console.log(`Dataset ${datasetIndex}: Could not determine Y value, returning null`);
           return null;
         }
 
-        if (interpolatedY <= 0) return null;
+        if (interpolatedY <= 0) {
+          console.log(`Dataset ${datasetIndex}: Y value is <= 0, skipping`);
+          return null;
+        }
 
         const x = selectedX;
         const y = yScale(interpolatedY);
+        console.log(`Dataset ${datasetIndex}: Final coordinates - x: ${x}, y: ${y}`);
 
         return {
           datasetIndex,
@@ -213,10 +237,22 @@ const Plot: React.FC<PlotProps> = ({
     (event: any) => {
       const { locationX, locationY } = event.nativeEvent;
 
+      console.log("=== TAP COORDINATES DEBUG ===");
+      console.log("locationX (relative to Pressable):", locationX);
+      console.log("locationY (relative to Pressable):", locationY);
+      console.log("scrollX (current scroll offset):", scrollX);
+
       // locationX относительно Pressable (который имеет ширину chartWidth)
       // Нужно учесть текущий скролл и преобразовать в координату в масштабе графика
       // locationX - это координата относительно Pressable, добавляем scrollX
       const xInChart = locationX + scrollX;
+      
+      console.log("xInChart (absolute position in chart):", xInChart);
+      console.log("dynamicMargin.left:", dynamicMargin.left);
+      console.log("dynamicMargin.left + innerWidth:", dynamicMargin.left + innerWidth);
+      console.log("innerWidth:", innerWidth);
+      console.log("dynamicMargin.top:", dynamicMargin.top);
+      console.log("dynamicMargin.top + innerHeight:", dynamicMargin.top + innerHeight);
 
       if (
         xInChart < dynamicMargin.left ||
@@ -224,11 +260,14 @@ const Plot: React.FC<PlotProps> = ({
         locationY < dynamicMargin.top ||
         locationY > dynamicMargin.top + innerHeight
       ) {
+        console.log("Tap is outside chart area, deselecting date");
         setSelectedDate(null);
         return;
       }
 
       const date = xScale.invert(xInChart);
+      console.log("Inverted date from xScale:", date);
+      console.log("Formatted date string:", date.toISOString());
       setSelectedDate(date);
     },
     [dynamicMargin, innerWidth, innerHeight, xScale, scrollX],
@@ -379,6 +418,25 @@ const Plot: React.FC<PlotProps> = ({
                     />
                   </React.Fragment>
                 ))}
+
+                {/* Всегда отображаемая вертикальная линия */}
+                {selectedDate && (
+                  <>
+                    <Line
+                      p1={{ x: xScale(selectedDate), y: dynamicMargin.top }}
+                      p2={{ x: xScale(selectedDate), y: dynamicMargin.top + innerHeight }}
+                      color="#D3D3D3" // Pale gray color
+                      strokeWidth={1}
+                    />
+                    {/* Debugging circle to visualize the exact x position of the line */}
+                    <Circle
+                      cx={xScale(selectedDate)}
+                      cy={dynamicMargin.top + innerHeight / 2}
+                      r={3}
+                      color="#FF0000"
+                    />
+                  </>
+                )}
               </Canvas>
 
               {/* Отображаем значения над точками внутри ScrollView */}
