@@ -97,7 +97,7 @@ const Plot: React.FC<PlotProps> = ({
       left: 20,
       right: 20,
     }),
-    [margin],
+    [margin]
   );
 
   const chartWidth = Math.max(width * 2, 800);
@@ -117,21 +117,22 @@ const Plot: React.FC<PlotProps> = ({
         .domain([new Date(), new Date()])
         .range([dynamicMargin.left, dynamicMargin.left + innerWidth]);
     }
-    
+
     // Calculate the domain with the actual min/max dates
     const minDate = d3.min(allDates) as Date;
     const maxDate = d3.max(allDates) as Date;
-    
+
     // Ensure we have a valid domain even if min and max are the same
-    const domain = minDate.getTime() === maxDate.getTime() 
-      ? [new Date(minDate.getTime() - 1), new Date(maxDate.getTime() + 1)] 
-      : [minDate, maxDate];
-      
-    return d3
-      .scaleTime()
-      .domain(domain)
-      .range([dynamicMargin.left, dynamicMargin.left + innerWidth])
-      .nice();
+    const domain =
+      minDate.getTime() === maxDate.getTime()
+        ? [new Date(minDate.getTime() - 1), new Date(maxDate.getTime() + 1)]
+        : [minDate, maxDate];
+
+    // Create the scale with the domain and range
+    const scale = d3.scaleTime().domain(domain);
+
+    // Apply the range to the scale
+    return scale.range([dynamicMargin.left, dynamicMargin.left + innerWidth]);
   }, [allDates, innerWidth, dynamicMargin]);
 
   const allValues =
@@ -142,7 +143,7 @@ const Plot: React.FC<PlotProps> = ({
   const globalYPadding = Math.max((globalYMax - globalYMin) * 0.1, 1);
   const globalYDomain = React.useMemo(
     () => [globalYMin - globalYPadding, globalYMax + globalYPadding],
-    [globalYMin, globalYMax, globalYPadding],
+    [globalYMin, globalYMax, globalYPadding]
   );
 
   const yScale = React.useMemo(() => {
@@ -177,7 +178,9 @@ const Plot: React.FC<PlotProps> = ({
           .sort((a, b) => a.date - b.date)
           .filter((p) => p.y > 0);
 
-        console.log(`Dataset ${datasetIndex} has ${sortedPoints.length} valid points after filtering`);
+        console.log(
+          `Dataset ${datasetIndex} has ${sortedPoints.length} valid points after filtering`
+        );
 
         if (sortedPoints.length === 0) return null;
 
@@ -194,8 +197,14 @@ const Plot: React.FC<PlotProps> = ({
           }
         }
 
-        console.log(`Dataset ${datasetIndex}: beforePoint date:`, beforePoint ? new Date(beforePoint.date).toISOString() : 'null');
-        console.log(`Dataset ${datasetIndex}: afterPoint date:`, afterPoint ? new Date(afterPoint.date).toISOString() : 'null');
+        console.log(
+          `Dataset ${datasetIndex}: beforePoint date:`,
+          beforePoint ? new Date(beforePoint.date).toISOString() : "null"
+        );
+        console.log(
+          `Dataset ${datasetIndex}: afterPoint date:`,
+          afterPoint ? new Date(afterPoint.date).toISOString() : "null"
+        );
 
         let interpolatedY: number;
         let displayPoint: DataPoint;
@@ -209,32 +218,55 @@ const Plot: React.FC<PlotProps> = ({
             x: selectedDate.toISOString(),
             y: interpolatedY,
           };
-          console.log(`Dataset ${datasetIndex}: Interpolated Y value:`, interpolatedY);
+          console.log(
+            `Dataset ${datasetIndex}: Interpolated Y value:`,
+            interpolatedY
+          );
         } else if (beforePoint) {
           interpolatedY = beforePoint.y;
           displayPoint = beforePoint;
-          console.log(`Dataset ${datasetIndex}: Using beforePoint Y value:`, interpolatedY);
+          console.log(
+            `Dataset ${datasetIndex}: Using beforePoint Y value:`,
+            interpolatedY
+          );
         } else if (afterPoint) {
           interpolatedY = afterPoint.y;
           displayPoint = afterPoint;
-          console.log(`Dataset ${datasetIndex}: Using afterPoint Y value:`, interpolatedY);
+          console.log(
+            `Dataset ${datasetIndex}: Using afterPoint Y value:`,
+            interpolatedY
+          );
         } else {
           // If no points are found around the selected date, find the closest point
-          console.log(`Dataset ${datasetIndex}: No points found around selected date, finding closest point`);
-          
+          console.log(
+            `Dataset ${datasetIndex}: No points found around selected date, finding closest point`
+          );
+
           // Find the closest point to the selected date
-          let closestPoint = sortedPoints.reduce((closest, current) => {
-            const closestDiff = Math.abs(closest.date - selectedTime);
-            const currentDiff = Math.abs(current.date - selectedTime);
-            return currentDiff < closestDiff ? current : closest;
-          });
-          
-          if (closestPoint) {
-            interpolatedY = closestPoint.y;
-            displayPoint = closestPoint;
-            console.log(`Dataset ${datasetIndex}: Using closest point Y value:`, interpolatedY);
+          if (sortedPoints.length > 0) {
+            let closestPoint = sortedPoints.reduce((closest, current) => {
+              const closestDiff = Math.abs(closest.date - selectedTime);
+              const currentDiff = Math.abs(current.date - selectedTime);
+              return currentDiff < closestDiff ? current : closest;
+            });
+
+            if (closestPoint) {
+              interpolatedY = closestPoint.y;
+              displayPoint = closestPoint;
+              console.log(
+                `Dataset ${datasetIndex}: Using closest point Y value:`,
+                interpolatedY
+              );
+            } else {
+              console.log(
+                `Dataset ${datasetIndex}: Could not determine Y value, returning null`
+              );
+              return null;
+            }
           } else {
-            console.log(`Dataset ${datasetIndex}: Could not determine Y value, returning null`);
+            console.log(
+              `Dataset ${datasetIndex}: No valid points in dataset, returning null`
+            );
             return null;
           }
         }
@@ -246,7 +278,9 @@ const Plot: React.FC<PlotProps> = ({
 
         const x = selectedX;
         const y = yScale(interpolatedY);
-        console.log(`Dataset ${datasetIndex}: Final coordinates - x: ${x}, y: ${y}`);
+        console.log(
+          `Dataset ${datasetIndex}: Final coordinates - x: ${x}, y: ${y}`
+        );
 
         return {
           datasetIndex,
@@ -268,52 +302,61 @@ const Plot: React.FC<PlotProps> = ({
       console.log("locationY (relative to Pressable):", locationY);
       console.log("scrollX (current scroll offset):", scrollX);
 
-      // locationX относительно Pressable (который имеет ширину chartWidth)
-      // Нужно учесть текущий скролл и преобразовать в координату в масштабе графика
-      // locationX - это координата относительно Pressable, добавляем scrollX
-      const xInChart = locationX + scrollX;
+      const xInChart = locationX;
 
       console.log("xInChart (absolute position in chart):", xInChart);
       console.log("dynamicMargin.left:", dynamicMargin.left);
-      console.log("dynamicMargin.left + innerWidth:", dynamicMargin.left + innerWidth);
+      console.log(
+        "dynamicMargin.left + innerWidth:",
+        dynamicMargin.left + innerWidth
+      );
       console.log("innerWidth:", innerWidth);
       console.log("dynamicMargin.top:", dynamicMargin.top);
-      console.log("dynamicMargin.top + innerHeight:", dynamicMargin.top + innerHeight);
+      console.log(
+        "dynamicMargin.top + innerHeight:",
+        dynamicMargin.top + innerHeight
+      );
 
-      // Check if tap is within the chart area vertically
+      const tolerance = 10;
       if (
-        locationY < dynamicMargin.top ||
-        locationY > dynamicMargin.top + innerHeight
+        locationY < dynamicMargin.top - tolerance ||
+        locationY > dynamicMargin.top + innerHeight + tolerance
       ) {
         console.log("Tap is outside vertical chart area, deselecting date");
         setSelectedDate(null);
         return;
       }
 
-      // Check if tap is within the defined x-scale domain range
-      const minDomainX = xScale.range()[0]; // dynamicMargin.left
-      const maxDomainX = xScale.range()[1]; // dynamicMargin.left + innerWidth
-      
+      const chartStartX = dynamicMargin.left;
+      const chartEndX = dynamicMargin.left + innerWidth;
+
+      const clampedX = Math.max(chartStartX, Math.min(xInChart, chartEndX));
+
       let date: Date;
-      
-      if (xInChart < minDomainX) {
-        // Tap is to the left of the data range - use the earliest date
-        console.log("Tap is to the left of data range, using earliest date");
-        date = xScale.domain()[0] as Date;
-      } else if (xInChart > maxDomainX) {
-        // Tap is to the right of the data range - use the latest date
-        console.log("Tap is to the right of data range, using latest date");
-        date = xScale.domain()[1] as Date;
+
+      const [minX, maxX] = xScale.range();
+      const [minDate, maxDate] = xScale.domain() as [Date, Date];
+
+      if (clampedX >= minX && clampedX <= maxX) {
+        date = xScale.invert(clampedX);
+        console.log("Converted x position to date:", date);
+      } else if (clampedX < minX) {
+        date = minDate;
+        console.log(
+          "Position is before data range, using earliest date:",
+          date
+        );
       } else {
-        // Tap is within the data range - invert the coordinate to get the date
-        date = xScale.invert(xInChart);
+        // Position is after the data range - use the latest date
+        date = maxDate;
+        console.log("Position is after data range, using latest date:", date);
       }
 
       console.log("Final date from xScale:", date);
       console.log("Formatted date string:", date.toISOString());
       setSelectedDate(date);
     },
-    [dynamicMargin, innerWidth, innerHeight, xScale, scrollX],
+    [dynamicMargin, innerWidth, innerHeight, xScale, scrollX]
   );
 
   if (!datasets || datasets.length === 0) {
@@ -467,22 +510,17 @@ const Plot: React.FC<PlotProps> = ({
                   <>
                     <Line
                       p1={{ x: xScale(selectedDate), y: dynamicMargin.top }}
-                      p2={{ x: xScale(selectedDate), y: dynamicMargin.top + innerHeight }}
+                      p2={{
+                        x: xScale(selectedDate),
+                        y: dynamicMargin.top + innerHeight,
+                      }}
                       color="#D3D3D3" // Pale gray color
                       strokeWidth={1}
-                    />
-                    {/* Debugging circle to visualize the exact x position of the line */}
-                    <Circle
-                      cx={xScale(selectedDate)}
-                      cy={dynamicMargin.top + innerHeight / 2}
-                      r={3}
-                      color="#FF0000"
                     />
                   </>
                 )}
               </Canvas>
 
-              {/* Отображаем значения над точками внутри ScrollView */}
               {selectedPoints.length > 0 && (
                 <View
                   style={[
@@ -492,7 +530,6 @@ const Plot: React.FC<PlotProps> = ({
                   pointerEvents="none"
                 >
                   {selectedPoints.map((selectedPoint) => {
-                    // Позиция точки в координатах графика (selectedPoint.x уже в масштабе innerWidth)
                     const xPosition = selectedPoint.x;
                     const isLeftSide = xPosition < chartWidth / 2;
 
