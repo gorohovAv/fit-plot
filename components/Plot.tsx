@@ -117,9 +117,19 @@ const Plot: React.FC<PlotProps> = ({
         .domain([new Date(), new Date()])
         .range([dynamicMargin.left, dynamicMargin.left + innerWidth]);
     }
+    
+    // Calculate the domain with the actual min/max dates
+    const minDate = d3.min(allDates) as Date;
+    const maxDate = d3.max(allDates) as Date;
+    
+    // Ensure we have a valid domain even if min and max are the same
+    const domain = minDate.getTime() === maxDate.getTime() 
+      ? [new Date(minDate.getTime() - 1), new Date(maxDate.getTime() + 1)] 
+      : [minDate, maxDate];
+      
     return d3
       .scaleTime()
-      .domain([d3.min(allDates) as Date, d3.max(allDates) as Date])
+      .domain(domain)
       .range([dynamicMargin.left, dynamicMargin.left + innerWidth])
       .nice();
   }, [allDates, innerWidth, dynamicMargin]);
@@ -151,7 +161,7 @@ const Plot: React.FC<PlotProps> = ({
 
     console.log("=== SELECTED POINTS DEBUG ===");
     console.log("Processing selected date:", selectedDate.toISOString());
-    
+
     // Используем координату выбранной даты для X, чтобы точка была точно на линии
     const selectedX = xScale(selectedDate);
     console.log("Calculated selectedX from xScale:", selectedX);
@@ -161,14 +171,14 @@ const Plot: React.FC<PlotProps> = ({
     return datasets
       .map((dataset, datasetIndex) => {
         console.log(`Processing dataset ${datasetIndex}`);
-        
+
         const sortedPoints = [...dataset.data]
           .map((p) => ({ ...p, date: new Date(p.x).getTime() }))
           .sort((a, b) => a.date - b.date)
           .filter((p) => p.y > 0);
 
         console.log(`Dataset ${datasetIndex} has ${sortedPoints.length} valid points after filtering`);
-        
+
         if (sortedPoints.length === 0) return null;
 
         let beforePoint: (typeof sortedPoints)[0] | null = null;
@@ -209,8 +219,24 @@ const Plot: React.FC<PlotProps> = ({
           displayPoint = afterPoint;
           console.log(`Dataset ${datasetIndex}: Using afterPoint Y value:`, interpolatedY);
         } else {
-          console.log(`Dataset ${datasetIndex}: Could not determine Y value, returning null`);
-          return null;
+          // If no points are found around the selected date, find the closest point
+          console.log(`Dataset ${datasetIndex}: No points found around selected date, finding closest point`);
+          
+          // Find the closest point to the selected date
+          let closestPoint = sortedPoints.reduce((closest, current) => {
+            const closestDiff = Math.abs(closest.date - selectedTime);
+            const currentDiff = Math.abs(current.date - selectedTime);
+            return currentDiff < closestDiff ? current : closest;
+          });
+          
+          if (closestPoint) {
+            interpolatedY = closestPoint.y;
+            displayPoint = closestPoint;
+            console.log(`Dataset ${datasetIndex}: Using closest point Y value:`, interpolatedY);
+          } else {
+            console.log(`Dataset ${datasetIndex}: Could not determine Y value, returning null`);
+            return null;
+          }
         }
 
         if (interpolatedY <= 0) {
@@ -246,7 +272,7 @@ const Plot: React.FC<PlotProps> = ({
       // Нужно учесть текущий скролл и преобразовать в координату в масштабе графика
       // locationX - это координата относительно Pressable, добавляем scrollX
       const xInChart = locationX + scrollX;
-      
+
       console.log("xInChart (absolute position in chart):", xInChart);
       console.log("dynamicMargin.left:", dynamicMargin.left);
       console.log("dynamicMargin.left + innerWidth:", dynamicMargin.left + innerWidth);
@@ -254,19 +280,36 @@ const Plot: React.FC<PlotProps> = ({
       console.log("dynamicMargin.top:", dynamicMargin.top);
       console.log("dynamicMargin.top + innerHeight:", dynamicMargin.top + innerHeight);
 
+      // Check if tap is within the chart area vertically
       if (
-        xInChart < dynamicMargin.left ||
-        xInChart > dynamicMargin.left + innerWidth ||
         locationY < dynamicMargin.top ||
         locationY > dynamicMargin.top + innerHeight
       ) {
-        console.log("Tap is outside chart area, deselecting date");
+        console.log("Tap is outside vertical chart area, deselecting date");
         setSelectedDate(null);
         return;
       }
 
-      const date = xScale.invert(xInChart);
-      console.log("Inverted date from xScale:", date);
+      // Check if tap is within the defined x-scale domain range
+      const minDomainX = xScale.range()[0]; // dynamicMargin.left
+      const maxDomainX = xScale.range()[1]; // dynamicMargin.left + innerWidth
+      
+      let date: Date;
+      
+      if (xInChart < minDomainX) {
+        // Tap is to the left of the data range - use the earliest date
+        console.log("Tap is to the left of data range, using earliest date");
+        date = xScale.domain()[0] as Date;
+      } else if (xInChart > maxDomainX) {
+        // Tap is to the right of the data range - use the latest date
+        console.log("Tap is to the right of data range, using latest date");
+        date = xScale.domain()[1] as Date;
+      } else {
+        // Tap is within the data range - invert the coordinate to get the date
+        date = xScale.invert(xInChart);
+      }
+
+      console.log("Final date from xScale:", date);
       console.log("Formatted date string:", date.toISOString());
       setSelectedDate(date);
     },
