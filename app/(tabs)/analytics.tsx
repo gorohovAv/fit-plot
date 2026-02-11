@@ -1,4 +1,5 @@
 import AnalyticsExerciseSelector from "@/components/AnalyticsExerciseSelector";
+import Crepature from "@/components/Crepature";
 import Plot from "@/components/Plot";
 import ResultsList from "@/components/ResultsList";
 import { Colors } from "@/constants/Colors";
@@ -965,6 +966,11 @@ export default function AnalyticsScreen() {
                   )}
                 </>
               )}
+              
+              {/* Muscle Soreness Visualization Component */}
+              <View style={styles.crepatureContainer}>
+                <Crepature />
+              </View>
             </>
           )}
 
@@ -1094,5 +1100,9 @@ const styles = StyleSheet.create({
   metricValue: {
     fontSize: 24,
     fontWeight: "bold",
+  },
+  crepatureContainer: {
+    marginVertical: 16,
+    alignItems: 'center',
   },
 });
