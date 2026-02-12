@@ -1,7 +1,9 @@
 import { generateAthleteSvg } from "@/utils/svgGen";
 import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { WebView } from "react-native-webview";
+import * as dbLayer from "../store/dbLayer";
+import { MuscleGroup } from "../store/store";
 
 // Define the colors for different levels of soreness
 const SORENESS_COLORS = {
@@ -10,74 +12,6 @@ const SORENESS_COLORS = {
   medium: "#FF0808", // Medium soreness
   strong: "#A30000", // Strong soreness
 };
-
-// Define muscle groups with their corresponding IDs in the SVG
-const MUSCLE_GROUPS = [
-  { id: "chest", name: "Chest" },
-  { id: "back", name: "Back" },
-  { id: "shoulders", name: "Shoulders" },
-  { id: "biceps", name: "Biceps" },
-  { id: "triceps", name: "Triceps" },
-  { id: "abs", name: "Abs" },
-  { id: "quads", name: "Quadriceps" },
-  { id: "hamstrings", name: "Hamstrings" },
-  { id: "calves", name: "Calves" },
-  { id: "glutes", name: "Glutes" },
-];
-
-// Mock data for muscle soreness - in a real app this would come from your workout history
-const MOCK_MUSCLE_DATA = [
-  {
-    id: "chest",
-    sets: 12,
-    lastWorkoutDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-  }, // 2 days ago
-  {
-    id: "back",
-    sets: 8,
-    lastWorkoutDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-  }, // 1 day ago
-  {
-    id: "shoulders",
-    sets: 15,
-    lastWorkoutDate: new Date(Date.now() - 0.5 * 24 * 60 * 60 * 1000),
-  }, // 12 hours ago
-  {
-    id: "biceps",
-    sets: 5,
-    lastWorkoutDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-  }, // 3 days ago
-  {
-    id: "triceps",
-    sets: 18,
-    lastWorkoutDate: new Date(Date.now() - 0.25 * 24 * 60 * 60 * 1000),
-  }, // 6 hours ago
-  {
-    id: "abs",
-    sets: 3,
-    lastWorkoutDate: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000),
-  }, // 4 days ago
-  {
-    id: "quads",
-    sets: 20,
-    lastWorkoutDate: new Date(Date.now() - 0.1 * 24 * 60 * 60 * 1000),
-  }, // 2.4 hours ago
-  {
-    id: "hamstrings",
-    sets: 7,
-    lastWorkoutDate: new Date(Date.now() - 2.5 * 24 * 60 * 60 * 1000),
-  }, // 2.5 days ago
-  {
-    id: "calves",
-    sets: 2,
-    lastWorkoutDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-  }, // 5 days ago
-  {
-    id: "glutes",
-    sets: 14,
-    lastWorkoutDate: new Date(Date.now() - 1.5 * 24 * 60 * 60 * 1000),
-  }, // 1.5 days ago
-];
 
 // Calculate soreness level based on the formula: s = sets / (today - last workout date in days)
 const calculateSorenessLevel = (
@@ -105,57 +39,116 @@ const calculateSorenessLevel = (
   else return "none";
 };
 
-interface CrepatureProps {
-  muscleData?: {
-    id: string;
-    sets: numbe;
-    lastWorkoutDate: Date;
-  }[];
+interface MuscleData {
+  id: string;
+  muscleGroup: 'chest' | 'back' | 'biceps' | 'triceps' | 'delts'; // Only the muscle groups supported by the SVG
+  sets: number;
+  lastWorkoutDate: Date;
 }
-[];
+
+interface CrepatureProps {
+  muscleData?: MuscleData[];
+}
+
 const Crepature: React.FC<CrepatureProps> = ({
-  muscleData = MOCK_MUSCLE_DATA,
+  muscleData = [],
 }) => {
   const [svgContent, setSvgContent] = useState("");
+  
+  // Function to fetch muscle data from database
+  const fetchMuscleData = async () => {
+    try {
+      // Get all plans
+      const plans = await dbLayer.getAllPlans();
+      
+      // Initialize muscle data object to track sets and last workout date for each muscle group
+      // Only include muscle groups that are supported by the SVG
+      const muscleDataMap: Record<'chest' | 'back' | 'biceps' | 'triceps' | 'delts', { sets: number; lastWorkoutDate: Date | null }> = {
+        chest: { sets: 0, lastWorkoutDate: null },
+        back: { sets: 0, lastWorkoutDate: null },
+        biceps: { sets: 0, lastWorkoutDate: null },
+        triceps: { sets: 0, lastWorkoutDate: null },
+        delts: { sets: 0, lastWorkoutDate: null },
+      };
+
+      // Iterate through all plans to collect workout data
+      for (const plan of plans) {
+        const trainings = await dbLayer.getTrainingsByPlan(plan.planName);
+        
+        for (const training of trainings) {
+          const exercises = await dbLayer.getExercisesByTraining(training.id);
+          
+          for (const exercise of exercises) {
+            // Get results for this exercise
+            const results = await dbLayer.getResultsByExercise(exercise.id);
+            
+            // Count sets and find the most recent workout date for this muscle group
+            // Only process muscle groups that are supported by the SVG
+            if (['chest', 'back', 'biceps', 'triceps', 'delts'].includes(exercise.muscleGroup)) {
+              for (const result of results) {
+                const resultDate = new Date(result.date);
+                
+                // Update the muscle group data
+                const muscleGroup = exercise.muscleGroup as 'chest' | 'back' | 'biceps' | 'triceps' | 'delts';
+                if (muscleDataMap[muscleGroup]) {
+                  muscleDataMap[muscleGroup].sets += 1; // Increment sets count
+                  
+                  // Update last workout date if this is more recent
+                  if (!muscleDataMap[muscleGroup].lastWorkoutDate || 
+                      resultDate > muscleDataMap[muscleGroup].lastWorkoutDate!) {
+                    muscleDataMap[muscleGroup].lastWorkoutDate = resultDate;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Convert the map to the format expected by the component
+      const formattedMuscleData: MuscleData[] = Object.entries(muscleDataMap)
+        .filter(([_, data]) => data.lastWorkoutDate !== null) // Only include muscles that were worked out
+        .map(([muscleGroup, data]) => ({
+          id: muscleGroup,
+          muscleGroup: muscleGroup as MuscleGroup,
+          sets: data.sets,
+          lastWorkoutDate: data.lastWorkoutDate!,
+        }));
+
+      return formattedMuscleData;
+    } catch (error) {
+      console.error("Error fetching muscle data:", error);
+      return []; // Return empty array on error
+    }
+  };
 
   useEffect(() => {
-    const svg = generateAthleteSvg(muscleData);
-    setSvgContent(svg);
+    const loadAndGenerateSvg = async () => {
+      // Use provided muscleData if available, otherwise fetch from database
+      const dataToUse = muscleData && muscleData.length > 0 
+        ? muscleData 
+        : await fetchMuscleData();
+      
+      // Calculate colors for each muscle group based on soreness level
+      const muscleColors: Record<string, string> = {};
+      
+      dataToUse.forEach(muscle => {
+        const sorenessLevel = calculateSorenessLevel(muscle.sets, muscle.lastWorkoutDate);
+        muscleColors[muscle.muscleGroup] = SORENESS_COLORS[sorenessLevel as keyof typeof SORENESS_COLORS];
+      });
+      
+      // Log the data being sent to the SVG generator
+      console.log("[Crepature] Data sent to SVG generator:", muscleColors);
+      
+      const svg = generateAthleteSvg(muscleColors as any); // Cast to any to match expected type
+      setSvgContent(svg);
+    };
+
+    loadAndGenerateSvg();
   }, [muscleData]);
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Muscle Soreness Visualization</Text>
-      <View style={styles.legendContainer}>
-        <View
-          style={[
-            styles.legendItem,
-            { backgroundColor: SORENESS_COLORS.strong },
-          ]}
-        />
-        <Text style={styles.legendText}>Strong Soreness</Text>
-      </View>
-      <View style={styles.legendContainer}>
-        <View
-          style={[
-            styles.legendItem,
-            { backgroundColor: SORENESS_COLORS.medium },
-          ]}
-        />
-        <Text style={styles.legendText}>Medium Soreness</Text>
-      </View>
-      <View style={styles.legendContainer}>
-        <View
-          style={[styles.legendItem, { backgroundColor: SORENESS_COLORS.weak }]}
-        />
-        <Text style={styles.legendText}>Weak Soreness</Text>
-      </View>
-      <View style={styles.legendContainer}>
-        <View
-          style={[styles.legendItem, { backgroundColor: SORENESS_COLORS.none }]}
-        />
-        <Text style={styles.legendText}>No Soreness</Text>
-      </View>
       <View style={styles.svgContainer}>
         <WebView
           originWhitelist={["*"]}
@@ -175,10 +168,8 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     padding: 16,
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#ddd",
+    backgroundColor: "transparent", // Make background transparent
+    borderRadius: 16, // Add rounded corners
     marginVertical: 8,
   },
   title: {
