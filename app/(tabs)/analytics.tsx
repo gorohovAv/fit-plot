@@ -165,18 +165,16 @@ export default function AnalyticsScreen() {
     return caloriesEntries.find((entry) => entry.date === date);
   };
 
-  // Load all data on component mount
   useEffect(() => {
     loadPlansFromDB();
     loadCaloriesFromDB();
   }, []);
 
-  // Reset results view pending state after a short delay to allow rendering
   useEffect(() => {
     if (resultsViewPending && showResultsList) {
       const timer = setTimeout(() => {
         setResultsViewPending(false);
-      }, 300); // Small delay to ensure user sees the transition
+      }, 300);
 
       return () => clearTimeout(timer);
     }
@@ -197,7 +195,6 @@ export default function AnalyticsScreen() {
         exerciseName?: string;
       };
       if (exerciseId && exerciseName) {
-        // Find the exercise in all exercises from all plans
         const allExercises = plans
           .flatMap((plan) =>
             plan.trainings.flatMap((training) => training.exercises || []),
@@ -362,7 +359,6 @@ export default function AnalyticsScreen() {
         }
       });
 
-      // Обрабатываем плановые результаты и добавляем их в основные данные как дополнительные кривые
       selectedPlannedIds.forEach((plannedId) => {
         const exerciseName = plannedId.replace("planned-", "");
         const exercise = exercises.find((ex) => ex.name === exerciseName);
@@ -760,7 +756,6 @@ export default function AnalyticsScreen() {
     <ScrollView
       style={[styles.container, { backgroundColor: themeColors.background }]}
     >
-      {/* Full screen loader when data is loading */}
       {isLoading && (
         <BlurView
           style={styles.fullScreenLoader}
@@ -966,8 +961,7 @@ export default function AnalyticsScreen() {
                   )}
                 </>
               )}
-              
-              {/* Muscle Soreness Visualization Component */}
+
               <View style={styles.crepatureContainer}>
                 <Crepature />
               </View>
@@ -1103,6 +1097,6 @@ const styles = StyleSheet.create({
   },
   crepatureContainer: {
     marginVertical: 16,
-    alignItems: 'center',
+    alignItems: "center",
   },
 });

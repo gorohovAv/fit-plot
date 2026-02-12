@@ -3,7 +3,7 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 type HorizontalAxisProps = {
-  data: Array<{ x: string; y: number }>;
+  data: { x: string; y: number }[];
   width: number;
   height: number;
   margin: { top: number; right: number; bottom: number; left: number };
@@ -33,7 +33,6 @@ const HorizontalAxis: React.FC<HorizontalAxisProps> = ({
       .range([0, innerWidth])
       .nice();
 
-  // Увеличиваем количество делений для лучшего отображения
   const tickCount = Math.max(3, Math.floor(innerWidth / 100));
   const ticks = xScale.ticks(tickCount);
 

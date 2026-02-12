@@ -1,10 +1,9 @@
 interface MuscleColors {
-  // Основные группы мышц
-  biceps?: string; // бицепсы
-  triceps?: string; // трицепсы
-  delts?: string; // дельты (плечи)
-  chest?: string; // грудные
-  back?: string; // широчайшие мышцы спины
+  biceps?: string;
+  triceps?: string;
+  delts?: string;
+  chest?: string;
+  back?: string;
   legs?: string;
 }
 

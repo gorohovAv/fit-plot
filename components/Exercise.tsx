@@ -45,7 +45,10 @@ type ExerciseProps = {
   completed: boolean;
   onEdit: () => void;
   onDelete: () => void;
-  onToggleHidden?: (exerciseId: string, hidden: boolean) => Promise<void> | void;
+  onToggleHidden?: (
+    exerciseId: string,
+    hidden: boolean,
+  ) => Promise<void> | void;
 };
 
 export const Exercise: React.FC<ExerciseProps> = ({
@@ -100,16 +103,16 @@ export const Exercise: React.FC<ExerciseProps> = ({
   }
   const themeColors = Colors[colorScheme];
 
-  // Функция для загрузки результатов упражнения из БД
   const loadExerciseResults = async () => {
     try {
       const results = await dbLayer.getResultsByExercise(id);
-      const maxMicrohistorySize = useSettingsStore.getState().maxMicrohistorySize;
+      const maxMicrohistorySize =
+        useSettingsStore.getState().maxMicrohistorySize;
       const formattedResults: Result[] = results
         .filter((r: any) => !r.isPlanned)
         .sort(
           (a: any, b: any) =>
-            new Date(b.date).getTime() - new Date(a.date).getTime()
+            new Date(b.date).getTime() - new Date(a.date).getTime(),
         )
         .slice(0, maxMicrohistorySize)
         .map((r: any) => ({
@@ -119,31 +122,28 @@ export const Exercise: React.FC<ExerciseProps> = ({
           amplitude: r.amplitude,
           date: r.date,
         }))
-        .reverse(); // показываем в порядке от старых к новым
+        .reverse();
       setExerciseResults(formattedResults);
     } catch (error) {
       console.error("Ошибка загрузки результатов упражнения из БД:", error);
     }
   };
 
-  // Загружаем результаты при монтировании компонента
   useEffect(() => {
     loadExerciseResults();
   }, [id]);
 
-  // Subscribe to maxMicrohistorySize changes
   useEffect(() => {
     const unsubscribe = useSettingsStore.subscribe(
       (state) => state.maxMicrohistorySize,
       () => {
         loadExerciseResults();
-      }
+      },
     );
 
     return () => unsubscribe();
   }, []);
 
-  // Следим за изменениями скрытости из родителя
   useEffect(() => {
     setHidden(Boolean(hiddenFromProps));
   }, [hiddenFromProps]);
@@ -164,7 +164,6 @@ export const Exercise: React.FC<ExerciseProps> = ({
       date: new Date().toISOString(),
     };
 
-    // Сохраняем результат в БД
     await dbLayer.saveResult({
       ...newResult,
       isPlanned: false,
@@ -172,7 +171,6 @@ export const Exercise: React.FC<ExerciseProps> = ({
 
     setResult({ weight: "", reps: "", amplitude: "full" });
 
-    // Перезагружаем результаты из БД
     await loadExerciseResults();
   };
 
@@ -186,14 +184,9 @@ export const Exercise: React.FC<ExerciseProps> = ({
 
   const handleToggleVisibility = async (
     exerciseId: string,
-    newHidden: boolean
+    newHidden: boolean,
   ) => {
-    console.log(
-      "[Exercise] toggle hidden icon:",
-      exerciseId,
-      "->",
-      newHidden
-    );
+    console.log("[Exercise] toggle hidden icon:", exerciseId, "->", newHidden);
     if (onToggleHidden) {
       await onToggleHidden(exerciseId, newHidden);
     } else {
@@ -243,7 +236,7 @@ export const Exercise: React.FC<ExerciseProps> = ({
               {
                 exerciseId: id,
                 exerciseName: name,
-              } as never
+              } as never,
             );
           }}
           style={styles.actionButton}

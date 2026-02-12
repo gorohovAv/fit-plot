@@ -37,13 +37,12 @@ export const PlanSelector: React.FC<PlanSelectorProps> = ({
     theme === "dark"
       ? Colors.dark
       : theme === "light"
-      ? Colors.light
-      : Colors.light;
+        ? Colors.light
+        : Colors.light;
   const themeColors = colorScheme;
 
   const handleAddPlan = async () => {
     if (newPlanName.trim()) {
-      // Сохраняем план в БД
       await dbLayer.savePlan(newPlanName);
 
       const newPlan: Plan = {
@@ -51,7 +50,6 @@ export const PlanSelector: React.FC<PlanSelectorProps> = ({
         trainings: [],
       };
 
-      // Перезагружаем планы
       onPlansChange();
 
       onSelect(newPlan);

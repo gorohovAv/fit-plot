@@ -33,7 +33,6 @@ export const TrainingSettings: React.FC<TrainingSettingsProps> = ({
 }) => {
   const [settings, setSettings] = useState<ExerciseSetting[]>([]);
   const theme = useSettingsStore((state) => state.theme);
-  // language не используется здесь
 
   const colorScheme =
     theme === "dark" ? "dark" : theme === "light" ? "light" : "light";
@@ -43,7 +42,7 @@ export const TrainingSettings: React.FC<TrainingSettingsProps> = ({
     try {
       const trainingSettings = await dbLayer.getTrainingSettings(trainingId);
       const settingsMap = new Map(
-        trainingSettings.map((s: any) => [s.exerciseId, s])
+        trainingSettings.map((s: any) => [s.exerciseId, s]),
       );
 
       const loadedSettings: ExerciseSetting[] = exercises.map((exercise) => {
@@ -83,7 +82,7 @@ export const TrainingSettings: React.FC<TrainingSettingsProps> = ({
     });
 
     setSettings((prev) =>
-      prev.map((s) => (s.exerciseId === exerciseId ? updatedSetting : s))
+      prev.map((s) => (s.exerciseId === exerciseId ? updatedSetting : s)),
     );
   };
 
@@ -97,7 +96,7 @@ export const TrainingSettings: React.FC<TrainingSettingsProps> = ({
       "[TrainingSettings] toggle hidden from settings:",
       exerciseId,
       "->",
-      newHidden
+      newHidden,
     );
     await dbLayer.updateExerciseHidden(exerciseId, newHidden);
     await dbLayer.saveTrainingSetting({
@@ -109,8 +108,8 @@ export const TrainingSettings: React.FC<TrainingSettingsProps> = ({
 
     setSettings((prev) =>
       prev.map((s) =>
-        s.exerciseId === exerciseId ? { ...s, hidden: newHidden } : s
-      )
+        s.exerciseId === exerciseId ? { ...s, hidden: newHidden } : s,
+      ),
     );
   };
 
@@ -120,9 +119,14 @@ export const TrainingSettings: React.FC<TrainingSettingsProps> = ({
     >
       <View style={styles.header}>
         {
-        <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <MaterialIcons name="arrow-back" size={24} color={themeColors.text} />
-        </TouchableOpacity>}
+          <TouchableOpacity onPress={onBack} style={styles.backButton}>
+            <MaterialIcons
+              name="arrow-back"
+              size={24}
+              color={themeColors.text}
+            />
+          </TouchableOpacity>
+        }
         <Text style={[styles.title, { color: themeColors.text }]}>
           Настройки тренировки
         </Text>

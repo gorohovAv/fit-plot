@@ -31,8 +31,10 @@ export default function VerticalBarChart({
   }
 
   // Calculate max values for scaling
-  const calculatedMaxCalories = maxCalories || Math.max(...data.map(d => d.calories));
-  const calculatedMaxWeight = maxWeight || Math.max(...data.map(d => d.weight));
+  const calculatedMaxCalories =
+    maxCalories || Math.max(...data.map((d) => d.calories));
+  const calculatedMaxWeight =
+    maxWeight || Math.max(...data.map((d) => d.weight));
 
   // Bar dimensions
   const barWidth = 60;
@@ -41,7 +43,7 @@ export default function VerticalBarChart({
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
-    return `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+    return `${date.getDate().toString().padStart(2, "0")}.${(date.getMonth() + 1).toString().padStart(2, "0")}`;
   };
 
   return (
@@ -52,19 +54,21 @@ export default function VerticalBarChart({
         contentContainerStyle={styles.scrollContent}
       >
         {data.map((item, index) => {
-          const caloriesHeight = (item.calories / calculatedMaxCalories) * maxBarHeight;
-          const weightHeight = (item.weight / calculatedMaxWeight) * maxBarHeight;
+          const caloriesHeight =
+            (item.calories / calculatedMaxCalories) * maxBarHeight;
+          const weightHeight =
+            (item.weight / calculatedMaxWeight) * maxBarHeight;
 
           return (
-            <View key={index} style={[styles.barGroup, { width: barWidth + spacing }]}>
-              {/* Date label */}
+            <View
+              key={index}
+              style={[styles.barGroup, { width: barWidth + spacing }]}
+            >
               <Text style={[styles.dateLabel, { color: textColor }]}>
                 {formatDate(item.date)}
               </Text>
 
-              {/* Bars container */}
               <View style={styles.barsContainer}>
-                {/* Calories bar (grows upward) */}
                 <View style={styles.caloriesSection}>
                   <Text style={[styles.valueLabel, { color: textColor }]}>
                     {item.calories}
@@ -76,15 +80,15 @@ export default function VerticalBarChart({
                         height: caloriesHeight,
                         backgroundColor: caloriesColor,
                         width: barWidth / 2 - 2,
-                      }
+                      },
                     ]}
                   />
                 </View>
 
-                {/* Center line */}
-                <View style={[styles.centerLine, { backgroundColor: textColor }]} />
+                <View
+                  style={[styles.centerLine, { backgroundColor: textColor }]}
+                />
 
-                {/* Weight bar (grows downward) */}
                 <View style={styles.weightSection}>
                   <View
                     style={[
@@ -93,7 +97,7 @@ export default function VerticalBarChart({
                         height: weightHeight,
                         backgroundColor: weightColor,
                         width: barWidth / 2 - 2,
-                      }
+                      },
                     ]}
                   />
                   <Text style={[styles.valueLabel, { color: textColor }]}>
@@ -118,22 +122,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   barGroup: {
-    alignItems: 'center',
+    alignItems: "center",
     marginHorizontal: 5,
   },
   dateLabel: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 8,
-    textAlign: 'center',
+    textAlign: "center",
   },
   barsContainer: {
-    alignItems: 'center',
-    height: 300, // Total height for both sections
+    alignItems: "center",
+    height: 300,
   },
   caloriesSection: {
-    alignItems: 'center',
-    justifyContent: 'flex-end',
+    alignItems: "center",
+    justifyContent: "flex-end",
     height: 140,
     marginBottom: 2,
   },
@@ -148,8 +152,8 @@ const styles = StyleSheet.create({
     opacity: 0.3,
   },
   weightSection: {
-    alignItems: 'center',
-    justifyContent: 'flex-start',
+    alignItems: "center",
+    justifyContent: "flex-start",
     height: 140,
     marginTop: 2,
   },
@@ -160,8 +164,8 @@ const styles = StyleSheet.create({
   },
   valueLabel: {
     fontSize: 11,
-    fontWeight: '500',
-    textAlign: 'center',
+    fontWeight: "500",
+    textAlign: "center",
     minHeight: 16,
   },
 });

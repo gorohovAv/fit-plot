@@ -97,7 +97,7 @@ const Plot: React.FC<PlotProps> = ({
       left: 20,
       right: 20,
     }),
-    [margin]
+    [margin],
   );
 
   const chartWidth = Math.max(width * 2, 800);
@@ -118,20 +118,16 @@ const Plot: React.FC<PlotProps> = ({
         .range([dynamicMargin.left, dynamicMargin.left + innerWidth]);
     }
 
-    // Calculate the domain with the actual min/max dates
     const minDate = d3.min(allDates) as Date;
     const maxDate = d3.max(allDates) as Date;
 
-    // Ensure we have a valid domain even if min and max are the same
     const domain =
       minDate.getTime() === maxDate.getTime()
         ? [new Date(minDate.getTime() - 1), new Date(maxDate.getTime() + 1)]
         : [minDate, maxDate];
 
-    // Create the scale with the domain and range
     const scale = d3.scaleTime().domain(domain);
 
-    // Apply the range to the scale
     return scale.range([dynamicMargin.left, dynamicMargin.left + innerWidth]);
   }, [allDates, innerWidth, dynamicMargin]);
 
@@ -143,7 +139,7 @@ const Plot: React.FC<PlotProps> = ({
   const globalYPadding = Math.max((globalYMax - globalYMin) * 0.1, 1);
   const globalYDomain = React.useMemo(
     () => [globalYMin - globalYPadding, globalYMax + globalYPadding],
-    [globalYMin, globalYMax, globalYPadding]
+    [globalYMin, globalYMax, globalYPadding],
   );
 
   const yScale = React.useMemo(() => {
@@ -163,7 +159,6 @@ const Plot: React.FC<PlotProps> = ({
     console.log("=== SELECTED POINTS DEBUG ===");
     console.log("Processing selected date:", selectedDate.toISOString());
 
-    // Используем координату выбранной даты для X, чтобы точка была точно на линии
     const selectedX = xScale(selectedDate);
     console.log("Calculated selectedX from xScale:", selectedX);
     const selectedTime = selectedDate.getTime();
@@ -179,7 +174,7 @@ const Plot: React.FC<PlotProps> = ({
           .filter((p) => p.y > 0);
 
         console.log(
-          `Dataset ${datasetIndex} has ${sortedPoints.length} valid points after filtering`
+          `Dataset ${datasetIndex} has ${sortedPoints.length} valid points after filtering`,
         );
 
         if (sortedPoints.length === 0) return null;
@@ -199,11 +194,11 @@ const Plot: React.FC<PlotProps> = ({
 
         console.log(
           `Dataset ${datasetIndex}: beforePoint date:`,
-          beforePoint ? new Date(beforePoint.date).toISOString() : "null"
+          beforePoint ? new Date(beforePoint.date).toISOString() : "null",
         );
         console.log(
           `Dataset ${datasetIndex}: afterPoint date:`,
-          afterPoint ? new Date(afterPoint.date).toISOString() : "null"
+          afterPoint ? new Date(afterPoint.date).toISOString() : "null",
         );
 
         let interpolatedY: number;
@@ -220,29 +215,27 @@ const Plot: React.FC<PlotProps> = ({
           };
           console.log(
             `Dataset ${datasetIndex}: Interpolated Y value:`,
-            interpolatedY
+            interpolatedY,
           );
         } else if (beforePoint) {
           interpolatedY = beforePoint.y;
           displayPoint = beforePoint;
           console.log(
             `Dataset ${datasetIndex}: Using beforePoint Y value:`,
-            interpolatedY
+            interpolatedY,
           );
         } else if (afterPoint) {
           interpolatedY = afterPoint.y;
           displayPoint = afterPoint;
           console.log(
             `Dataset ${datasetIndex}: Using afterPoint Y value:`,
-            interpolatedY
+            interpolatedY,
           );
         } else {
-          // If no points are found around the selected date, find the closest point
           console.log(
-            `Dataset ${datasetIndex}: No points found around selected date, finding closest point`
+            `Dataset ${datasetIndex}: No points found around selected date, finding closest point`,
           );
 
-          // Find the closest point to the selected date
           if (sortedPoints.length > 0) {
             let closestPoint = sortedPoints.reduce((closest, current) => {
               const closestDiff = Math.abs(closest.date - selectedTime);
@@ -255,17 +248,17 @@ const Plot: React.FC<PlotProps> = ({
               displayPoint = closestPoint;
               console.log(
                 `Dataset ${datasetIndex}: Using closest point Y value:`,
-                interpolatedY
+                interpolatedY,
               );
             } else {
               console.log(
-                `Dataset ${datasetIndex}: Could not determine Y value, returning null`
+                `Dataset ${datasetIndex}: Could not determine Y value, returning null`,
               );
               return null;
             }
           } else {
             console.log(
-              `Dataset ${datasetIndex}: No valid points in dataset, returning null`
+              `Dataset ${datasetIndex}: No valid points in dataset, returning null`,
             );
             return null;
           }
@@ -279,7 +272,7 @@ const Plot: React.FC<PlotProps> = ({
         const x = selectedX;
         const y = yScale(interpolatedY);
         console.log(
-          `Dataset ${datasetIndex}: Final coordinates - x: ${x}, y: ${y}`
+          `Dataset ${datasetIndex}: Final coordinates - x: ${x}, y: ${y}`,
         );
 
         return {
@@ -308,13 +301,13 @@ const Plot: React.FC<PlotProps> = ({
       console.log("dynamicMargin.left:", dynamicMargin.left);
       console.log(
         "dynamicMargin.left + innerWidth:",
-        dynamicMargin.left + innerWidth
+        dynamicMargin.left + innerWidth,
       );
       console.log("innerWidth:", innerWidth);
       console.log("dynamicMargin.top:", dynamicMargin.top);
       console.log(
         "dynamicMargin.top + innerHeight:",
-        dynamicMargin.top + innerHeight
+        dynamicMargin.top + innerHeight,
       );
 
       const tolerance = 10;
@@ -344,10 +337,9 @@ const Plot: React.FC<PlotProps> = ({
         date = minDate;
         console.log(
           "Position is before data range, using earliest date:",
-          date
+          date,
         );
       } else {
-        // Position is after the data range - use the latest date
         date = maxDate;
         console.log("Position is after data range, using latest date:", date);
       }
@@ -356,7 +348,7 @@ const Plot: React.FC<PlotProps> = ({
       console.log("Formatted date string:", date.toISOString());
       setSelectedDate(date);
     },
-    [dynamicMargin, innerWidth, innerHeight, xScale, scrollX]
+    [dynamicMargin, innerWidth, innerHeight, xScale, scrollX],
   );
 
   if (!datasets || datasets.length === 0) {
@@ -391,7 +383,6 @@ const Plot: React.FC<PlotProps> = ({
     };
   });
 
-  // Generate legend items automatically from datasets if not provided
   const autoLegendItems = datasets.map((dataset, index) => ({
     label: dataset.name || dataset.axisLabel,
     color: lineColors[index % lineColors.length],
@@ -487,7 +478,6 @@ const Plot: React.FC<PlotProps> = ({
                   />
                 ))}
 
-                {/* Отображаем точки при тапе */}
                 {selectedPoints.map((selectedPoint) => (
                   <React.Fragment key={selectedPoint.datasetIndex}>
                     <Circle
@@ -505,7 +495,6 @@ const Plot: React.FC<PlotProps> = ({
                   </React.Fragment>
                 ))}
 
-                {/* Всегда отображаемая вертикальная линия */}
                 {selectedDate && (
                   <>
                     <Line
@@ -514,7 +503,7 @@ const Plot: React.FC<PlotProps> = ({
                         x: xScale(selectedDate),
                         y: dynamicMargin.top + innerHeight,
                       }}
-                      color="#D3D3D3" // Pale gray color
+                      color="#D3D3D3"
                       strokeWidth={1}
                     />
                   </>

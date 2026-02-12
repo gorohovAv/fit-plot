@@ -1,6 +1,6 @@
 import { getTranslation } from "@/utils/localization";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   FlatList,
   StyleSheet,
@@ -30,10 +30,9 @@ export default function WorkoutPlanScreen() {
     theme === "dark"
       ? Colors.dark
       : theme === "light"
-      ? Colors.light
-      : Colors.light;
+        ? Colors.light
+        : Colors.light;
 
-  // Функция для загрузки всех планов из БД
   const loadPlans = async () => {
     try {
       const planNames = await dbLayer.getAllPlans();
@@ -86,13 +85,13 @@ export default function WorkoutPlanScreen() {
       }
 
       setPlans(loadedPlans);
-      // Устанавливаем первый план как выбранный, если он еще не выбран
+
       if (!selectedPlan && loadedPlans.length > 0) {
         setSelectedPlan(loadedPlans[0]);
       } else if (selectedPlan) {
         // Обновляем выбранный план, если он существует
         const updatedPlan = loadedPlans.find(
-          (plan) => plan.planName === selectedPlan.planName
+          (plan) => plan.planName === selectedPlan.planName,
         );
         if (updatedPlan) {
           setSelectedPlan(updatedPlan);
@@ -107,7 +106,7 @@ export default function WorkoutPlanScreen() {
   useFocusEffect(
     React.useCallback(() => {
       loadPlans();
-    }, [])
+    }, []),
   );
 
   const handleAddTraining = async () => {
@@ -125,7 +124,7 @@ export default function WorkoutPlanScreen() {
     await dbLayer.saveTraining(
       newTraining.id,
       selectedPlan.planName,
-      newTraining.name
+      newTraining.name,
     );
 
     setTrainingName("");
@@ -143,10 +142,8 @@ export default function WorkoutPlanScreen() {
   const handleDeleteTraining = async (trainingId: string) => {
     if (!selectedPlan) return;
 
-    // Удаляем тренировку из БД
     await dbLayer.deleteTraining(trainingId);
 
-    // Перезагружаем планы из БД
     await loadPlans();
   };
 

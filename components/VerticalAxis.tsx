@@ -3,7 +3,7 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 type VerticalAxisProps = {
-  data: Array<{ x: string; y: number }>;
+  data: { x: string; y: number }[];
   height: number;
   margin: { top: number; right: number; bottom: number; left: number };
   color: string;
@@ -45,18 +45,21 @@ const VerticalAxis: React.FC<VerticalAxisProps> = ({
   const dataMax = d3.max(data, (d) => d.y) ?? 0;
   const dataMin = 0;
 
-  console.log('VerticalAxis debug:', { domainMin, domainMax, dataMin, dataMax });
+  console.log("VerticalAxis debug:", {
+    domainMin,
+    domainMax,
+    dataMin,
+    dataMax,
+  });
 
   const tickCount = 6;
   const ticks: number[] = [];
 
-  // Generate evenly spaced ticks from domain min to domain max
   for (let i = 0; i <= tickCount; i++) {
     const tickValue = 0 + (domainMax - 0) * (i / tickCount);
     ticks.push(tickValue);
   }
 
-  // Ensure the actual data maximum is visible by adjusting the top tick if needed
   if (dataMax > ticks[ticks.length - 1]) {
     ticks[ticks.length - 1] = Math.max(dataMax, ticks[ticks.length - 1]);
   }
@@ -108,16 +111,16 @@ const VerticalAxis: React.FC<VerticalAxisProps> = ({
                   },
                 ]}
               />
-              {/* Vertical connector (connects to next tick) */}
-                <View
-                  style={[
-                    styles.tickMarkVertical,
-                    {
-                      backgroundColor: color,
-                      [position === "left" ? "right" : "left"]: 0,
-                    },
-                  ]}
-                />
+
+              <View
+                style={[
+                  styles.tickMarkVertical,
+                  {
+                    backgroundColor: color,
+                    [position === "left" ? "right" : "left"]: 0,
+                  },
+                ]}
+              />
               <Text
                 style={[
                   styles.tickText,
@@ -176,7 +179,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     position: "absolute",
   },
-    tickMarkVertical: {
+  tickMarkVertical: {
     position: "absolute",
     width: 1,
     height: 40,

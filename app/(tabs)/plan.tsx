@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/array-type */
 import { MaterialIcons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import dayjs from "dayjs";
@@ -16,9 +17,8 @@ import useSettingsStore from "../../store/settingsStore";
 import useStore, { Exercise, Plan, PlannedResult } from "../../store/store";
 import { getTranslation } from "../../utils/localization";
 
-// Цвета сезонов для светлой темы
 const SEASON_COLORS_LIGHT = {
-  winter: "#A7D8FF", // Зимний голубой
+  winter: "#A7D8FF",
   spring: "#B6F5B6", // Весенний зеленый
   summer: "#FFF7A7", // Летний желтый
   autumn: "#FFD6A7", // Осенний оранжевый
@@ -57,7 +57,7 @@ function getSeason(month: number): keyof typeof SEASON_COLORS_LIGHT {
 
 function getSeasonMonths(
   season: keyof typeof SEASON_COLORS_LIGHT,
-  year: number
+  year: number,
 ) {
   switch (season) {
     case "winter":
@@ -66,7 +66,7 @@ function getSeasonMonths(
           ? dayjs()
               .year(year - 1)
               .month(month)
-          : dayjs().year(year).month(month)
+          : dayjs().year(year).month(month),
       );
     case "spring":
       return [2, 3, 4].map((month) => dayjs().year(year).month(month));
@@ -121,7 +121,7 @@ function getSeasonsData(plannedResults: PlannedResult[]) {
       return months.some(
         (month) =>
           resultDate.year() === month.year() &&
-          resultDate.month() === month.month()
+          resultDate.month() === month.month(),
       );
     });
 
@@ -207,7 +207,7 @@ function SeasonZone({
         {results.length > 0 ? (
           results.map((result, index) => {
             const exercise = allExercises.find(
-              (ex) => ex.id === result.exerciseId
+              (ex) => ex.id === result.exerciseId,
             );
             return (
               <View
@@ -315,7 +315,7 @@ export default function PlanScreen() {
 
   const seasonsData = useMemo(
     () => getSeasonsData(plannedResults),
-    [plannedResults]
+    [plannedResults],
   );
 
   const [modalVisible, setModalVisible] = useState(false);
@@ -330,7 +330,7 @@ export default function PlanScreen() {
 
   const openModal = (
     season: keyof typeof SEASON_COLORS_LIGHT,
-    year: number
+    year: number,
   ) => {
     setSelectedSeason(season);
     setSelectedYear(year);
@@ -357,7 +357,7 @@ export default function PlanScreen() {
       return;
 
     const training = plan.trainings.find((t) =>
-      t.exercises.some((e) => e.id === selectedExerciseId)
+      t.exercises.some((e) => e.id === selectedExerciseId),
     );
     if (!training) return;
 

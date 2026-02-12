@@ -33,7 +33,7 @@ export default function WorkoutScreen() {
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [showSettings, setShowSettings] = useState(
-    initialShowSettings || false
+    initialShowSettings || false,
   );
   const [newExercise, setNewExercise] = useState({
     name: "",
@@ -49,14 +49,12 @@ export default function WorkoutScreen() {
   const language = useSettingsStore((state) => state.language);
   const previousShowSettings = useRef<boolean>(initialShowSettings || false);
 
-  // определяем текущую тему
   let colorScheme: "light" | "dark" = "light";
   if (theme === "dark") {
     colorScheme = "dark";
   } else if (theme === "light") {
     colorScheme = "light";
   } else {
-    // если system, пробуем взять из платформы, иначе по умолчанию светлая
     colorScheme =
       Platform.OS === "ios" || Platform.OS === "android"
         ? (Appearance.getColorScheme?.() as "light" | "dark") || "light"
@@ -64,14 +62,13 @@ export default function WorkoutScreen() {
   }
   const themeColors = Colors[colorScheme];
 
-  // Функция для загрузки упражнений тренировки из БД
   const loadExercises = async () => {
     console.log("[WorkoutScreen] loadExercises called, workoutId:", workoutId);
     try {
       const loadedExercises = await dbLayer.getExercisesByTraining(workoutId);
       console.log(
         "[WorkoutScreen] Получили упражнения, количество:",
-        loadedExercises?.length || 0
+        loadedExercises?.length || 0,
       );
       console.log(
         "[WorkoutScreen] Упражнения hidden:",
@@ -79,7 +76,7 @@ export default function WorkoutScreen() {
           id: e.id,
           name: e.name,
           hidden: e.hidden,
-        }))
+        })),
       );
       setExercises(loadedExercises);
       console.log("[WorkoutScreen] Упражнения установлены в state");
@@ -88,23 +85,20 @@ export default function WorkoutScreen() {
     }
   };
 
-  // Загружаем упражнения при монтировании компонента
   useEffect(() => {
     loadExercises();
   }, [workoutId]);
 
-  // Показываем настройки, если пришли в параметрах
   useEffect(() => {
     if (initialShowSettings) {
       setShowSettings(true);
     }
   }, [initialShowSettings]);
 
-  // Перезагружаем упражнения при закрытии настроек
   useEffect(() => {
     if (previousShowSettings.current && !showSettings) {
       loadExercises();
-      // сбрасываем флаг, чтобы повторный вход работал корректно
+
       navigation.setParams?.({ showSettings: false } as any);
     }
     previousShowSettings.current = showSettings;
@@ -117,7 +111,7 @@ export default function WorkoutScreen() {
           ...editingExercise,
           ...exerciseData,
         };
-        // Сохраняем обновленное упражнение в БД
+
         await dbLayer.saveExercise({
           ...updatedExercise,
           trainingId: workoutId,
@@ -127,7 +121,7 @@ export default function WorkoutScreen() {
           id: Date.now().toString(),
           ...exerciseData,
         };
-        // Сохраняем новое упражнение в БД
+
         await dbLayer.saveExercise({
           ...exercise,
           trainingId: workoutId,
@@ -146,7 +140,6 @@ export default function WorkoutScreen() {
       setEditingExercise(null);
       setIsModalVisible(false);
 
-      // Перезагружаем упражнения из БД
       await loadExercises();
     }
   };
@@ -166,10 +159,8 @@ export default function WorkoutScreen() {
   };
 
   const handleDeleteExercise = async (exerciseId: string) => {
-    // Удаляем упражнение из БД
     await dbLayer.deleteExercise(exerciseId);
 
-    // Перезагружаем упражнения из БД
     await loadExercises();
   };
 
@@ -178,7 +169,7 @@ export default function WorkoutScreen() {
       "[WorkoutScreen] toggle hidden from card:",
       exerciseId,
       "->",
-      newHidden
+      newHidden,
     );
     await dbLayer.updateExerciseHidden(exerciseId, newHidden);
     await loadExercises();
