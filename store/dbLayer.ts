@@ -419,6 +419,29 @@ export const getResultsForExerciseIds = async (exerciseIds: string[]) => {
   });
 };
 
+// Get the most recent results for each exercise within a specified number of days
+export const getRecentResultsForExerciseIds = async (exerciseIds: string[], daysLimit: number = 30) => {
+  if (!exerciseIds || exerciseIds.length === 0) return [];
+  
+  // Calculate the date threshold
+  const dateThreshold = new Date();
+  dateThreshold.setDate(dateThreshold.getDate() - daysLimit);
+  const thresholdDateString = dateThreshold.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+  
+  return await safeDbOperation((database) => {
+    const placeholders = exerciseIds.map(() => "?").join(",");
+    const result = database.execute(
+      `SELECT id, exerciseId, weight, reps, date, amplitude, isPlanned
+       FROM results
+       WHERE exerciseId IN (${placeholders})
+         AND date >= ?
+       ORDER BY date DESC`,
+      [...exerciseIds, thresholdDateString]
+    );
+    return (result.rows?._array || []).map((r: any) => ({ ...r, isPlanned: Boolean(r.isPlanned) }));
+  });
+};
+
 export const deleteResult = async (resultId: number): Promise<void> => {
   await safeDbOperation((database) => {
     const result = database.execute("DELETE FROM results WHERE id = ?", [resultId]);
