@@ -210,6 +210,14 @@ const Crepature: React.FC<CrepatureProps> = ({ muscleData = [] }) => {
       // Calculate colors for each muscle group based on soreness level
       const muscleColors: Record<string, string> = {};
 
+      // Initialize all supported muscle groups with default "no soreness" color
+      const allSupportedMuscles: Array<
+        "chest" | "back" | "biceps" | "triceps" | "delts" | "legs"
+      > = ["chest", "back", "biceps", "triceps", "delts", "legs"];
+      allSupportedMuscles.forEach((muscleGroup) => {
+        muscleColors[muscleGroup] = SORENESS_COLORS.none; // Default to no soreness
+      });
+
       console.log("[Crepature] Raw muscle data from DB:", dataToUse);
 
       dataToUse.forEach((muscle) => {
@@ -229,6 +237,15 @@ const Crepature: React.FC<CrepatureProps> = ({ muscleData = [] }) => {
         console.log(
           `[Crepature] Muscle: ${muscle.muscleGroup}, Sets: ${muscle.sets}, Days since workout: ${daysDiff.toFixed(2)}, S-value: ${s.toFixed(2)}, Soreness level: ${sorenessLevel}, Color: ${SORENESS_COLORS[sorenessLevel as keyof typeof SORENESS_COLORS]}`,
         );
+      });
+
+      // Log muscle groups without recent data
+      allSupportedMuscles.forEach((muscleGroup) => {
+        if (!dataToUse.some((muscle) => muscle.muscleGroup === muscleGroup)) {
+          console.log(
+            `[Crepature] Muscle: ${muscleGroup}, No recent data, Default color: ${SORENESS_COLORS.none}`,
+          );
+        }
       });
 
       // Log the data being sent to the SVG generator
