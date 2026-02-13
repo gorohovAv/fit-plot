@@ -42,6 +42,7 @@ export default function ExerciseModal({
     amplitude: "full",
     comment: "",
     timerDuration: undefined,
+    right: undefined,
   });
 
   const theme = useSettingsStore((state) => state.theme);
@@ -56,6 +57,7 @@ export default function ExerciseModal({
         ...initialExercise,
         comment: initialExercise.comment ?? "",
         timerDuration: initialExercise.timerDuration ?? undefined,
+        right: initialExercise.right,
       });
     } else {
       setExercise({
@@ -66,6 +68,7 @@ export default function ExerciseModal({
         amplitude: "full",
         comment: "",
         timerDuration: undefined,
+        right: undefined,
       });
     }
   }, [initialExercise, visible]);
@@ -74,6 +77,7 @@ export default function ExerciseModal({
     setExercise({
       ...exercise,
       ...item,
+      right: item.right !== undefined ? item.right : undefined,
     });
     setShowExerciseList(false);
   };

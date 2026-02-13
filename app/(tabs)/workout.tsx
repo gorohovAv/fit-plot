@@ -43,6 +43,7 @@ export default function WorkoutScreen() {
     amplitude: "full" as "full" | "partial",
     comment: "",
     timerDuration: undefined as number | undefined,
+    right: undefined as boolean | undefined,
   });
   const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
   const theme = useSettingsStore((state) => state.theme);
@@ -136,6 +137,7 @@ export default function WorkoutScreen() {
         amplitude: "full",
         comment: "",
         timerDuration: undefined,
+        right: undefined,
       });
       setEditingExercise(null);
       setIsModalVisible(false);
@@ -154,6 +156,7 @@ export default function WorkoutScreen() {
       amplitude: exercise.amplitude || "full",
       comment: exercise.comment || "",
       timerDuration: exercise.timerDuration ?? undefined,
+      right: exercise.right,
     });
     setIsModalVisible(true);
   };
@@ -221,6 +224,7 @@ export default function WorkoutScreen() {
               onDelete={() => handleDeleteExercise(item.id)}
               timerDuration={item.timerDuration}
               hidden={item.hidden}
+              right={item.right}
               onToggleHidden={handleToggleHidden}
             />
           )}
@@ -238,6 +242,7 @@ export default function WorkoutScreen() {
               amplitude: "full",
               comment: "",
               timerDuration: undefined,
+              right: undefined,
             });
             setIsModalVisible(true);
           }}
