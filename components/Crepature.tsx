@@ -283,6 +283,7 @@ const styles = StyleSheet.create({
   webview: {
     width: 300,
     height: 500,
+    backgroundColor: 'transparent',
   },
 });
 
