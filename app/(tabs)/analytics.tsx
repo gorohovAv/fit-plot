@@ -53,10 +53,12 @@ export default function AnalyticsScreen() {
     tonnage: Dataset[];
     maxWeight: Dataset[];
     maxReps: Dataset[];
+    avgWeight: Dataset[];
   }>({
     tonnage: [],
     maxWeight: [],
     maxReps: [],
+    avgWeight: [],
   });
   const [showResultsList, setShowResultsList] = useState<boolean>(false);
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
@@ -225,6 +227,7 @@ export default function AnalyticsScreen() {
           tonnage: [],
           maxWeight: [],
           maxReps: [],
+          avgWeight: [],
         });
         setIsLoading(false);
         return;
@@ -303,6 +306,7 @@ export default function AnalyticsScreen() {
       const tonnageData: Dataset[] = [];
       const maxWeightData: Dataset[] = [];
       const maxRepsData: Dataset[] = [];
+      const avgWeightData: Dataset[] = [];
 
       selectedExerciseIds.forEach((exerciseId) => {
         const exerciseResults = allResults.filter(
@@ -315,16 +319,18 @@ export default function AnalyticsScreen() {
             (acc, result) => {
               const day = getDayString(result.date);
               if (!acc[day]) {
-                acc[day] = { tonnage: 0, maxWeight: 0, maxReps: 0 };
+                acc[day] = { tonnage: 0, maxWeight: 0, maxReps: 0, totalWeight: 0, count: 0 };
               }
               acc[day].tonnage += result.weight * result.reps;
               acc[day].maxWeight = Math.max(acc[day].maxWeight, result.weight);
               acc[day].maxReps = Math.max(acc[day].maxReps, result.reps);
+              acc[day].totalWeight += result.weight;
+              acc[day].count += 1;
               return acc;
             },
             {} as Record<
               string,
-              { tonnage: number; maxWeight: number; maxReps: number }
+              { tonnage: number; maxWeight: number; maxReps: number; totalWeight: number; count: number }
             >,
           );
 
@@ -356,6 +362,15 @@ export default function AnalyticsScreen() {
             axisLabel: getTranslation(language, "reps"),
             name: exercise.name,
           });
+
+          avgWeightData.push({
+            data: sortedDays.map((day) => ({
+              x: day,
+              y: groupedByDay[day].count > 0 ? groupedByDay[day].totalWeight / groupedByDay[day].count : 0,
+            })),
+            axisLabel: getTranslation(language, "weight"),
+            name: exercise.name,
+          });
         }
       });
 
@@ -373,7 +388,7 @@ export default function AnalyticsScreen() {
               (acc, planned) => {
                 const day = getDayString(planned.plannedDate);
                 if (!acc[day]) {
-                  acc[day] = { tonnage: 0, maxWeight: 0, maxReps: 0 };
+                  acc[day] = { tonnage: 0, maxWeight: 0, maxReps: 0, totalWeight: 0, count: 0 };
                 }
                 acc[day].tonnage += planned.plannedWeight * planned.plannedReps;
                 acc[day].maxWeight = Math.max(
@@ -384,11 +399,13 @@ export default function AnalyticsScreen() {
                   acc[day].maxReps,
                   planned.plannedReps,
                 );
+                acc[day].totalWeight += planned.plannedWeight;
+                acc[day].count += 1;
                 return acc;
               },
               {} as Record<
                 string,
-                { tonnage: number; maxWeight: number; maxReps: number }
+                { tonnage: number; maxWeight: number; maxReps: number; totalWeight: number; count: number }
               >,
             );
 
@@ -420,6 +437,15 @@ export default function AnalyticsScreen() {
               axisLabel: getTranslation(language, "reps"),
               name: `${exercise.name} (план)`,
             });
+
+            avgWeightData.push({
+              data: sortedPlannedDays.map((day) => ({
+                x: day,
+                y: groupedPlannedByDay[day].count > 0 ? groupedPlannedByDay[day].totalWeight / groupedPlannedByDay[day].count : 0,
+              })),
+              axisLabel: getTranslation(language, "weight"),
+              name: `${exercise.name} (план)`,
+            });
           }
         }
       });
@@ -428,6 +454,7 @@ export default function AnalyticsScreen() {
         tonnage: tonnageData,
         maxWeight: maxWeightData,
         maxReps: maxRepsData,
+        avgWeight: avgWeightData,
       });
 
       setIsLoading(false);
@@ -958,6 +985,13 @@ export default function AnalyticsScreen() {
                     themeColors.chartLine,
                     getTranslation(language, "date"),
                     getTranslation(language, "reps"),
+                  )}
+                  {renderChart(
+                    chartData.avgWeight,
+                    getTranslation(language, "avgWeight"),
+                    themeColors.chartLine,
+                    getTranslation(language, "date"),
+                    getTranslation(language, "weight"),
                   )}
                 </>
               )}
