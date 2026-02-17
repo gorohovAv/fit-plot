@@ -151,31 +151,17 @@ const Plot: React.FC<PlotProps> = ({
 
   const selectedPoints = React.useMemo(() => {
     if (!selectedDate || !datasets || datasets.length === 0) {
-      console.log("=== SELECTED POINTS DEBUG ===");
-      console.log("No selected date or datasets, returning empty array");
       return [];
     }
 
-    console.log("=== SELECTED POINTS DEBUG ===");
-    console.log("Processing selected date:", selectedDate.toISOString());
-
     const selectedX = xScale(selectedDate);
-    console.log("Calculated selectedX from xScale:", selectedX);
     const selectedTime = selectedDate.getTime();
-    console.log("Selected time in milliseconds:", selectedTime);
 
     return datasets
       .map((dataset, datasetIndex) => {
-        console.log(`Processing dataset ${datasetIndex}`);
-
         const sortedPoints = [...dataset.data]
           .map((p) => ({ ...p, date: new Date(p.x).getTime() }))
-          .sort((a, b) => a.date - b.date)
-          .filter((p) => p.y > 0);
-
-        console.log(
-          `Dataset ${datasetIndex} has ${sortedPoints.length} valid points after filtering`,
-        );
+          .sort((a, b) => a.date - b.date);
 
         if (sortedPoints.length === 0) return null;
 
@@ -192,15 +178,6 @@ const Plot: React.FC<PlotProps> = ({
           }
         }
 
-        console.log(
-          `Dataset ${datasetIndex}: beforePoint date:`,
-          beforePoint ? new Date(beforePoint.date).toISOString() : "null",
-        );
-        console.log(
-          `Dataset ${datasetIndex}: afterPoint date:`,
-          afterPoint ? new Date(afterPoint.date).toISOString() : "null",
-        );
-
         let interpolatedY: number;
         let displayPoint: DataPoint;
 
@@ -213,29 +190,13 @@ const Plot: React.FC<PlotProps> = ({
             x: selectedDate.toISOString(),
             y: interpolatedY,
           };
-          console.log(
-            `Dataset ${datasetIndex}: Interpolated Y value:`,
-            interpolatedY,
-          );
         } else if (beforePoint) {
           interpolatedY = beforePoint.y;
           displayPoint = beforePoint;
-          console.log(
-            `Dataset ${datasetIndex}: Using beforePoint Y value:`,
-            interpolatedY,
-          );
         } else if (afterPoint) {
           interpolatedY = afterPoint.y;
           displayPoint = afterPoint;
-          console.log(
-            `Dataset ${datasetIndex}: Using afterPoint Y value:`,
-            interpolatedY,
-          );
         } else {
-          console.log(
-            `Dataset ${datasetIndex}: No points found around selected date, finding closest point`,
-          );
-
           if (sortedPoints.length > 0) {
             let closestPoint = sortedPoints.reduce((closest, current) => {
               const closestDiff = Math.abs(closest.date - selectedTime);
@@ -246,34 +207,16 @@ const Plot: React.FC<PlotProps> = ({
             if (closestPoint) {
               interpolatedY = closestPoint.y;
               displayPoint = closestPoint;
-              console.log(
-                `Dataset ${datasetIndex}: Using closest point Y value:`,
-                interpolatedY,
-              );
             } else {
-              console.log(
-                `Dataset ${datasetIndex}: Could not determine Y value, returning null`,
-              );
               return null;
             }
           } else {
-            console.log(
-              `Dataset ${datasetIndex}: No valid points in dataset, returning null`,
-            );
             return null;
           }
         }
 
-        if (interpolatedY <= 0) {
-          console.log(`Dataset ${datasetIndex}: Y value is <= 0, skipping`);
-          return null;
-        }
-
         const x = selectedX;
         const y = yScale(interpolatedY);
-        console.log(
-          `Dataset ${datasetIndex}: Final coordinates - x: ${x}, y: ${y}`,
-        );
 
         return {
           datasetIndex,
@@ -290,32 +233,13 @@ const Plot: React.FC<PlotProps> = ({
     (event: any) => {
       const { locationX, locationY } = event.nativeEvent;
 
-      console.log("=== TAP COORDINATES DEBUG ===");
-      console.log("locationX (relative to Pressable):", locationX);
-      console.log("locationY (relative to Pressable):", locationY);
-      console.log("scrollX (current scroll offset):", scrollX);
-
       const xInChart = locationX;
-
-      console.log("xInChart (absolute position in chart):", xInChart);
-      console.log("dynamicMargin.left:", dynamicMargin.left);
-      console.log(
-        "dynamicMargin.left + innerWidth:",
-        dynamicMargin.left + innerWidth,
-      );
-      console.log("innerWidth:", innerWidth);
-      console.log("dynamicMargin.top:", dynamicMargin.top);
-      console.log(
-        "dynamicMargin.top + innerHeight:",
-        dynamicMargin.top + innerHeight,
-      );
 
       const tolerance = 10;
       if (
         locationY < dynamicMargin.top - tolerance ||
         locationY > dynamicMargin.top + innerHeight + tolerance
       ) {
-        console.log("Tap is outside vertical chart area, deselecting date");
         setSelectedDate(null);
         return;
       }
@@ -332,27 +256,18 @@ const Plot: React.FC<PlotProps> = ({
 
       if (clampedX >= minX && clampedX <= maxX) {
         date = xScale.invert(clampedX);
-        console.log("Converted x position to date:", date);
       } else if (clampedX < minX) {
         date = minDate;
-        console.log(
-          "Position is before data range, using earliest date:",
-          date,
-        );
       } else {
         date = maxDate;
-        console.log("Position is after data range, using latest date:", date);
       }
 
-      console.log("Final date from xScale:", date);
-      console.log("Formatted date string:", date.toISOString());
       setSelectedDate(date);
     },
     [dynamicMargin, innerWidth, innerHeight, xScale, scrollX],
   );
 
   if (!datasets || datasets.length === 0) {
-    console.log("No datasets, returning empty view");
     return <View style={styles.container} />;
   }
 
@@ -368,7 +283,6 @@ const Plot: React.FC<PlotProps> = ({
       .line<DataPoint>()
       .x((d: DataPoint) => xScale(new Date(d.x)))
       .y((d: DataPoint) => yScale(d.y))
-      .defined((d: DataPoint) => d.y > 0)
       .curve(d3.curveCatmullRom.alpha(0.5));
 
     const pathData = lineGenerator(dataset.data) || "";

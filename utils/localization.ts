@@ -50,10 +50,13 @@ export const translations = {
     maxWeight: "Max weight",
     maxReps: "Max reps",
     avgWeight: "Average weight",
+    minWeight: "Min weight",
+    workoutTime: "Workout time",
     date: "Date",
     tonnage: "Tonnage",
-    weight: "Weight",
+    weightLabel: "Weight",
     reps: "Reps",
+    minutes: "Minutes",
 
     // Plan Screen
     addPlannedResult: "Add planned result",
@@ -102,7 +105,7 @@ export const translations = {
 
     // Exercise Component
     kg: "kg",
-    reps: "reps",
+    repsUnit: "reps",
     unilateralExercise: "Unilateral",
     bilateralExercise: "Bilateral",
     fullAmplitudeExercise: "Full amplitude",
@@ -153,7 +156,7 @@ Pull-ups
 
     // Tab Navigation
     home: "Home",
-    calories: "Calories",
+    caloriesTab: "Calories",
     workout: "Workout",
     storage: "Storage",
     plan: "Plan",
@@ -237,10 +240,13 @@ Pull-ups
     maxWeight: "Максимальный вес",
     maxReps: "Максимальные повторения",
     avgWeight: "Средний вес",
+    minWeight: "Минимальный вес",
+    workoutTime: "Время тренировки",
     date: "Дата",
     tonnage: "Тоннаж",
-    weight: "Вес",
+    weightLabel: "Вес",
     reps: "Повторения",
+    minutes: "Минуты",
 
     // Plan Screen
     addPlannedResult: "Добавить плановый результат",
@@ -289,7 +295,7 @@ Pull-ups
 
     // Exercise Component
     kg: "кг",
-    reps: "повторений",
+    repsUnit: "повторений",
     unilateralExercise: "Одностороннее",
     bilateralExercise: "Двустороннее",
     fullAmplitudeExercise: "Полная амплитуда",
@@ -340,7 +346,7 @@ Pull-ups
 
     // Tab Navigation
     home: "Главная",
-    calories: "Калории",
+    caloriesTab: "Калории",
     workout: "Тренировка",
     storage: "Хранилище",
     plan: "План",

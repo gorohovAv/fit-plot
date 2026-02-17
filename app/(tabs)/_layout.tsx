@@ -56,7 +56,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="callories"
         options={{
-          title: getTabTitle("calories"),
+          title: getTabTitle("caloriesTab"),
           tabBarIcon: ({ color }) => (
             <MaterialIcons
               size={28}

@@ -368,7 +368,7 @@ export const Exercise: React.FC<ExerciseProps> = ({
                 />
                 <Text style={[styles.resultText, { color: themeColors.icon }]}>
                   {res.weight} {getTranslation(language, "kg")} × {res.reps}{" "}
-                  {getTranslation(language, "reps")}
+                  {getTranslation(language, "repsUnit")}
                   {!isToday && (
                     <Text
                       style={[styles.dateText, { color: themeColors.icon }]}

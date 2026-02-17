@@ -54,12 +54,17 @@ export default function AnalyticsScreen() {
     maxWeight: Dataset[];
     maxReps: Dataset[];
     avgWeight: Dataset[];
+    minWeight: Dataset[];
+    workoutTime: Dataset[];
   }>({
     tonnage: [],
     maxWeight: [],
     maxReps: [],
     avgWeight: [],
+    minWeight: [],
+    workoutTime: [],
   });
+  const [absoluteMaxWeight, setAbsoluteMaxWeight] = useState<{ exerciseId: string; exerciseName: string; maxWeight: number }[]>([]);
   const [showResultsList, setShowResultsList] = useState<boolean>(false);
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
   const [isRenderingResults, setIsRenderingResults] = useState<boolean>(false);
@@ -228,6 +233,8 @@ export default function AnalyticsScreen() {
           maxWeight: [],
           maxReps: [],
           avgWeight: [],
+          minWeight: [],
+          workoutTime: [],
         });
         setIsLoading(false);
         return;
@@ -287,7 +294,11 @@ export default function AnalyticsScreen() {
           tonnage: [],
           maxWeight: [],
           maxReps: [],
+          minWeight: [],
+          workoutTime: [],
+          avgWeight: [],
         });
+        setAbsoluteMaxWeight([]);
         setIsLoading(false);
         return;
       }
@@ -307,6 +318,8 @@ export default function AnalyticsScreen() {
       const maxWeightData: Dataset[] = [];
       const maxRepsData: Dataset[] = [];
       const avgWeightData: Dataset[] = [];
+      const minWeightData: Dataset[] = [];
+      const workoutTimeData: Dataset[] = [];
 
       selectedExerciseIds.forEach((exerciseId) => {
         const exerciseResults = allResults.filter(
@@ -319,18 +332,20 @@ export default function AnalyticsScreen() {
             (acc, result) => {
               const day = getDayString(result.date);
               if (!acc[day]) {
-                acc[day] = { tonnage: 0, maxWeight: 0, maxReps: 0, totalWeight: 0, count: 0 };
+                acc[day] = { tonnage: 0, maxWeight: 0, maxReps: 0, totalWeight: 0, count: 0, minWeight: Infinity, timestamps: [] as string[] };
               }
               acc[day].tonnage += result.weight * result.reps;
               acc[day].maxWeight = Math.max(acc[day].maxWeight, result.weight);
               acc[day].maxReps = Math.max(acc[day].maxReps, result.reps);
               acc[day].totalWeight += result.weight;
               acc[day].count += 1;
+              acc[day].minWeight = Math.min(acc[day].minWeight, result.weight);
+              acc[day].timestamps.push(result.date);
               return acc;
             },
             {} as Record<
               string,
-              { tonnage: number; maxWeight: number; maxReps: number; totalWeight: number; count: number }
+              { tonnage: number; maxWeight: number; maxReps: number; totalWeight: number; count: number; minWeight: number; timestamps: string[] }
             >,
           );
 
@@ -350,7 +365,7 @@ export default function AnalyticsScreen() {
               x: day,
               y: groupedByDay[day].maxWeight,
             })),
-            axisLabel: getTranslation(language, "weight"),
+            axisLabel: getTranslation(language, "weightLabel"),
             name: exercise.name,
           });
 
@@ -368,7 +383,32 @@ export default function AnalyticsScreen() {
               x: day,
               y: groupedByDay[day].count > 0 ? groupedByDay[day].totalWeight / groupedByDay[day].count : 0,
             })),
-            axisLabel: getTranslation(language, "weight"),
+            axisLabel: getTranslation(language, "weightLabel"),
+            name: exercise.name,
+          });
+
+          minWeightData.push({
+            data: sortedDays.map((day) => ({
+              x: day,
+              y: groupedByDay[day].minWeight,
+            })),
+            axisLabel: getTranslation(language, "weightLabel"),
+            name: exercise.name,
+          });
+
+          workoutTimeData.push({
+            data: sortedDays.map((day) => {
+              const times = groupedByDay[day].timestamps;
+              if (times.length < 2) {
+                return { x: day, y: 0 };
+              }
+              const sortedTimes = times.sort();
+              const earliest = new Date(sortedTimes[0]).getTime();
+              const latest = new Date(sortedTimes[sortedTimes.length - 1]).getTime();
+              const durationMinutes = Math.round((latest - earliest) / (1000 * 60));
+              return { x: day, y: durationMinutes };
+            }),
+            axisLabel: getTranslation(language, "minutes"),
             name: exercise.name,
           });
         }
@@ -388,7 +428,7 @@ export default function AnalyticsScreen() {
               (acc, planned) => {
                 const day = getDayString(planned.plannedDate);
                 if (!acc[day]) {
-                  acc[day] = { tonnage: 0, maxWeight: 0, maxReps: 0, totalWeight: 0, count: 0 };
+                  acc[day] = { tonnage: 0, maxWeight: 0, maxReps: 0, totalWeight: 0, count: 0, minWeight: Infinity, timestamps: [] as string[] };
                 }
                 acc[day].tonnage += planned.plannedWeight * planned.plannedReps;
                 acc[day].maxWeight = Math.max(
@@ -401,11 +441,13 @@ export default function AnalyticsScreen() {
                 );
                 acc[day].totalWeight += planned.plannedWeight;
                 acc[day].count += 1;
+                acc[day].minWeight = Math.min(acc[day].minWeight, planned.plannedWeight);
+                acc[day].timestamps.push(planned.plannedDate);
                 return acc;
               },
               {} as Record<
                 string,
-                { tonnage: number; maxWeight: number; maxReps: number; totalWeight: number; count: number }
+                { tonnage: number; maxWeight: number; maxReps: number; totalWeight: number; count: number; minWeight: number; timestamps: string[] }
               >,
             );
 
@@ -425,7 +467,7 @@ export default function AnalyticsScreen() {
                 x: day,
                 y: groupedPlannedByDay[day].maxWeight,
               })),
-              axisLabel: getTranslation(language, "weight"),
+              axisLabel: getTranslation(language, "weightLabel"),
               name: `${exercise.name} (план)`,
             });
 
@@ -443,18 +485,61 @@ export default function AnalyticsScreen() {
                 x: day,
                 y: groupedPlannedByDay[day].count > 0 ? groupedPlannedByDay[day].totalWeight / groupedPlannedByDay[day].count : 0,
               })),
-              axisLabel: getTranslation(language, "weight"),
+              axisLabel: getTranslation(language, "weightLabel"),
+              name: `${exercise.name} (план)`,
+            });
+
+            minWeightData.push({
+              data: sortedPlannedDays.map((day) => ({
+                x: day,
+                y: groupedPlannedByDay[day].minWeight,
+              })),
+              axisLabel: getTranslation(language, "weightLabel"),
+              name: `${exercise.name} (план)`,
+            });
+
+            workoutTimeData.push({
+              data: sortedPlannedDays.map((day) => {
+                const times = groupedPlannedByDay[day].timestamps;
+                if (times.length < 2) return { x: day, y: 0 };
+                const sortedTimes = times.sort();
+                const earliest = new Date(sortedTimes[0]).getTime();
+                const latest = new Date(sortedTimes[sortedTimes.length - 1]).getTime();
+                const durationMinutes = Math.round((latest - earliest) / (1000 * 60));
+                return { x: day, y: durationMinutes };
+              }),
+              axisLabel: getTranslation(language, "minutes"),
               name: `${exercise.name} (план)`,
             });
           }
         }
       });
 
+      // Расчет абсолютного максимума веса за все время
+      const absoluteMaxMap: Record<string, { exerciseId: string; exerciseName: string; maxWeight: number }> = {};
+      selectedExerciseIds.forEach((exerciseId) => {
+        const exercise = exercises.find((ex) => ex.id === exerciseId);
+        if (exercise) {
+          const exerciseResults = allResults.filter((r) => r.exerciseId === exerciseId);
+          if (exerciseResults.length > 0) {
+            const maxWeight = Math.max(...exerciseResults.map((r) => r.weight));
+            absoluteMaxMap[exerciseId] = {
+              exerciseId,
+              exerciseName: exercise.name,
+              maxWeight,
+            };
+          }
+        }
+      });
+      setAbsoluteMaxWeight(Object.values(absoluteMaxMap));
+
       setChartData({
         tonnage: tonnageData,
         maxWeight: maxWeightData,
         maxReps: maxRepsData,
         avgWeight: avgWeightData,
+        minWeight: minWeightData,
+        workoutTime: workoutTimeData,
       });
 
       setIsLoading(false);
@@ -963,6 +1048,37 @@ export default function AnalyticsScreen() {
                   </View>
                 </View>
               )}
+              {selectedExerciseIds.length > 0 && absoluteMaxWeight.length > 0 && (
+                <View style={styles.metricsContainer}>
+                  <View
+                    style={[
+                      styles.metricCard,
+                      { backgroundColor: themeColors.card },
+                    ]}
+                  >
+                    <Text
+                      style={[styles.metricTitle, { color: themeColors.text }]}
+                    >
+                      Абсолютный максимум веса
+                    </Text>
+                    {absoluteMaxWeight.map((item) => (
+                      <View key={item.exerciseId} style={styles.absoluteMaxRow}>
+                        <Text
+                          style={[styles.absoluteMaxExercise, { color: themeColors.text }]}
+                          numberOfLines={1}
+                        >
+                          {item.exerciseName}
+                        </Text>
+                        <Text
+                          style={[styles.absoluteMaxValue, { color: themeColors.text }]}
+                        >
+                          {item.maxWeight.toFixed(1)} кг
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
               {chartData.tonnage.length > 0 && (
                 <>
                   {renderChart(
@@ -977,7 +1093,7 @@ export default function AnalyticsScreen() {
                     getTranslation(language, "maxWeight"),
                     themeColors.chartLine,
                     getTranslation(language, "date"),
-                    getTranslation(language, "weight"),
+                    getTranslation(language, "weightLabel"),
                   )}
                   {renderChart(
                     chartData.maxReps,
@@ -991,7 +1107,21 @@ export default function AnalyticsScreen() {
                     getTranslation(language, "avgWeight"),
                     themeColors.chartLine,
                     getTranslation(language, "date"),
-                    getTranslation(language, "weight"),
+                    getTranslation(language, "weightLabel"),
+                  )}
+                  {renderChart(
+                    chartData.minWeight,
+                    getTranslation(language, "minWeight"),
+                    themeColors.chartLine,
+                    getTranslation(language, "date"),
+                    getTranslation(language, "weightLabel"),
+                  )}
+                  {renderChart(
+                    chartData.workoutTime,
+                    getTranslation(language, "workoutTime"),
+                    themeColors.chartLine,
+                    getTranslation(language, "date"),
+                    getTranslation(language, "minutes"),
                   )}
                 </>
               )}
@@ -1127,6 +1257,24 @@ const styles = StyleSheet.create({
   },
   metricValue: {
     fontSize: 24,
+    fontWeight: "bold",
+  },
+  absoluteMaxRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(128, 128, 128, 0.2)",
+    marginTop: 8,
+  },
+  absoluteMaxExercise: {
+    fontSize: 14,
+    flex: 1,
+    marginRight: 8,
+  },
+  absoluteMaxValue: {
+    fontSize: 18,
     fontWeight: "bold",
   },
   crepatureContainer: {

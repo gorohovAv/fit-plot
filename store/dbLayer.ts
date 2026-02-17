@@ -432,6 +432,57 @@ export const getResultsForExerciseIds = async (exerciseIds: string[]) => {
   });
 };
 
+// Получить минимальный вес по упражнению за каждую дату
+export const getMinWeightByExerciseAndDate = async (exerciseIds: string[]) => {
+  if (!exerciseIds || exerciseIds.length === 0) return [];
+  return await safeDbOperation((database) => {
+    const placeholders = exerciseIds.map(() => "?").join(",");
+    const result = database.execute(
+      `SELECT exerciseId, DATE(date) as date, MIN(weight) as minWeight
+       FROM results
+       WHERE exerciseId IN (${placeholders})
+       GROUP BY exerciseId, DATE(date)
+       ORDER BY date ASC`,
+      exerciseIds
+    );
+    return result.rows?._array || [];
+  });
+};
+
+// Получить время тренировки (разница между самым ранним и поздним временем) за каждую дату
+export const getWorkoutDurationByDate = async (exerciseIds: string[]) => {
+  if (!exerciseIds || exerciseIds.length === 0) return [];
+  return await safeDbOperation((database) => {
+    const placeholders = exerciseIds.map(() => "?").join(",");
+    const result = database.execute(
+      `SELECT DATE(date) as date, 
+              CAST((JULIANDAY(MAX(datetime(date))) - JULIANDAY(MIN(datetime(date)))) * 24 * 60 AS INTEGER) as durationMinutes
+       FROM results
+       WHERE exerciseId IN (${placeholders})
+       GROUP BY DATE(date)
+       ORDER BY date ASC`,
+      exerciseIds
+    );
+    return result.rows?._array || [];
+  });
+};
+
+// Получить абсолютный максимум веса за все время по упражнению
+export const getAbsoluteMaxWeight = async (exerciseIds: string[]) => {
+  if (!exerciseIds || exerciseIds.length === 0) return [];
+  return await safeDbOperation((database) => {
+    const placeholders = exerciseIds.map(() => "?").join(",");
+    const result = database.execute(
+      `SELECT exerciseId, MAX(weight) as maxWeight
+       FROM results
+       WHERE exerciseId IN (${placeholders})
+       GROUP BY exerciseId`,
+      exerciseIds
+    );
+    return result.rows?._array || [];
+  });
+};
+
 // Get the most recent results for each exercise within a specified number of days
 export const getRecentResultsForExerciseIds = async (exerciseIds: string[], daysLimit: number = 30) => {
   if (!exerciseIds || exerciseIds.length === 0) return [];
