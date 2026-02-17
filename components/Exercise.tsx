@@ -230,9 +230,20 @@ export const Exercise: React.FC<ExerciseProps> = ({
 
   const handleSaveComment = async () => {
     setCommentEditing(false);
-    if (onEdit) {
-      onEdit();
-    }
+    // Сохраняем комментарий через обновление упражнения
+    await dbLayer.saveExercise({
+      id,
+      trainingId: workoutId,
+      name,
+      muscleGroup,
+      type,
+      unilateral,
+      amplitude,
+      comment: commentText,
+      timerDuration,
+      hidden,
+      right,
+    });
   };
 
   return (
