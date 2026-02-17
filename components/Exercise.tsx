@@ -14,6 +14,8 @@ import * as dbLayer from "../store/dbLayer";
 import useSettingsStore from "../store/settingsStore";
 import useTimerStore from "../store/timerStore";
 import { ExerciseVisibilityToggle } from "./ExerciseVisibilityToggle";
+import { SwitchLeftIcon } from "./SwitchLeftIcon";
+import { SwitchRightIcon } from "./SwitchRightIcon";
 import Timer from "./Timer";
 
 type MuscleGroup = string;
@@ -39,6 +41,7 @@ type ExerciseProps = {
   comment?: string;
   timerDuration?: number;
   hidden?: boolean;
+  right?: boolean;
   onRepsChange: (reps: number) => void;
   onSetsChange: (sets: number) => void;
   onComplete: () => void;
@@ -48,6 +51,10 @@ type ExerciseProps = {
   onToggleHidden?: (
     exerciseId: string,
     hidden: boolean,
+  ) => Promise<void> | void;
+  onToggleRight?: (
+    exerciseId: string,
+    right: boolean,
   ) => Promise<void> | void;
 };
 
@@ -63,6 +70,7 @@ export const Exercise: React.FC<ExerciseProps> = ({
   comment,
   timerDuration,
   hidden: hiddenFromProps = false,
+  right: rightFromProps = false,
   onRepsChange,
   onSetsChange,
   onComplete,
@@ -70,6 +78,7 @@ export const Exercise: React.FC<ExerciseProps> = ({
   onEdit,
   onDelete,
   onToggleHidden,
+  onToggleRight,
 }) => {
   const route = useRoute();
   const { workoutId, planName } = route.params as {
@@ -85,6 +94,9 @@ export const Exercise: React.FC<ExerciseProps> = ({
   });
   const [exerciseResults, setExerciseResults] = useState<Result[]>([]);
   const [hidden, setHidden] = useState(Boolean(hiddenFromProps));
+  const [right, setRight] = useState(Boolean(rightFromProps));
+  const [commentEditing, setCommentEditing] = useState(false);
+  const [commentText, setCommentText] = useState(comment || "");
   const { startTimer, stopTimer, isTimerRunning } = useTimerStore();
   const theme = useSettingsStore((state) => state.theme);
   const language = useSettingsStore((state) => state.language);
@@ -148,6 +160,14 @@ export const Exercise: React.FC<ExerciseProps> = ({
     setHidden(Boolean(hiddenFromProps));
   }, [hiddenFromProps]);
 
+  useEffect(() => {
+    setRight(Boolean(rightFromProps));
+  }, [rightFromProps]);
+
+  useEffect(() => {
+    setCommentText(comment || "");
+  }, [comment]);
+
   const handleAddResult = async () => {
     const weight = parseFloat(result.weight.replace(",", ".")) || 0;
     const reps = parseInt(result.reps) || 0;
@@ -195,6 +215,26 @@ export const Exercise: React.FC<ExerciseProps> = ({
     setHidden(newHidden);
   };
 
+  const handleToggleRight = async (
+    exerciseId: string,
+    newRight: boolean,
+  ) => {
+    console.log("[Exercise] toggle right:", exerciseId, "->", newRight);
+    setRight(newRight);
+    if (onToggleRight) {
+      await onToggleRight(exerciseId, newRight);
+    } else {
+      await dbLayer.updateExerciseRight(exerciseId, newRight);
+    }
+  };
+
+  const handleSaveComment = async () => {
+    setCommentEditing(false);
+    if (onEdit) {
+      onEdit();
+    }
+  };
+
   return (
     <View
       style={[
@@ -215,11 +255,50 @@ export const Exercise: React.FC<ExerciseProps> = ({
             ? getTranslation(language, "fullAmplitudeExercise")
             : getTranslation(language, "partialAmplitudeExercise")}
         </Text>
-        {comment ? (
-          <Text style={[styles.comment, { color: themeColors.icon }]}>
-            {comment}
-          </Text>
-        ) : null}
+        <View style={styles.commentRow}>
+          {commentEditing ? (
+            <TextInput
+              style={[
+                styles.commentInput,
+                {
+                  color: themeColors.text,
+                  borderColor: themeColors.border,
+                  backgroundColor: themeColors.card,
+                },
+              ]}
+              value={commentText}
+              onChangeText={setCommentText}
+              autoFocus
+              multiline
+            />
+          ) : (
+            <Text
+              style={[
+                styles.commentText,
+                { color: themeColors.text },
+                !commentText && styles.commentEmpty,
+              ]}
+            >
+              {commentText || getTranslation(language, "addNote")}
+            </Text>
+          )}
+          <TouchableOpacity
+            style={styles.commentIcon}
+            onPress={() => {
+              if (commentEditing) {
+                handleSaveComment();
+              } else {
+                setCommentEditing(true);
+              }
+            }}
+          >
+            <MaterialIcons
+              name={commentEditing ? "check" : "edit"}
+              size={20}
+              color={themeColors.icon}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.actions}>
@@ -248,6 +327,18 @@ export const Exercise: React.FC<ExerciseProps> = ({
           hidden={hidden}
           onToggle={handleToggleVisibility}
         />
+        {unilateral && (
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => handleToggleRight(id, !right)}
+          >
+            {right ? (
+              <SwitchRightIcon color={themeColors.icon} size={24} />
+            ) : (
+              <SwitchLeftIcon color={themeColors.icon} size={24} />
+            )}
+          </TouchableOpacity>
+        )}
       </View>
 
       {exerciseResults.length > 0 && (
@@ -462,5 +553,35 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 2,
     fontStyle: "italic",
+  },
+  commentRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
+    gap: 8,
+  },
+  commentText: {
+    fontSize: 14,
+    fontWeight: "bold",
+    flex: 1,
+  },
+  commentEmpty: {
+    fontStyle: "italic",
+    opacity: 0.6,
+  },
+  commentInput: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "bold",
+    borderWidth: 1,
+    borderRadius: 4,
+    padding: 4,
+    minHeight: 32,
+  },
+  commentIcon: {
+    width: 24,
+    height: 24,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

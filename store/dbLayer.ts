@@ -137,6 +137,16 @@ export const initDatabase = async () => {
         }
       }
 
+      try {
+        database.execute(
+          "ALTER TABLE exercises ADD COLUMN right BOOLEAN NOT NULL DEFAULT 0"
+        );
+      } catch (error: any) {
+        if (!error?.message?.includes("duplicate column")) {
+          console.warn("Ошибка добавления колонки right в exercises:", error);
+        }
+      }
+
       // Добавляем индексы для производительности
       const createIndexes = [
         // Самые критичные для loadPlansFromDB()
@@ -292,12 +302,13 @@ export const saveExercise = async (exercise: {
   comment?: string;
   timerDuration?: number;
   hidden?: boolean;
+  right?: boolean;
 }): Promise<void> => {
   await safeDbOperation((database) => {
     const result = database.execute(
       `INSERT OR REPLACE INTO exercises
-       (id, trainingId, name, muscleGroup, type, unilateral, amplitude, comment, timerDuration, hidden)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (id, trainingId, name, muscleGroup, type, unilateral, amplitude, comment, timerDuration, hidden, right)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         exercise.id,
         exercise.trainingId,
@@ -309,6 +320,7 @@ export const saveExercise = async (exercise: {
         exercise.comment || null,
         exercise.timerDuration || null,
         exercise.hidden ? 1 : 0,
+        exercise.right ? 1 : 0,
       ]
     );
     if (result.rowsAffected === 0) throw new Error("Operation failed");
@@ -341,6 +353,7 @@ export const getExercisesByTraining = async (
       ...row,
       unilateral: Boolean(row.unilateral),
       hidden: row.hidden !== undefined ? Boolean(row.hidden) : false,
+      right: row.right !== undefined ? Boolean(row.right) : false,
     }));
   });
 };
@@ -628,6 +641,28 @@ export const updateExerciseHidden = async (
     exerciseId,
     "hidden:",
     hidden
+  );
+};
+
+export const updateExerciseRight = async (
+  exerciseId: string,
+  right: boolean
+): Promise<void> => {
+  console.log(
+    "[dbLayer] updateExerciseRight ->",
+    exerciseId,
+    "right:",
+    right
+  );
+  await safeDbOperation((database) => {
+    const result = database.execute("UPDATE exercises SET right = ? WHERE id = ?", [right ? 1 : 0, exerciseId]);
+    if (result.rowsAffected === 0) throw new Error("Operation failed");
+  });
+  console.log(
+    "[dbLayer] updateExerciseRight done <-",
+    exerciseId,
+    "right:",
+    right
   );
 };
 

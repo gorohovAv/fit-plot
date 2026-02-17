@@ -1,24 +1,24 @@
+import { getTranslation } from "@/utils/localization";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { Picker } from "@react-native-picker/picker";
 import React, { useState } from "react";
 import {
+  FlatList,
+  KeyboardAvoidingView,
   Modal,
-  View,
+  Platform,
+  Pressable,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
-  Platform,
-  KeyboardAvoidingView,
-  FlatList,
-  Pressable,
+  useColorScheme,
+  View
 } from "react-native";
-import { Picker } from "@react-native-picker/picker";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { EXERCISE_LIST } from "../constants/exerciseList";
-import { MuscleGroup, ExerciseType } from "../store/store";
 import { Colors } from "../constants/Colors";
+import { EXERCISE_LIST } from "../constants/exerciseList";
 import useSettingsStore from "../store/settingsStore";
-import { getTranslation } from "@/utils/localization";
-import { useColorScheme } from "react-native";
+
 
 export default function ExerciseModal({
   visible,
@@ -42,6 +42,7 @@ export default function ExerciseModal({
     amplitude: "full",
     comment: "",
     timerDuration: undefined,
+    right: false,
   });
 
   const theme = useSettingsStore((state) => state.theme);
@@ -56,6 +57,7 @@ export default function ExerciseModal({
         ...initialExercise,
         comment: initialExercise.comment ?? "",
         timerDuration: initialExercise.timerDuration ?? undefined,
+        right: initialExercise.right ?? false,
       });
     } else {
       setExercise({
@@ -66,6 +68,7 @@ export default function ExerciseModal({
         amplitude: "full",
         comment: "",
         timerDuration: undefined,
+        right: false,
       });
     }
   }, [initialExercise, visible]);
@@ -186,22 +189,6 @@ export default function ExerciseModal({
                   }
                   autoFocus={true}
                   blurOnSubmit={false}
-                />
-                <TextInput
-                  style={[
-                    styles.input,
-                    {
-                      color: themeColors.text,
-                      backgroundColor: themeColors.inputBackground,
-                      borderColor: themeColors.inputBorder,
-                    },
-                  ]}
-                  placeholder={getTranslation(language, "comment")}
-                  placeholderTextColor={themeColors.placeholderText}
-                  value={exercise?.comment ?? ""}
-                  onChangeText={(text) =>
-                    setExercise({ ...exercise, comment: text })
-                  }
                 />
                 <TextInput
                   style={[
@@ -377,6 +364,29 @@ export default function ExerciseModal({
                       : getTranslation(language, "bilateral")}
                   </Text>
                 </TouchableOpacity>
+                {exercise.unilateral && (
+                  <TouchableOpacity
+                    style={[
+                      styles.unilateralButton,
+                      {
+                        backgroundColor: themeColors.cardSecondary,
+                        borderColor: themeColors.border,
+                      },
+                    ]}
+                    onPress={() =>
+                      setExercise({
+                        ...exercise,
+                        right: !exercise.right,
+                      })
+                    }
+                  >
+                    <Text style={{ color: themeColors.text }}>
+                      {exercise.right
+                        ? getTranslation(language, "rightHand")
+                        : getTranslation(language, "leftHand")}
+                    </Text>
+                  </TouchableOpacity>
+                )}
                 <View style={styles.modalButtons}>
                   <TouchableOpacity
                     style={[

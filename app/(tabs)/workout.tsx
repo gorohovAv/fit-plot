@@ -43,6 +43,7 @@ export default function WorkoutScreen() {
     amplitude: "full" as "full" | "partial",
     comment: "",
     timerDuration: undefined as number | undefined,
+    right: false,
   });
   const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
   const theme = useSettingsStore((state) => state.theme);
@@ -136,6 +137,7 @@ export default function WorkoutScreen() {
         amplitude: "full",
         comment: "",
         timerDuration: undefined,
+        right: false,
       });
       setEditingExercise(null);
       setIsModalVisible(false);
@@ -154,6 +156,7 @@ export default function WorkoutScreen() {
       amplitude: exercise.amplitude || "full",
       comment: exercise.comment || "",
       timerDuration: exercise.timerDuration ?? undefined,
+      right: exercise.right || false,
     });
     setIsModalVisible(true);
   };
@@ -172,6 +175,17 @@ export default function WorkoutScreen() {
       newHidden,
     );
     await dbLayer.updateExerciseHidden(exerciseId, newHidden);
+    await loadExercises();
+  };
+
+  const handleToggleRight = async (exerciseId: string, newRight: boolean) => {
+    console.log(
+      "[WorkoutScreen] toggle right from card:",
+      exerciseId,
+      "->",
+      newRight,
+    );
+    await dbLayer.updateExerciseRight(exerciseId, newRight);
     await loadExercises();
   };
 
@@ -222,6 +236,8 @@ export default function WorkoutScreen() {
               timerDuration={item.timerDuration}
               hidden={item.hidden}
               onToggleHidden={handleToggleHidden}
+              right={item.right}
+              onToggleRight={handleToggleRight}
             />
           )}
         />
@@ -238,6 +254,7 @@ export default function WorkoutScreen() {
               amplitude: "full",
               comment: "",
               timerDuration: undefined,
+              right: false,
             });
             setIsModalVisible(true);
           }}
