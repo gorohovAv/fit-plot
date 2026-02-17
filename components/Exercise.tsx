@@ -39,7 +39,6 @@ type ExerciseProps = {
   comment?: string;
   timerDuration?: number;
   hidden?: boolean;
-  right?: boolean;
   onRepsChange: (reps: number) => void;
   onSetsChange: (sets: number) => void;
   onComplete: () => void;
@@ -64,7 +63,6 @@ export const Exercise: React.FC<ExerciseProps> = ({
   comment,
   timerDuration,
   hidden: hiddenFromProps = false,
-  right: rightFromProps = false,
   onRepsChange,
   onSetsChange,
   onComplete,
@@ -87,9 +85,6 @@ export const Exercise: React.FC<ExerciseProps> = ({
   });
   const [exerciseResults, setExerciseResults] = useState<Result[]>([]);
   const [hidden, setHidden] = useState(Boolean(hiddenFromProps));
-  const [right, setRight] = useState(rightFromProps);
-  const [isEditingComment, setIsEditingComment] = useState(false);
-  const [currentComment, setCurrentComment] = useState(comment || "");
   const { startTimer, stopTimer, isTimerRunning } = useTimerStore();
   const theme = useSettingsStore((state) => state.theme);
   const language = useSettingsStore((state) => state.language);
@@ -200,59 +195,6 @@ export const Exercise: React.FC<ExerciseProps> = ({
     setHidden(newHidden);
   };
 
-  const handleToggleDominantHand = async () => {
-    const newRight = !right;
-    setRight(newRight);
-    
-    // Update the exercise in the database
-    try {
-      const currentExercise = await dbLayer.getExercisesByTraining(route.params.workoutId);
-      const exercise = currentExercise.find((ex: any) => ex.id === id);
-      
-      if (exercise) {
-        await dbLayer.saveExercise({
-          ...exercise,
-          right: newRight,
-        });
-      }
-    } catch (error) {
-      console.error("Error updating dominant hand:", error);
-      // Revert the state if there was an error
-      setRight(!newRight);
-    }
-  };
-
-  const handleToggleCommentEdit = () => {
-    if (isEditingComment) {
-      // Save the comment when exiting edit mode
-      handleSaveComment();
-    } else {
-      // Enter edit mode
-      setIsEditingComment(true);
-    }
-  };
-
-  const handleSaveComment = async () => {
-    try {
-      // Get the current exercise and update its comment
-      const currentExercise = await dbLayer.getExercisesByTraining(route.params.workoutId);
-      const exercise = currentExercise.find((ex: any) => ex.id === id);
-      
-      if (exercise) {
-        await dbLayer.saveExercise({
-          ...exercise,
-          comment: currentComment,
-        });
-      }
-      setIsEditingComment(false);
-    } catch (error) {
-      console.error("Error saving comment:", error);
-      // Revert to the previous comment if there was an error
-      setCurrentComment(comment || "");
-      setIsEditingComment(false);
-    }
-  };
-
   return (
     <View
       style={[
@@ -273,28 +215,11 @@ export const Exercise: React.FC<ExerciseProps> = ({
             ? getTranslation(language, "fullAmplitudeExercise")
             : getTranslation(language, "partialAmplitudeExercise")}
         </Text>
-        <View style={styles.commentContainer}>
-          {isEditingComment ? (
-            <TextInput
-              style={[DynamicStyles(themeColors).commentInput, { color: themeColors.text }]}
-              value={currentComment}
-              onChangeText={setCurrentComment}
-              multiline
-              autoFocus
-            />
-          ) : (
-            <Text style={[styles.commentText, { color: themeColors.text, fontWeight: 'bold' }]}>
-              {currentComment}
-            </Text>
-          )}
-          <TouchableOpacity onPress={handleToggleCommentEdit} style={styles.commentEditButton}>
-            <MaterialIcons 
-              name={isEditingComment ? "check" : "edit"} 
-              size={20} 
-              color={themeColors.icon} 
-            />
-          </TouchableOpacity>
-        </View>
+        {comment ? (
+          <Text style={[styles.comment, { color: themeColors.icon }]}>
+            {comment}
+          </Text>
+        ) : null}
       </View>
 
       <View style={styles.actions}>
@@ -318,15 +243,6 @@ export const Exercise: React.FC<ExerciseProps> = ({
         >
           <MaterialIcons name="analytics" size={20} color={themeColors.icon} />
         </TouchableOpacity>
-        {unilateral && (
-          <TouchableOpacity onPress={handleToggleDominantHand} style={styles.actionButton}>
-            <MaterialIcons 
-              name={right ? "keyboard-double-arrow-right" : "keyboard-double-arrow-left"} 
-              size={20} 
-              color={themeColors.icon} 
-            />
-          </TouchableOpacity>
-        )}
         <ExerciseVisibilityToggle
           exerciseId={id}
           hidden={hidden}
@@ -547,44 +463,4 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontStyle: "italic",
   },
-  commentContainer: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    marginTop: 2,
-    width: "100%",
-  },
-  commentText: {
-    fontSize: 13,
-    flex: 1,
-    fontWeight: "bold",
-  },
-  commentInput: {
-    fontSize: 13,
-    flex: 1,
-    fontWeight: "bold",
-    borderWidth: 1,
-    borderColor: themeColors.border,
-    borderRadius: 4,
-    padding: 4,
-    maxHeight: 60,
-  },
-  commentEditButton: {
-    paddingLeft: 8,
-    paddingTop: 2,
-  },
 });
-
-const DynamicStyles = (themeColors: any) =>
-  StyleSheet.create({
-    commentInput: {
-      fontSize: 13,
-      flex: 1,
-      fontWeight: "bold",
-      borderWidth: 1,
-      borderColor: themeColors.border,
-      borderRadius: 4,
-      padding: 4,
-      maxHeight: 60,
-      backgroundColor: themeColors.card,
-    },
-  });

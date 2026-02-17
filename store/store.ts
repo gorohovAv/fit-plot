@@ -30,7 +30,6 @@ export type Exercise = {
   comment?: string;
   timerDuration?: number;
   hidden?: boolean;
-  right?: boolean;
 };
 
 export type Result = {

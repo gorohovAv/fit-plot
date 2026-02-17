@@ -137,16 +137,6 @@ export const initDatabase = async () => {
         }
       }
 
-      try {
-        database.execute(
-          "ALTER TABLE exercises ADD COLUMN right BOOLEAN DEFAULT NULL"
-        );
-      } catch (error: any) {
-        if (!error?.message?.includes("duplicate column")) {
-          console.warn("Ошибка добавления колонки right в exercises:", error);
-        }
-      }
-
       // Добавляем индексы для производительности
       const createIndexes = [
         // Самые критичные для loadPlansFromDB()
@@ -302,13 +292,12 @@ export const saveExercise = async (exercise: {
   comment?: string;
   timerDuration?: number;
   hidden?: boolean;
-  right?: boolean;
 }): Promise<void> => {
   await safeDbOperation((database) => {
     const result = database.execute(
       `INSERT OR REPLACE INTO exercises
-       (id, trainingId, name, muscleGroup, type, unilateral, amplitude, comment, timerDuration, hidden, right)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (id, trainingId, name, muscleGroup, type, unilateral, amplitude, comment, timerDuration, hidden)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         exercise.id,
         exercise.trainingId,
@@ -320,7 +309,6 @@ export const saveExercise = async (exercise: {
         exercise.comment || null,
         exercise.timerDuration || null,
         exercise.hidden ? 1 : 0,
-        exercise.right !== undefined ? (exercise.right ? 1 : 0) : null,
       ]
     );
     if (result.rowsAffected === 0) throw new Error("Operation failed");
@@ -353,7 +341,6 @@ export const getExercisesByTraining = async (
       ...row,
       unilateral: Boolean(row.unilateral),
       hidden: row.hidden !== undefined ? Boolean(row.hidden) : false,
-      right: row.right !== undefined && row.right !== null ? Boolean(row.right) : undefined,
     }));
   });
 };
