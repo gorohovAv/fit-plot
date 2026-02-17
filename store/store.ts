@@ -67,6 +67,14 @@ export type Settings = {
   theme: string;
   weight: number;
   devMode: boolean;
+  visibleMetrics?: {
+    tonnage: boolean;
+    maxWeight: boolean;
+    maxReps: boolean;
+    avgWeight: boolean;
+    minWeight: boolean;
+    workoutTime: boolean;
+  };
 };
 
 export type CalorieEntry = {

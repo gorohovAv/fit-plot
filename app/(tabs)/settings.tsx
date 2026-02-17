@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   TouchableOpacity,
@@ -25,17 +26,20 @@ export default function SettingsScreen() {
     devMode,
     language,
     maxMicrohistorySize,
+    visibleMetrics,
     setTheme,
     setWeight,
     setDevMode,
     setLanguage,
     setMaxMicrohistorySize,
+    setVisibleMetrics,
   } = useSettingsStore();
   const systemTheme = useColorScheme();
   const currentTheme = theme === "system" ? systemTheme : theme;
   const colors = Colors[currentTheme || "light"];
   const [showImport, setShowImport] = useState(false);
   const [showExport, setShowExport] = useState(false);
+  const [showAnalyticsSettings, setShowAnalyticsSettings] = useState(false);
 
   if (showImport) {
     return <ImportScreen onBack={() => setShowImport(false)} />;
@@ -209,6 +213,114 @@ export default function SettingsScreen() {
         placeholder={getTranslation(language, "maxMicrohistorySize")}
         placeholderTextColor={colors.icon}
       />
+
+      <TouchableOpacity
+        style={[
+          styles.accordionHeader,
+          {
+            borderColor: colors.border,
+            backgroundColor: colors.card,
+          },
+        ]}
+        onPress={() => setShowAnalyticsSettings(!showAnalyticsSettings)}
+      >
+        <Text style={[styles.accordionHeaderText, { color: colors.text }]}>
+          {getTranslation(language, "analyticsSettings")}
+        </Text>
+        <Ionicons
+          name={showAnalyticsSettings ? "chevron-up" : "chevron-down"}
+          size={20}
+          color={colors.text}
+        />
+      </TouchableOpacity>
+
+      {showAnalyticsSettings && (
+        <View
+          style={[
+            styles.accordionContent,
+            {
+              borderColor: colors.border,
+              backgroundColor: colors.card,
+            },
+          ]}
+        >
+          <Text style={[styles.accordionLabel, { color: colors.text }]}>
+            {getTranslation(language, "visibleMetrics")}
+          </Text>
+
+          <View style={styles.checkboxRow}>
+            <Text style={[styles.checkboxLabel, { color: colors.text }]}>
+              {getTranslation(language, "generalTonnage")}
+            </Text>
+            <Switch
+              value={visibleMetrics.tonnage}
+              onValueChange={(value) =>
+                setVisibleMetrics({ ...visibleMetrics, tonnage: value })
+              }
+            />
+          </View>
+
+          <View style={styles.checkboxRow}>
+            <Text style={[styles.checkboxLabel, { color: colors.text }]}>
+              {getTranslation(language, "maxWeight")}
+            </Text>
+            <Switch
+              value={visibleMetrics.maxWeight}
+              onValueChange={(value) =>
+                setVisibleMetrics({ ...visibleMetrics, maxWeight: value })
+              }
+            />
+          </View>
+
+          <View style={styles.checkboxRow}>
+            <Text style={[styles.checkboxLabel, { color: colors.text }]}>
+              {getTranslation(language, "maxReps")}
+            </Text>
+            <Switch
+              value={visibleMetrics.maxReps}
+              onValueChange={(value) =>
+                setVisibleMetrics({ ...visibleMetrics, maxReps: value })
+              }
+            />
+          </View>
+
+          <View style={styles.checkboxRow}>
+            <Text style={[styles.checkboxLabel, { color: colors.text }]}>
+              {getTranslation(language, "avgWeight")}
+            </Text>
+            <Switch
+              value={visibleMetrics.avgWeight}
+              onValueChange={(value) =>
+                setVisibleMetrics({ ...visibleMetrics, avgWeight: value })
+              }
+            />
+          </View>
+
+          <View style={styles.checkboxRow}>
+            <Text style={[styles.checkboxLabel, { color: colors.text }]}>
+              {getTranslation(language, "minWeight")}
+            </Text>
+            <Switch
+              value={visibleMetrics.minWeight}
+              onValueChange={(value) =>
+                setVisibleMetrics({ ...visibleMetrics, minWeight: value })
+              }
+            />
+          </View>
+
+          <View style={styles.checkboxRow}>
+            <Text style={[styles.checkboxLabel, { color: colors.text }]}>
+              {getTranslation(language, "workoutTime")}
+            </Text>
+            <Switch
+              value={visibleMetrics.workoutTime}
+              onValueChange={(value) =>
+                setVisibleMetrics({ ...visibleMetrics, workoutTime: value })
+              }
+            />
+          </View>
+        </View>
+      )}
 
       <Text style={[styles.label, { color: colors.text }]}>{getTranslation(language, "language")}</Text>
       <View style={styles.row}>
@@ -394,5 +506,40 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontSize: 16,
     fontWeight: "500",
+  },
+  accordionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 16,
+    marginTop: 16,
+  },
+  accordionHeaderText: {
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  accordionContent: {
+    borderWidth: 1,
+    borderTopWidth: 0,
+    borderRadius: 8,
+    padding: 16,
+    marginTop: -8,
+    marginBottom: 16,
+  },
+  accordionLabel: {
+    fontSize: 14,
+    marginBottom: 12,
+    opacity: 0.8,
+  },
+  checkboxRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 8,
+  },
+  checkboxLabel: {
+    fontSize: 15,
   },
 });

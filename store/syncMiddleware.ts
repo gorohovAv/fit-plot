@@ -58,7 +58,8 @@ const syncToDatabase = async (prevState: StoreState, newState: StoreState) => {
       newState.settings &&
       (newState.settings.theme !== prevState.settings?.theme ||
         newState.settings.weight !== prevState.settings?.weight ||
-        newState.settings.devMode !== prevState.settings?.devMode)
+        newState.settings.devMode !== prevState.settings?.devMode ||
+        newState.settings.visibleMetrics !== prevState.settings?.visibleMetrics)
     ) {
       await syncSettings(newState.settings);
     }
@@ -235,6 +236,9 @@ const syncSettings = async (settings: Settings) => {
   await dbLayer.saveSetting("theme", settings.theme ?? "system");
   await dbLayer.saveSetting("weight", (settings.weight ?? 70).toString());
   await dbLayer.saveSetting("devMode", (settings.devMode ?? false).toString());
+  if (settings.visibleMetrics) {
+    await dbLayer.saveSetting("visibleMetrics", JSON.stringify(settings.visibleMetrics));
+  }
 };
 
 const syncCalories = async (entries: CalorieEntry[]) => {
@@ -319,10 +323,28 @@ const loadSettingsFromDB = async () => {
     return acc;
   }, {} as Record<string, string>);
 
+  let visibleMetrics = {
+    tonnage: true,
+    maxWeight: true,
+    maxReps: true,
+    avgWeight: true,
+    minWeight: true,
+    workoutTime: true,
+  };
+
+  if (settingsMap.visibleMetrics) {
+    try {
+      visibleMetrics = JSON.parse(settingsMap.visibleMetrics);
+    } catch (e) {
+      console.error("Ошибка парсинга visibleMetrics:", e);
+    }
+  }
+
   return {
     theme: settingsMap.theme || "system",
     weight: parseFloat(settingsMap.weight) || 70,
     devMode: settingsMap.devMode === "true",
+    visibleMetrics,
   };
 };
 

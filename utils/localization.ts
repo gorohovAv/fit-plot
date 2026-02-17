@@ -13,6 +13,14 @@ export const translations = {
     language: "Language",
     maxMicrohistorySize: "Max microhistory size",
     microhistoryDescription: "Write more if you do more sets",
+    analyticsSettings: "Analytics settings",
+    visibleMetrics: "Visible metrics",
+    generalTonnage: "General tonnage",
+    maxWeight: "Max weight",
+    maxReps: "Max reps",
+    avgWeight: "Average weight",
+    minWeight: "Min weight",
+    workoutTime: "Workout time",
 
     // Calories
     calories: "Calories",
@@ -203,6 +211,14 @@ Pull-ups
     language: "Язык",
     maxMicrohistorySize: "Макс. размер микроистории",
     microhistoryDescription: "Напишите больше, если делаете больше подходов",
+    analyticsSettings: "Настройки аналитики",
+    visibleMetrics: "Видимые метрики",
+    generalTonnage: "Общий тоннаж",
+    maxWeight: "Максимальный вес",
+    maxReps: "Максимальные повторения",
+    avgWeight: "Средний вес",
+    minWeight: "Минимальный вес",
+    workoutTime: "Время тренировки",
 
     // Calories
     calories: "Калории",

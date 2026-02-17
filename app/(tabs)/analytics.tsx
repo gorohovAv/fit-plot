@@ -80,7 +80,7 @@ export default function AnalyticsScreen() {
   const font = useFont(require("../../assets/fonts/SpaceMono-Regular.ttf"));
   const route = useRoute();
   const theme = useSettingsStore((state) => state.theme);
-  const { language } = useSettingsStore();
+  const { language, visibleMetrics } = useSettingsStore();
   const colorScheme =
     theme === "system" ? (Appearance.getColorScheme?.() ?? "light") : theme;
   const themeColors = Colors[colorScheme];
@@ -557,6 +557,7 @@ export default function AnalyticsScreen() {
     dateFilterStart,
     dateFilterEnd,
     language,
+    visibleMetrics,
   ]);
 
   if (!font) {
@@ -1081,42 +1082,42 @@ export default function AnalyticsScreen() {
               )}
               {chartData.tonnage.length > 0 && (
                 <>
-                  {renderChart(
+                  {visibleMetrics.tonnage && renderChart(
                     chartData.tonnage,
                     getTranslation(language, "generalTonnage"),
                     themeColors.chartLine,
                     getTranslation(language, "date"),
                     getTranslation(language, "tonnage"),
                   )}
-                  {renderChart(
+                  {visibleMetrics.maxWeight && renderChart(
                     chartData.maxWeight,
                     getTranslation(language, "maxWeight"),
                     themeColors.chartLine,
                     getTranslation(language, "date"),
                     getTranslation(language, "weightLabel"),
                   )}
-                  {renderChart(
+                  {visibleMetrics.maxReps && renderChart(
                     chartData.maxReps,
                     getTranslation(language, "maxReps"),
                     themeColors.chartLine,
                     getTranslation(language, "date"),
                     getTranslation(language, "reps"),
                   )}
-                  {renderChart(
+                  {visibleMetrics.avgWeight && renderChart(
                     chartData.avgWeight,
                     getTranslation(language, "avgWeight"),
                     themeColors.chartLine,
                     getTranslation(language, "date"),
                     getTranslation(language, "weightLabel"),
                   )}
-                  {renderChart(
+                  {visibleMetrics.minWeight && renderChart(
                     chartData.minWeight,
                     getTranslation(language, "minWeight"),
                     themeColors.chartLine,
                     getTranslation(language, "date"),
                     getTranslation(language, "weightLabel"),
                   )}
-                  {renderChart(
+                  {visibleMetrics.workoutTime && renderChart(
                     chartData.workoutTime,
                     getTranslation(language, "workoutTime"),
                     themeColors.chartLine,
