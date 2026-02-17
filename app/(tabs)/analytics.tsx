@@ -1126,9 +1126,11 @@ export default function AnalyticsScreen() {
                 </>
               )}
 
-              <View style={styles.crepatureContainer}>
-                <Crepature />
-              </View>
+              {showMetrics && (
+                <View style={styles.crepatureContainer}>
+                  <Crepature />
+                </View>
+              )}
             </>
           )}
 
