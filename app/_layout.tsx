@@ -11,7 +11,7 @@ import "react-native-reanimated";
 
 import { useColorScheme } from "@/hooks/useColorScheme";
 import useCaloriesStore from "@/store/calloriesStore";
-import useSettingsStore from "@/store/settingsStore";
+import { hydrateSettingsStore } from "@/store/settingsStore";
 import useStore from "@/store/store";
 import { setInitializing } from "@/store/syncMiddleware";
 
@@ -25,18 +25,15 @@ export default function RootLayout() {
   const initializeCaloriesFromDB = useCaloriesStore(
     (state) => state.initializeFromDB
   );
-  const initializeSettingsFromDB = useSettingsStore(
-    (state) => state.initializeFromDB
-  );
 
   useEffect(() => {
     const initializeApp = async () => {
       try {
         setInitializing(true);
 
+        await hydrateSettingsStore();
         await initializeFromDB();
         await initializeCaloriesFromDB();
-        await initializeSettingsFromDB();
       } catch (error) {
         console.error("Ошибка инициализации приложения:", error);
       } finally {
@@ -51,7 +48,6 @@ export default function RootLayout() {
     loaded,
     initializeFromDB,
     initializeCaloriesFromDB,
-    initializeSettingsFromDB,
   ]);
 
   if (!loaded) {
