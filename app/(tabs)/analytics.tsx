@@ -1037,7 +1037,7 @@ export default function AnalyticsScreen() {
                     <Text
                       style={[styles.metricTitle, { color: themeColors.text }]}
                     >
-                      Среднее количество подходов в неделю
+                      {getTranslation(language, "avgVolume")}
                     </Text>
                     <Text
                       style={[styles.metricValue, { color: themeColors.text }]}
@@ -1056,7 +1056,7 @@ export default function AnalyticsScreen() {
                     <Text
                       style={[styles.metricTitle, { color: themeColors.text }]}
                     >
-                      Средний прогресс тоннажа
+                      {getTranslation(language, "avgTonnageProgress")}
                     </Text>
                     <Text
                       style={[styles.metricValue, { color: themeColors.text }]}
@@ -1077,7 +1077,7 @@ export default function AnalyticsScreen() {
                     <Text
                       style={[styles.metricTitle, { color: themeColors.text }]}
                     >
-                      Средний прогресс веса
+                      {getTranslation(language, "avgWeightProgress")}
                     </Text>
                     <Text
                       style={[styles.metricValue, { color: themeColors.text }]}

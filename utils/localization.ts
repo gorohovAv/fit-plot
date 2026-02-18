@@ -196,6 +196,9 @@ Pull-ups
     maintenanceCaloriesValue: "Maintenance calories: {value} kcal",
     deviationFromMaintenance: "Deviation from maintenance: {value} kcal",
     change: "Change",
+    avgVolume: "Average weekly training volume",
+    avgTonnageProgress: "Average tonnage progress",
+    avgWeightProgress: "Average max weight progress"
   },
   russian: {
     // Settings
@@ -394,6 +397,9 @@ Pull-ups
     maintenanceCaloriesValue: "Калораж на поддержание: {value} ккал",
     deviationFromMaintenance: "Отклонение от поддержания: {value} ккал",
     change: "Изменить",
+    avgVolume: "Средний тренировочный объем в неделю",
+    avgTonnageProgress: "Средний прогресс тоннажа",
+    avgWeightProgress: "Средний прогресс в максимальном весе"
   },
 } as const;
 

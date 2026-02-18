@@ -1,6 +1,7 @@
 import { useNavigation, useRoute } from "@react-navigation/native";
 import React, { useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Appearance,
   FlatList,
   KeyboardAvoidingView,
@@ -31,6 +32,7 @@ export default function WorkoutScreen() {
     showSettings?: boolean;
   };
   const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [showSettings, setShowSettings] = useState(
     initialShowSettings || false,
@@ -66,6 +68,7 @@ export default function WorkoutScreen() {
   const loadExercises = async () => {
     console.log("[WorkoutScreen] loadExercises called, workoutId:", workoutId);
     try {
+      setIsLoading(true);
       const loadedExercises = await dbLayer.getExercisesByTraining(workoutId);
       console.log(
         "[WorkoutScreen] Получили упражнения, количество:",
@@ -83,6 +86,8 @@ export default function WorkoutScreen() {
       console.log("[WorkoutScreen] Упражнения установлены в state");
     } catch (error) {
       console.error("[WorkoutScreen] Ошибка загрузки упражнений из БД:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -202,6 +207,23 @@ export default function WorkoutScreen() {
     );
   }
 
+  if (isLoading) {
+    return (
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: themeColors.background,
+            justifyContent: "center",
+            alignItems: "center",
+          },
+        ]}
+      >
+        <ActivityIndicator size="large" color={themeColors.primary} style={{ transform: [{ scale: 4 }] }} />
+      </View>
+    );
+  }
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -280,6 +302,9 @@ export default function WorkoutScreen() {
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   addButton: {
     position: "absolute",
     bottom: 20,
