@@ -896,7 +896,7 @@ export default function AnalyticsScreen() {
           datasets={filteredDatasets}
           lineColors={lineColors}
           axisColors={axisColors}
-          zones={zones}
+          zones={[]}
           width={350}
           height={300}
           margin={{ top: 20, right: 80, bottom: 80, left: 80 }}
