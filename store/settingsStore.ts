@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as dbLayer from "./dbLayer";
 import { Language } from "@/utils/localization";
 
 type Theme = "light" | "dark" | "system";
@@ -73,7 +72,17 @@ const loadPersistedSettings = async (): Promise<Partial<SettingsState> | null> =
 
 const savePersistedSettings = async (state: Partial<SettingsState>) => {
   try {
-    await AsyncStorage.setItem(PERSIST_KEY, JSON.stringify(state));
+    const current = useSettingsStore.getState();
+    const toSave = {
+      theme: current.theme,
+      weight: current.weight,
+      devMode: current.devMode,
+      language: current.language,
+      maxMicrohistorySize: current.maxMicrohistorySize,
+      visibleMetrics: current.visibleMetrics,
+      ...state,
+    };
+    await AsyncStorage.setItem(PERSIST_KEY, JSON.stringify(toSave));
   } catch (error) {
     console.error("Ошибка сохранения настроек в AsyncStorage:", error);
   }
@@ -106,14 +115,7 @@ const useSettingsStore = create<SettingsState>()((set, get) => ({
     savePersistedSettings({ visibleMetrics });
   },
   initializeFromDB: async () => {
-    try {
-      await dbLayer.initDatabase();
-      const settings = await loadSettingsFromDB();
-      set(settings);
-      savePersistedSettings(settings);
-    } catch (error) {
-      console.error("Ошибка инициализации настроек из БД:", error);
-    }
+    // Настройки хранятся в AsyncStorage, инициализация не требуется
   },
 }));
 
@@ -122,40 +124,6 @@ export const hydrateSettingsStore = async () => {
   if (persisted) {
     useSettingsStore.setState(persisted);
   }
-};
-
-const loadSettingsFromDB = async () => {
-  const settings = await dbLayer.getAllSettings();
-  const settingsMap = settings.reduce((acc, { key, value }) => {
-    acc[key] = value;
-    return acc;
-  }, {} as Record<string, string>);
-
-  let visibleMetrics: VisibleMetrics = {
-    tonnage: true,
-    maxWeight: true,
-    maxReps: true,
-    avgWeight: true,
-    minWeight: true,
-    workoutTime: true,
-  };
-
-  if (settingsMap.visibleMetrics) {
-    try {
-      visibleMetrics = JSON.parse(settingsMap.visibleMetrics);
-    } catch (e) {
-      console.error("Ошибка парсинга visibleMetrics:", e);
-    }
-  }
-
-  return {
-    theme: (settingsMap.theme as Theme) || "system",
-    weight: parseFloat(settingsMap.weight) || 70,
-    devMode: settingsMap.devMode === "true",
-    language: (settingsMap.language as Language) || "russian",
-    maxMicrohistorySize: parseInt(settingsMap.maxMicrohistorySize) || 5,
-    visibleMetrics,
-  };
 };
 
 export default useSettingsStore;
