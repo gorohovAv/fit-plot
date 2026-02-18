@@ -1,4 +1,3 @@
-import { useThemeColor } from "@/hooks/useThemeColor";
 import useSettingsStore from "@/store/settingsStore";
 import {
   exportDataToFile,
@@ -17,6 +16,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Colors } from "../constants/Colors";
 
 interface ExportScreenProps {
   onBack: () => void;
@@ -25,12 +25,15 @@ interface ExportScreenProps {
 export function ExportScreen({ onBack }: ExportScreenProps) {
   const [isExporting, setIsExporting] = useState(false);
 
-  const backgroundColor = useThemeColor({}, "background");
-  const textColor = useThemeColor({}, "text");
-  const borderColor = useThemeColor({}, "border");
-  const cardColor = useThemeColor({}, "card");
-
+  const theme = useSettingsStore((state) => state.theme);
   const language = useSettingsStore((state) => state.language);
+  const colorScheme =
+    theme === "dark"
+      ? Colors.dark
+      : theme === "light"
+        ? Colors.light
+        : Colors.light;
+
   const data = getExportData();
   const canExportPDF = hasEnoughDataForPDF(data);
 
@@ -87,17 +90,17 @@ export function ExportScreen({ onBack }: ExportScreenProps) {
   };
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor }]}>
+    <ScrollView style={[styles.container, { backgroundColor: colorScheme.background }]}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={textColor} />
+          <Ionicons name="arrow-back" size={24} color={colorScheme.text} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: textColor }]}>
+        <Text style={[styles.title, { color: colorScheme.text }]}>
           {getTranslation(language, "exportData")}
         </Text>
       </View>
 
-      <Text style={[styles.description, { color: textColor }]}>
+      <Text style={[styles.description, { color: colorScheme.text }]}>
         {getTranslation(language, "exportDescription")}
       </Text>
 
@@ -105,75 +108,75 @@ export function ExportScreen({ onBack }: ExportScreenProps) {
         style={[
           styles.exportButton,
           {
-            borderColor,
-            backgroundColor: cardColor,
+            borderColor: colorScheme.border,
+            backgroundColor: colorScheme.card,
           },
         ]}
         onPress={() => handleExport("excel")}
         disabled={isExporting}
       >
-        <Ionicons name="document-outline" size={24} color={textColor} />
+        <Ionicons name="document-outline" size={24} color={colorScheme.text} />
         <View style={styles.buttonContent}>
-          <Text style={[styles.buttonTitle, { color: textColor }]}>
+          <Text style={[styles.buttonTitle, { color: colorScheme.text }]}>
             {getTranslation(language, "exportToExcel")}
           </Text>
-          <Text style={[styles.buttonDescription, { color: textColor + "80" }]}>
+          <Text style={[styles.buttonDescription, { color: colorScheme.text + "80" }]}>
             {getTranslation(language, "excelDescription")}
           </Text>
         </View>
-        <Ionicons name="chevron-forward" size={20} color={textColor} />
+        <Ionicons name="chevron-forward" size={20} color={colorScheme.text} />
       </TouchableOpacity>
 
       <TouchableOpacity
         style={[
           styles.exportButton,
           {
-            borderColor,
-            backgroundColor: cardColor,
+            borderColor: colorScheme.border,
+            backgroundColor: colorScheme.card,
           },
         ]}
         onPress={() => handleExport("text")}
         disabled={isExporting}
       >
-        <Ionicons name="document-text-outline" size={24} color={textColor} />
+        <Ionicons name="document-text-outline" size={24} color={colorScheme.text} />
         <View style={styles.buttonContent}>
-          <Text style={[styles.buttonTitle, { color: textColor }]}>
+          <Text style={[styles.buttonTitle, { color: colorScheme.text }]}>
             {getTranslation(language, "exportToText")}
           </Text>
-          <Text style={[styles.buttonDescription, { color: textColor + "80" }]}>
+          <Text style={[styles.buttonDescription, { color: colorScheme.text + "80" }]}>
             {getTranslation(language, "textDescription")}
           </Text>
         </View>
-        <Ionicons name="chevron-forward" size={20} color={textColor} />
+        <Ionicons name="chevron-forward" size={20} color={colorScheme.text} />
       </TouchableOpacity>
 
       <TouchableOpacity
         style={[
           styles.exportButton,
           {
-            borderColor,
-            backgroundColor: cardColor,
+            borderColor: colorScheme.border,
+            backgroundColor: colorScheme.card,
             opacity: canExportPDF ? 1 : 0.5,
           },
         ]}
         onPress={handleExportPDF}
         disabled={isExporting || !canExportPDF}
       >
-        <Ionicons name="document-outline" size={24} color={textColor} />
+        <Ionicons name="document-outline" size={24} color={colorScheme.text} />
         <View style={styles.buttonContent}>
-          <Text style={[styles.buttonTitle, { color: textColor }]}>
+          <Text style={[styles.buttonTitle, { color: colorScheme.text }]}>
             {getTranslation(language, "exportToPDF")}
           </Text>
-          <Text style={[styles.buttonDescription, { color: textColor + "80" }]}>
+          <Text style={[styles.buttonDescription, { color: colorScheme.text + "80" }]}>
             {getTranslation(language, "pdfDescription")}
           </Text>
         </View>
-        <Ionicons name="chevron-forward" size={20} color={textColor} />
+        <Ionicons name="chevron-forward" size={20} color={colorScheme.text} />
       </TouchableOpacity>
 
       {isExporting && (
         <View style={styles.loadingContainer}>
-          <Text style={[styles.loadingText, { color: textColor }]}>
+          <Text style={[styles.loadingText, { color: colorScheme.text }]}>
             {getTranslation(language, "exporting")}
           </Text>
         </View>

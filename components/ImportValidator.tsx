@@ -1,9 +1,9 @@
 import React from "react";
 import { View, StyleSheet, TouchableOpacity, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useThemeColor } from "@/hooks/useThemeColor";
 import useSettingsStore from "@/store/settingsStore";
 import { getTranslation } from "@/utils/localization";
+import { Colors } from "../constants/Colors";
 
 export type ValidationStatus = "empty" | "valid" | "invalid";
 
@@ -18,9 +18,14 @@ export function ImportValidator({
   errorMessage,
   warningMessage,
 }: ImportValidatorProps) {
-  const backgroundColor = useThemeColor({}, "background");
-  const iconColor = useThemeColor({}, "text");
+  const theme = useSettingsStore((state) => state.theme);
   const language = useSettingsStore((state) => state.language);
+  const colorScheme =
+    theme === "dark"
+      ? Colors.dark
+      : theme === "light"
+        ? Colors.light
+        : Colors.light;
 
   const getIconName = () => {
     switch (status) {
@@ -57,7 +62,7 @@ export function ImportValidator({
 
   return (
     <TouchableOpacity
-      style={[styles.container, { backgroundColor }]}
+      style={[styles.container, { backgroundColor: colorScheme.background }]}
       onPress={handlePress}
       disabled={status === "empty"}
     >

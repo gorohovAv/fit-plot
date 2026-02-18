@@ -1,4 +1,3 @@
-import { useThemeColor } from "@/hooks/useThemeColor";
 import useSettingsStore from "@/store/settingsStore";
 import { importData, validateImport } from "@/utils/importUtils";
 import { getTranslation } from "@/utils/localization";
@@ -14,6 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Colors } from "../constants/Colors";
 import { ImportValidator, ValidationStatus } from "./ImportValidator";
 
 interface ImportScreenProps {
@@ -27,16 +27,14 @@ export function ImportScreen({ onBack }: ImportScreenProps) {
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [warningMessage, setWarningMessage] = useState<string>("");
 
-  const backgroundColor = useThemeColor({}, "background");
-  const textColor = useThemeColor({}, "text");
-  const borderColor = useThemeColor({}, "border");
-  const cardColor = useThemeColor({}, "card");
-  const buttonPrimary = useThemeColor({}, "buttonPrimary");
-  const buttonPrimaryText = useThemeColor({}, "buttonPrimaryText");
-  const buttonSecondary = useThemeColor({}, "buttonSecondary");
-  const placeholderColor = useThemeColor({}, "placeholderText");
-
+  const theme = useSettingsStore((state) => state.theme);
   const language = useSettingsStore((state) => state.language);
+  const colorScheme =
+    theme === "dark"
+      ? Colors.dark
+      : theme === "light"
+        ? Colors.light
+        : Colors.light;
 
   const handleTextChange = useCallback((text: string) => {
     setImportText(text);
@@ -102,12 +100,12 @@ export function ImportScreen({ onBack }: ImportScreenProps) {
   };
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor }]}>
+    <ScrollView style={[styles.container, { backgroundColor: colorScheme.background }]}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={textColor} />
+          <Ionicons name="arrow-back" size={24} color={colorScheme.text} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: textColor }]}>
+        <Text style={[styles.title, { color: colorScheme.text }]}>
           {getTranslation(language, "importData")}
         </Text>
       </View>
@@ -120,7 +118,7 @@ export function ImportScreen({ onBack }: ImportScreenProps) {
         />
       </View>
 
-      <Text style={[styles.label, { color: textColor }]}>
+      <Text style={[styles.label, { color: colorScheme.text }]}>
         {getTranslation(language, "pasteTextForImport")}
       </Text>
 
@@ -128,9 +126,9 @@ export function ImportScreen({ onBack }: ImportScreenProps) {
         style={[
           styles.textInput,
           {
-            borderColor,
-            color: textColor,
-            backgroundColor: cardColor,
+            borderColor: colorScheme.border,
+            color: colorScheme.text,
+            backgroundColor: colorScheme.card,
           },
         ]}
         multiline
@@ -138,15 +136,15 @@ export function ImportScreen({ onBack }: ImportScreenProps) {
         value={importText}
         onChangeText={handleTextChange}
         placeholder={getTranslation(language, "importFormatExample")}
-        placeholderTextColor={placeholderColor}
+        placeholderTextColor={colorScheme.placeholderText}
       />
 
       <TouchableOpacity
-        style={[styles.fileButton, { borderColor, backgroundColor: cardColor }]}
+        style={[styles.fileButton, { borderColor: colorScheme.border, backgroundColor: colorScheme.card }]}
         onPress={handleFilePicker}
       >
-        <Ionicons name="document-outline" size={20} color={textColor} />
-        <Text style={[styles.fileButtonText, { color: textColor }]}>
+        <Ionicons name="document-outline" size={20} color={colorScheme.text} />
+        <Text style={[styles.fileButtonText, { color: colorScheme.text }]}>
           {getTranslation(language, "selectFile")}
         </Text>
       </TouchableOpacity>
@@ -156,7 +154,7 @@ export function ImportScreen({ onBack }: ImportScreenProps) {
           styles.importButton,
           {
             backgroundColor:
-              validationStatus === "valid" ? buttonPrimary : buttonSecondary,
+              validationStatus === "valid" ? colorScheme.buttonPrimary : colorScheme.buttonSecondary,
           },
         ]}
         onPress={handleImport}
@@ -168,8 +166,8 @@ export function ImportScreen({ onBack }: ImportScreenProps) {
             {
               color:
                 validationStatus === "valid"
-                  ? buttonPrimaryText
-                  : buttonPrimaryText,
+                  ? colorScheme.buttonPrimaryText
+                  : colorScheme.buttonPrimaryText,
             },
           ]}
         >
