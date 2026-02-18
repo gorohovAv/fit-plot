@@ -1,7 +1,9 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Colors } from "../constants/Colors";
 import { useThemeColor } from "../hooks/useThemeColor";
+import useSettingsStore from "../store/settingsStore";
 
 type WorkoutProps = {
   title: string;
@@ -16,20 +18,27 @@ export const Workout: React.FC<WorkoutProps> = ({
   onDelete,
   onSettings,
 }) => {
+  const theme = useSettingsStore((state) => state.theme);
+   const colorScheme =
+      theme === "dark"
+        ? Colors.dark
+        : theme === "light"
+          ? Colors.light
+          : Colors.light;
   const backgroundColor = useThemeColor({}, "background");
   const textColor = useThemeColor({}, "text");
   const errorColor = useThemeColor({}, "error");
   const iconColor = useThemeColor({}, "icon");
 
   return (
-    <View style={[styles.container, { backgroundColor }]}>
+    <View style={[styles.container, { backgroundColor: colorScheme.card }]}>
       {onSettings && (
         <TouchableOpacity onPress={onSettings} style={styles.settingsButton}>
           <MaterialIcons name="settings" size={24} color={iconColor} />
         </TouchableOpacity>
       )}
       <TouchableOpacity onPress={onPress} style={styles.titleContainer}>
-        <Text style={[styles.title, { color: textColor }]}>{title}</Text>
+        <Text style={[styles.title, { color: colorScheme.text }]}>{title}</Text>
       </TouchableOpacity>
       <TouchableOpacity onPress={onDelete} style={styles.deleteButton}>
         <MaterialIcons name="close" size={24} color={errorColor} />
