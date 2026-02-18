@@ -1,6 +1,7 @@
 import { formatTranslation, getTranslation } from "@/utils/localization";
 import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -290,9 +291,7 @@ export default function CaloriesScreen() {
           },
         ]}
       >
-        <Text style={[styles.title, { color: colorScheme.text }]}>
-          {getTranslation(language, "loading")}...
-        </Text>
+        <ActivityIndicator size="large" color={colorScheme.tint} style={{ transform: [{ scale: 4 }] }} />
       </View>
     );
   }

@@ -1,6 +1,6 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Colors } from "../constants/Colors";
 import { useColorScheme } from "../hooks/useColorScheme";
 import * as dbLayer from "../store/dbLayer";
@@ -12,6 +12,7 @@ type ResultsListProps = {
   onResultDeleted?: () => void;
   dateFilterStart?: string;
   dateFilterEnd?: string;
+  isLoading?: boolean;
 };
 
 type ResultWithExercise = {
@@ -28,11 +29,29 @@ const ResultsList: React.FC<ResultsListProps> = ({
   onResultDeleted,
   dateFilterStart,
   dateFilterEnd,
+  isLoading = false,
 }) => {
   const { theme: settingsTheme } = useSettingsStore();
   const systemTheme = useColorScheme() ?? "light";
   const currentTheme = settingsTheme === "system" ? systemTheme : settingsTheme;
   const themeColors = Colors[currentTheme];
+
+  if (isLoading) {
+    return (
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: themeColors.background,
+            justifyContent: "center",
+            alignItems: "center",
+          },
+        ]}
+      >
+        <ActivityIndicator size="large" color={themeColors.primary} style={{ transform: [{ scale: 4 }] }} />
+      </View>
+    );
+  }
 
 
   const formatDateTime = (dateStr: string) => {

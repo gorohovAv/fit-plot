@@ -600,10 +600,7 @@ export default function AnalyticsScreen() {
           },
         ]}
       >
-        <ActivityIndicator size="large" color={themeColors.primary} />
-        <Text style={[styles.loadingText, { color: themeColors.text }]}>
-          {getTranslation(language, "loading")}...
-        </Text>
+        <ActivityIndicator size="large" color={themeColors.primary} style={{ transform: [{ scale: 4 }] }} />
       </View>
     );
   }
@@ -1023,6 +1020,7 @@ export default function AnalyticsScreen() {
                   onResultDeleted={() => {
                     loadPlansFromDB();
                   }}
+                  isLoading={isLoading}
                 />
               </>
             )
