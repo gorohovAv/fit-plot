@@ -562,7 +562,7 @@ export default function CaloriesScreen() {
                   ]}
                 />
                 <Text style={[styles.legendText, { color: colorScheme.text }]}>
-                  Калории (вверх)
+                  {getTranslation(language, "caloriesUp")}
                 </Text>
               </View>
               <View style={styles.legendItem}>
@@ -573,7 +573,7 @@ export default function CaloriesScreen() {
                   ]}
                 />
                 <Text style={[styles.legendText, { color: colorScheme.text }]}>
-                  Вес (вниз)
+                  {getTranslation(language, "weightDown")}
                 </Text>
               </View>
             </View>

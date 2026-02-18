@@ -199,6 +199,8 @@ Pull-ups
     avgVolume: "Average weekly training volume",
     avgTonnageProgress: "Average tonnage progress",
     avgWeightProgress: "Average max weight progress",
+    caloriesUp: "Calories (upper)",
+    weightDown: "Weight (bottom)"
   },
   russian: {
     // Settings
@@ -399,7 +401,9 @@ Pull-ups
     change: "Изменить",
     avgVolume: "Средний тренировочный объем в неделю",
     avgTonnageProgress: "Средний прогресс тоннажа",
-    avgWeightProgress: "Средний прогресс в максимальном весе"
+    avgWeightProgress: "Средний прогресс в максимальном весе",
+    caloriesUp: "Калории (верх)",
+    weightDown: "Вес (низ)"
   },
 } as const;
 
