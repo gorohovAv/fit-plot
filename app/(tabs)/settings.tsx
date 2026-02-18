@@ -17,7 +17,7 @@ import { ImportScreen } from "@/components/ImportScreen";
 import { getTranslation } from "@/utils/localization";
 import { importOldVersionData } from "@/utils/oldVersionImport";
 import * as DocumentPicker from "expo-document-picker";
-import { Alert } from "react-native";
+import { Alert, ScrollView } from "react-native";
 
 export default function SettingsScreen() {
   const {
@@ -79,7 +79,10 @@ export default function SettingsScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      contentContainerStyle={styles.contentContainer}
+    >
       <Text style={[styles.label, { color: colors.text }]}>
         {getTranslation(language, "theme")}
       </Text>
@@ -427,12 +430,13 @@ export default function SettingsScreen() {
           {getTranslation(language, "exportData")}
         </Text>
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24 },
+  container: { flex: 1 },
+  contentContainer: { padding: 24 },
   label: { fontSize: 16, marginVertical: 12 },
   description: { fontSize: 14, marginVertical: 4, opacity: 0.7 },
   row: { flexDirection: "row", marginBottom: 16, gap: 8 },

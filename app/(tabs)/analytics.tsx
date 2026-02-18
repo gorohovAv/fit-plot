@@ -1064,7 +1064,7 @@ export default function AnalyticsScreen() {
                       {metrics.avgTonnageProgress !== null
                         ? `${
                             metrics.avgTonnageProgress > 0 ? "+" : ""
-                          }${metrics.avgTonnageProgress.toFixed(1)} кг`
+                          }${metrics.avgTonnageProgress.toFixed(1)} ${getTranslation(language, "kg")}`
                         : "—"}
                     </Text>
                   </View>
@@ -1085,7 +1085,7 @@ export default function AnalyticsScreen() {
                       {metrics.avgWeightProgress !== null
                         ? `${
                             metrics.avgWeightProgress > 0 ? "+" : ""
-                          }${metrics.avgWeightProgress.toFixed(1)} кг`
+                          }${metrics.avgWeightProgress.toFixed(1)} ${getTranslation(language, "kg")}`
                         : "—"}
                     </Text>
                   </View>

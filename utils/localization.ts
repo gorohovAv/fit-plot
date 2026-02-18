@@ -198,7 +198,7 @@ Pull-ups
     change: "Change",
     avgVolume: "Average weekly training volume",
     avgTonnageProgress: "Average tonnage progress",
-    avgWeightProgress: "Average max weight progress"
+    avgWeightProgress: "Average max weight progress",
   },
   russian: {
     // Settings
