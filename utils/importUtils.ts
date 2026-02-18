@@ -319,8 +319,6 @@ export function validateImport(text: string): ValidationResult {
 export async function importData(text: string): Promise<void> {
   const lines = text.split("\n").filter((line) => line.trim());
 
-  const caloriesStore = useCaloriesStore.getState();
-
   let currentExercise = "";
   let importedPlan: Plan | null = null;
   let importedTraining: Training | null = null;
@@ -358,20 +356,8 @@ export async function importData(text: string): Promise<void> {
         )}`;
 
         if (calories > 0 && weight > 0) {
-          const existingEntry = caloriesStore.getEntryByDate(formattedDate);
-          if (existingEntry) {
-            caloriesStore.updateEntry(formattedDate, {
-              date: formattedDate,
-              calories: calories,
-              weight: weight,
-            });
-          } else {
-            caloriesStore.addEntry({
-              date: formattedDate,
-              calories: calories,
-              weight: weight,
-            });
-          }
+          // Сохраняем напрямую в БД
+          await dbLayer.saveCalorieEntry(formattedDate, calories, weight);
         }
       }
       continue;

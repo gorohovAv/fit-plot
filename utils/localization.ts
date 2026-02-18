@@ -200,7 +200,8 @@ Pull-ups
     avgTonnageProgress: "Average tonnage progress",
     avgWeightProgress: "Average max weight progress",
     caloriesUp: "Calories (upper)",
-    weightDown: "Weight (bottom)"
+    weightDown: "Weight (bottom)",
+    absMax: "Absolute max weight"
   },
   russian: {
     // Settings
@@ -403,7 +404,8 @@ Pull-ups
     avgTonnageProgress: "Средний прогресс тоннажа",
     avgWeightProgress: "Средний прогресс в максимальном весе",
     caloriesUp: "Калории (верх)",
-    weightDown: "Вес (низ)"
+    weightDown: "Вес (низ)",
+    absMax: "Абсолютный максимум веса"
   },
 } as const;
 

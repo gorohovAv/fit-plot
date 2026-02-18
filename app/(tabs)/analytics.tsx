@@ -1102,7 +1102,7 @@ export default function AnalyticsScreen() {
                     <Text
                       style={[styles.metricTitle, { color: themeColors.text }]}
                     >
-                      Абсолютный максимум веса
+                      {getTranslation(language, "absMax")}
                     </Text>
                     {absoluteMaxWeight.map((item) => (
                       <View key={item.exerciseId} style={styles.absoluteMaxRow}>
@@ -1115,7 +1115,7 @@ export default function AnalyticsScreen() {
                         <Text
                           style={[styles.absoluteMaxValue, { color: themeColors.text }]}
                         >
-                          {item.maxWeight.toFixed(1)} кг
+                          {item.maxWeight.toFixed(1)} {getTranslation(language, "kg")}
                         </Text>
                       </View>
                     ))}
