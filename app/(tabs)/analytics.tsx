@@ -48,7 +48,8 @@ export default function AnalyticsScreen() {
   const [autoPeriod] = useState<boolean>(true);
   const [dateFilterStart, setDateFilterStart] = useState<string>("");
   const [dateFilterEnd, setDateFilterEnd] = useState<string>("");
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isInitialLoadComplete, setIsInitialLoadComplete] = useState<boolean>(false);
   const [chartData, setChartData] = useState<{
     tonnage: Dataset[];
     maxWeight: Dataset[];
@@ -86,12 +87,15 @@ export default function AnalyticsScreen() {
   const themeColors = Colors[colorScheme];
 
   const loadPlansFromDB = async () => {
+    console.log('[AnalyticsScreen] loadPlansFromDB: Starting...');
     try {
       const planNames = await dbLayer.getAllPlans();
+      console.log('[AnalyticsScreen] loadPlansFromDB: Got plan names:', planNames);
       const loadedPlans: Plan[] = [];
 
       for (const { planName } of planNames) {
         const trainings = await dbLayer.getTrainingsByPlan(planName);
+        console.log('[AnalyticsScreen] loadPlansFromDB: Loading plan:', planName, 'trainings:', trainings.length);
         const planTrainings: any[] = [];
 
         for (const training of trainings) {
@@ -137,34 +141,27 @@ export default function AnalyticsScreen() {
         });
       }
 
+      console.log('[AnalyticsScreen] loadPlansFromDB: Loaded', loadedPlans.length, 'plans');
       setPlans(loadedPlans);
     } catch (error) {
-      console.error("Ошибка загрузки планов из БД:", error);
+      console.error('[AnalyticsScreen] loadPlansFromDB: Error:', error);
+      throw error;
     }
   };
 
   const loadCaloriesFromDB = async () => {
+    console.log('[AnalyticsScreen] loadCaloriesFromDB: Starting...');
     try {
-      console.log(`[AnalyticsScreen] Loading calories data directly from DB`);
-
       const entries = await dbLayer.getCalorieEntries();
+      console.log('[AnalyticsScreen] loadCaloriesFromDB: Loaded', entries.length, 'entries');
       const maintenance = await dbLayer.getMaintenanceCalories();
-
-      console.log(
-        `[AnalyticsScreen] Loaded ${entries.length} calorie entries from DB`,
-      );
-      console.log(
-        `[AnalyticsScreen] Loaded maintenance calories from DB:`,
-        maintenance,
-      );
+      console.log('[AnalyticsScreen] loadCaloriesFromDB: Loaded maintenance:', maintenance);
 
       setCaloriesEntries(entries);
       setMaintenanceCalories(maintenance);
     } catch (error) {
-      console.error(
-        `[AnalyticsScreen] Error loading calories data from DB:`,
-        error,
-      );
+      console.error('[AnalyticsScreen] loadCaloriesFromDB: Error:', error);
+      throw error;
     }
   };
 
@@ -173,8 +170,21 @@ export default function AnalyticsScreen() {
   };
 
   useEffect(() => {
-    loadPlansFromDB();
-    loadCaloriesFromDB();
+    console.log('[AnalyticsScreen] Starting initial data load');
+    const loadInitialData = async () => {
+      console.log('[AnalyticsScreen] isLoading already true from init');
+      try {
+        await loadPlansFromDB();
+        await loadCaloriesFromDB();
+        console.log('[AnalyticsScreen] Initial DB load complete, setting isInitialLoadComplete=true');
+        setIsInitialLoadComplete(true);
+      } catch (error) {
+        console.error('[AnalyticsScreen] Error during initial load:', error);
+        setIsLoading(false);
+        setIsInitialLoadComplete(true);
+      }
+    };
+    loadInitialData();
   }, []);
 
   useEffect(() => {
@@ -218,16 +228,28 @@ export default function AnalyticsScreen() {
   }, [route.params, plans]);
 
   useEffect(() => {
-    setIsLoading(true);
-
+    // Не запускаем обработку данных до завершения начальной загрузки
+    if (!isInitialLoadComplete) {
+      console.log('[AnalyticsScreen] processData: waiting for initial load to complete');
+      return;
+    }
+    
+    console.log('[AnalyticsScreen] processData useEffect triggered, plans.length:', plans.length);
+    
     const processData = async () => {
+      console.log('[AnalyticsScreen] processData: Starting');
+
       const exercises = plans
         .flatMap((plan) =>
           plan.trainings.flatMap((training) => training.exercises || []),
         )
         .filter((exercise) => exercise && exercise.id && exercise.name);
 
+      console.log('[AnalyticsScreen] processData: Found', exercises.length, 'exercises');
+      console.log('[AnalyticsScreen] processData: selectedExerciseIds:', selectedExerciseIds, 'selectedPlannedIds:', selectedPlannedIds);
+
       if (selectedExerciseIds.length === 0 && selectedPlannedIds.length === 0) {
+        console.log('[AnalyticsScreen] processData: No exercises selected, setting isLoading=false');
         setChartData({
           tonnage: [],
           maxWeight: [],
@@ -542,6 +564,7 @@ export default function AnalyticsScreen() {
         workoutTime: workoutTimeData,
       });
 
+      console.log('[AnalyticsScreen] processData: Data processed, setting isLoading=false');
       setIsLoading(false);
     };
 
@@ -558,10 +581,31 @@ export default function AnalyticsScreen() {
     dateFilterEnd,
     language,
     visibleMetrics,
+    isInitialLoadComplete,
   ]);
 
-  if (!font) {
-    return null;
+  console.log('[AnalyticsScreen] Render, isLoading:', isLoading, 'plans.length:', plans.length, 'font:', !!font);
+
+  // Показываем лоадер, если идет загрузка ИЛИ если шрифт еще не загрузился
+  if (isLoading || !font) {
+    console.log('[AnalyticsScreen] Rendering loader screen, isLoading:', isLoading, 'font:', !!font);
+    return (
+      <View
+        style={[
+          styles.container,
+          {
+            backgroundColor: themeColors.background,
+            justifyContent: "center",
+            alignItems: "center",
+          },
+        ]}
+      >
+        <ActivityIndicator size="large" color={themeColors.primary} />
+        <Text style={[styles.loadingText, { color: themeColors.text }]}>
+          {getTranslation(language, "loading")}...
+        </Text>
+      </View>
+    );
   }
 
   const exercises = plans
