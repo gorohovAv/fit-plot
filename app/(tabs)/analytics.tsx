@@ -265,6 +265,10 @@ export default function AnalyticsScreen() {
       const allResults: Result[] = [];
       const allPlannedResults: PlannedResult[] = [];
 
+      // Собираем все результаты за период (для метрики времени тренировки)
+      const allResultsForWorkoutTime: Result[] = [];
+      const allPlannedResultsForWorkoutTime: PlannedResult[] = [];
+
       selectedExerciseIds.forEach((id) => {
         plans
           .flatMap((plan) =>
@@ -279,6 +283,22 @@ export default function AnalyticsScreen() {
             ),
           )
           .forEach((result) => allResults.push(result));
+      });
+
+      // Собираем ВСЕ результаты за период для метрики времени тренировки
+      plans.forEach((plan) => {
+        plan.trainings.forEach((training) => {
+          training.results.forEach((result) => {
+            if (dateFilterStart && result.date < dateFilterStart) return;
+            if (dateFilterEnd && result.date > dateFilterEnd) return;
+            allResultsForWorkoutTime.push(result);
+          });
+          training.plannedResults.forEach((planned) => {
+            if (dateFilterStart && planned.plannedDate < dateFilterStart) return;
+            if (dateFilterEnd && planned.plannedDate > dateFilterEnd) return;
+            allPlannedResultsForWorkoutTime.push(planned);
+          });
+        });
       });
 
       selectedPlannedIds.forEach((plannedId) => {
@@ -417,22 +437,6 @@ export default function AnalyticsScreen() {
             axisLabel: getTranslation(language, "weightLabel"),
             name: exercise.name,
           });
-
-          workoutTimeData.push({
-            data: sortedDays.map((day) => {
-              const times = groupedByDay[day].timestamps;
-              if (times.length < 2) {
-                return { x: day, y: 0 };
-              }
-              const sortedTimes = times.sort();
-              const earliest = new Date(sortedTimes[0]).getTime();
-              const latest = new Date(sortedTimes[sortedTimes.length - 1]).getTime();
-              const durationMinutes = Math.round((latest - earliest) / (1000 * 60));
-              return { x: day, y: durationMinutes };
-            }),
-            axisLabel: getTranslation(language, "minutes"),
-            name: exercise.name,
-          });
         }
       });
 
@@ -519,23 +523,42 @@ export default function AnalyticsScreen() {
               axisLabel: getTranslation(language, "weightLabel"),
               name: `${exercise.name} (план)`,
             });
-
-            workoutTimeData.push({
-              data: sortedPlannedDays.map((day) => {
-                const times = groupedPlannedByDay[day].timestamps;
-                if (times.length < 2) return { x: day, y: 0 };
-                const sortedTimes = times.sort();
-                const earliest = new Date(sortedTimes[0]).getTime();
-                const latest = new Date(sortedTimes[sortedTimes.length - 1]).getTime();
-                const durationMinutes = Math.round((latest - earliest) / (1000 * 60));
-                return { x: day, y: durationMinutes };
-              }),
-              axisLabel: getTranslation(language, "minutes"),
-              name: `${exercise.name} (план)`,
-            });
           }
         }
       });
+
+      // Расчет времени тренировки (общая метрика для всех результатов за день)
+      if (selectedExerciseIds.length > 0 || selectedPlannedIds.length > 0) {
+        const allTimestampsByDay = [...allResultsForWorkoutTime, ...allPlannedResultsForWorkoutTime].reduce(
+          (acc, item) => {
+            const date = 'date' in item ? item.date : item.plannedDate;
+            const day = getDayString(date);
+            if (!acc[day]) {
+              acc[day] = [] as string[];
+            }
+            acc[day].push(date);
+            return acc;
+          },
+          {} as Record<string, string[]>,
+        );
+
+        const sortedDays = Object.keys(allTimestampsByDay).sort();
+        const workoutTimeSeries = sortedDays.map((day) => {
+          const times = allTimestampsByDay[day];
+          if (times.length < 2) return { x: day, y: 0 };
+          const sortedTimes = times.sort();
+          const earliest = new Date(sortedTimes[0]).getTime();
+          const latest = new Date(sortedTimes[sortedTimes.length - 1]).getTime();
+          const durationMinutes = Math.round((latest - earliest) / (1000 * 60));
+          return { x: day, y: durationMinutes };
+        });
+
+        workoutTimeData.push({
+          data: workoutTimeSeries,
+          axisLabel: getTranslation(language, "minutes"),
+          name: getTranslation(language, "workoutTime"),
+        });
+      }
 
       // Расчет абсолютного максимума веса за все время
       const absoluteMaxMap: Record<string, { exerciseId: string; exerciseName: string; maxWeight: number }> = {};
