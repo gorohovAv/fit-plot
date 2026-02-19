@@ -201,7 +201,8 @@ Pull-ups
     avgWeightProgress: "Average max weight progress",
     caloriesUp: "Calories (upper)",
     weightDown: "Weight (bottom)",
-    absMax: "Absolute max weight"
+    absMax: "Absolute max weight",
+    trainingSettings: "Training settings"
   },
   russian: {
     // Settings
@@ -405,7 +406,8 @@ Pull-ups
     avgWeightProgress: "Средний прогресс в максимальном весе",
     caloriesUp: "Калории (верх)",
     weightDown: "Вес (низ)",
-    absMax: "Абсолютный максимум веса"
+    absMax: "Абсолютный максимум веса",
+    trainingSettings: "Настройки тренировки"
   },
 } as const;
 

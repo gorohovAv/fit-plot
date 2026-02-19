@@ -1,12 +1,12 @@
+import { getTranslation } from "@/utils/localization";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   FlatList,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { Colors } from "../constants/Colors";
 import * as dbLayer from "../store/dbLayer";
@@ -33,6 +33,7 @@ export const TrainingSettings: React.FC<TrainingSettingsProps> = ({
 }) => {
   const [settings, setSettings] = useState<ExerciseSetting[]>([]);
   const theme = useSettingsStore((state) => state.theme);
+  const { language, visibleMetrics } = useSettingsStore();
 
   const colorScheme =
     theme === "dark" ? "dark" : theme === "light" ? "light" : "light";
@@ -128,7 +129,7 @@ export const TrainingSettings: React.FC<TrainingSettingsProps> = ({
           </TouchableOpacity>
         }
         <Text style={[styles.title, { color: themeColors.text }]}>
-          Настройки тренировки
+          {getTranslation(language, "trainingSettings")}
         </Text>
       </View>
 
@@ -150,7 +151,7 @@ export const TrainingSettings: React.FC<TrainingSettingsProps> = ({
               numberOfLines={1}
             >
               {item.exerciseName}
-            </Text>
+            </Text>{/*
             <TextInput
               style={[
                 styles.setsInput,
@@ -168,7 +169,7 @@ export const TrainingSettings: React.FC<TrainingSettingsProps> = ({
                 const value = parseInt(text) || 0;
                 updateSetsCount(item.exerciseId, value);
               }}
-            />
+            />*/}
             <TouchableOpacity
               onPress={() => toggleHidden(item.exerciseId)}
               style={styles.checkbox}
