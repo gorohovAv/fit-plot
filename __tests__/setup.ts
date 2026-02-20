@@ -1,3 +1,14 @@
+jest.mock('react-native-webview', () => {
+  const { View } = require('react-native');
+  return {
+    WebView: View,
+  };
+});
+
+jest.mock('@/utils/svgGen', () => ({
+  generateAthleteSvg: jest.fn(() => '<svg></svg>'),
+}));
+
 beforeEach(() => {
   jest.clearAllMocks();
 });

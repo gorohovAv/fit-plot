@@ -7,15 +7,20 @@ module.exports = {
   coverageDirectory: "coverage",
   coverageReporters: ["text", "lcov", "html"],
   setupFilesAfterEnv: ["<rootDir>/__tests__/setup.ts"],
-  moduleNameMapping: {
+  moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/$1",
   },
   transform: {
-    "^.+\\.tsx?$": "ts-jest",
+    "^.+\\.tsx?$": [
+      "ts-jest",
+      {
+        tsconfig: "tsconfig.test.json",
+        babelConfig: false,
+        jsx: "react-jsx",
+      },
+    ],
   },
-  globals: {
-    "ts-jest": {
-      tsconfig: "tsconfig.json",
-    },
-  },
+  transformIgnorePatterns: [
+    "node_modules/(?!(react-native|react-native-webview|react-native-web|@react-native|expo.*|react-navigation).*/)",
+  ],
 };
