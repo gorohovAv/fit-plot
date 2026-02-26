@@ -247,6 +247,7 @@ export default function WorkoutScreen() {
               type={item.type}
               unilateral={item.unilateral}
               amplitude={item.amplitude}
+              comment={item.comment}
               reps={0}
               sets={0}
               onRepsChange={() => {}}
