@@ -262,7 +262,9 @@ export default function WorkoutScreen() {
               onToggleRight={handleToggleRight}
             />
           )}
+          ListFooterComponent={<View style={{ height: 300 }} />}
         />
+
 
         <TouchableOpacity
           style={[styles.addButton, { backgroundColor: themeColors.tint }]}
