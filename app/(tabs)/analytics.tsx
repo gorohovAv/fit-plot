@@ -57,6 +57,7 @@ export default function AnalyticsScreen() {
     avgWeight: Dataset[];
     minWeight: Dataset[];
     workoutTime: Dataset[];
+    specificTonnage: Dataset[];
   }>({
     tonnage: [],
     maxWeight: [],
@@ -64,6 +65,7 @@ export default function AnalyticsScreen() {
     avgWeight: [],
     minWeight: [],
     workoutTime: [],
+    specificTonnage: [],
   });
   const [absoluteMaxWeight, setAbsoluteMaxWeight] = useState<{ exerciseId: string; exerciseName: string; maxWeight: number }[]>([]);
   const [showResultsList, setShowResultsList] = useState<boolean>(false);
@@ -257,6 +259,7 @@ export default function AnalyticsScreen() {
           avgWeight: [],
           minWeight: [],
           workoutTime: [],
+          specificTonnage: [],
         });
         setIsLoading(false);
         return;
@@ -339,6 +342,7 @@ export default function AnalyticsScreen() {
           minWeight: [],
           workoutTime: [],
           avgWeight: [],
+          specificTonnage: [],
         });
         setAbsoluteMaxWeight([]);
         setIsLoading(false);
@@ -362,6 +366,7 @@ export default function AnalyticsScreen() {
       const avgWeightData: Dataset[] = [];
       const minWeightData: Dataset[] = [];
       const workoutTimeData: Dataset[] = [];
+      const specificTonnageData: Dataset[] = [];
 
       selectedExerciseIds.forEach((exerciseId) => {
         const exerciseResults = allResults.filter(
@@ -435,6 +440,15 @@ export default function AnalyticsScreen() {
               y: groupedByDay[day].minWeight,
             })),
             axisLabel: getTranslation(language, "weightLabel"),
+            name: exercise.name,
+          });
+
+          specificTonnageData.push({
+            data: sortedDays.map((day) => ({
+              x: day,
+              y: groupedByDay[day].count > 0 ? groupedByDay[day].tonnage / groupedByDay[day].count : 0,
+            })),
+            axisLabel: getTranslation(language, "tonnage"),
             name: exercise.name,
           });
         }
@@ -523,6 +537,15 @@ export default function AnalyticsScreen() {
               axisLabel: getTranslation(language, "weightLabel"),
               name: `${exercise.name} (план)`,
             });
+
+            specificTonnageData.push({
+              data: sortedPlannedDays.map((day) => ({
+                x: day,
+                y: groupedPlannedByDay[day].count > 0 ? groupedPlannedByDay[day].tonnage / groupedPlannedByDay[day].count : 0,
+              })),
+              axisLabel: getTranslation(language, "tonnage"),
+              name: `${exercise.name} (план)`,
+            });
           }
         }
       });
@@ -585,6 +608,7 @@ export default function AnalyticsScreen() {
         avgWeight: avgWeightData,
         minWeight: minWeightData,
         workoutTime: workoutTimeData,
+        specificTonnage: specificTonnageData,
       });
 
       console.log('[AnalyticsScreen] processData: Data processed, setting isLoading=false');
@@ -1188,6 +1212,13 @@ export default function AnalyticsScreen() {
                     themeColors.chartLine,
                     getTranslation(language, "date"),
                     getTranslation(language, "minutes"),
+                  )}
+                  {visibleMetrics.specificTonnage && renderChart(
+                    chartData.specificTonnage,
+                    getTranslation(language, "specificTonnage"),
+                    themeColors.chartLine,
+                    getTranslation(language, "date"),
+                    getTranslation(language, "tonnage"),
                   )}
                 </>
               )}

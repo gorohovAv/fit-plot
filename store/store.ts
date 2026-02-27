@@ -74,6 +74,7 @@ export type Settings = {
     avgWeight: boolean;
     minWeight: boolean;
     workoutTime: boolean;
+    specificTonnage: boolean;
   };
 };
 

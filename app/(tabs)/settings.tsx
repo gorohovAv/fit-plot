@@ -322,6 +322,18 @@ export default function SettingsScreen() {
               }
             />
           </View>
+
+          <View style={styles.checkboxRow}>
+            <Text style={[styles.checkboxLabel, { color: colors.text }]}>
+              {getTranslation(language, "specificTonnage")}
+            </Text>
+            <Switch
+              value={visibleMetrics.specificTonnage}
+              onValueChange={(value) =>
+                setVisibleMetrics({ ...visibleMetrics, specificTonnage: value })
+              }
+            />
+          </View>
         </View>
       )}
 

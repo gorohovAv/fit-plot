@@ -11,6 +11,7 @@ type VisibleMetrics = {
   avgWeight: boolean;
   minWeight: boolean;
   workoutTime: boolean;
+  specificTonnage: boolean;
 };
 
 type SettingsState = {
@@ -44,6 +45,7 @@ const defaultState: Omit<SettingsState, keyof FunctionProperties<SettingsState>>
     avgWeight: true,
     minWeight: true,
     workoutTime: true,
+    specificTonnage: true,
   },
 };
 

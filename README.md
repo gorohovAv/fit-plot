@@ -26,6 +26,8 @@ npm run android
 - **Building**
 cd android
 .\gradlew.bat assembleRelease -PreactNativeArchitectures=arm64-v8a
+version is in android/app/build.gradle
+apk is in android\app\build\outputs\apk\release
 
 ## Contributing
 If you want to contribute to the project, ping me on Telegram @Eggplant11
@@ -57,6 +59,8 @@ npm run android
 - **Сборка**
 cd android
 .\gradlew.bat assembleRelease -PreactNativeArchitectures=arm64-v8a
+версия в android/app/buil.gradle
+apk в android\app\build\outputs\apk\release
 
 ## Вклад
 Если вы хотите внести свой вклад в проект, пинганите меня в тг @Eggplant11

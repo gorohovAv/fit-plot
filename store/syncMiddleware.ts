@@ -330,6 +330,7 @@ const loadSettingsFromDB = async () => {
     avgWeight: true,
     minWeight: true,
     workoutTime: true,
+    specificTonnage: true,
   };
 
   if (settingsMap.visibleMetrics) {
