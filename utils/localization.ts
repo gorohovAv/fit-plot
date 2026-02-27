@@ -67,6 +67,10 @@ export const translations = {
     weightLabel: "Weight",
     reps: "Reps",
     minutes: "Minutes",
+    exercise: "Exercise",
+    max: "Max",
+    trend: "Trend",
+    rel: "%",
 
     // Plan Screen
     addPlannedResult: "Add planned result",
@@ -274,6 +278,10 @@ Pull-ups
     weightLabel: "Вес",
     reps: "Повторения",
     minutes: "Минуты",
+    exercise: "Упражнение",
+    max: "Макс",
+    trend: "Тренд",
+    rel: "%",
 
     // Plan Screen
     addPlannedResult: "Добавить плановый результат",

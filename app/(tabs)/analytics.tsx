@@ -4,6 +4,7 @@ import Plot from "@/components/Plot";
 import ResultsList from "@/components/ResultsList";
 import { Colors } from "@/constants/Colors";
 import useSettingsStore from "@/store/settingsStore";
+import { calculateTrend } from "@/utils/analyticsUtils";
 import { formatTranslation, getTranslation } from "@/utils/localization";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useRoute } from "@react-navigation/native";
@@ -67,7 +68,14 @@ export default function AnalyticsScreen() {
     workoutTime: [],
     specificTonnage: [],
   });
-  const [absoluteMaxWeight, setAbsoluteMaxWeight] = useState<{ exerciseId: string; exerciseName: string; maxWeight: number }[]>([]);
+  const [absoluteMaxWeight, setAbsoluteMaxWeight] = useState<{
+    exerciseId: string;
+    exerciseName: string;
+    maxWeight: number;
+    trend: number;
+    confidence: number;
+    maxWeightsHistory: number[];
+  }[]>([]);
   const [showResultsList, setShowResultsList] = useState<boolean>(false);
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
   const [isRenderingResults, setIsRenderingResults] = useState<boolean>(false);
@@ -584,17 +592,54 @@ export default function AnalyticsScreen() {
       }
 
       // Расчет абсолютного максимума веса за все время
-      const absoluteMaxMap: Record<string, { exerciseId: string; exerciseName: string; maxWeight: number }> = {};
+      const absoluteMaxMap: Record<
+        string,
+        {
+          exerciseId: string;
+          exerciseName: string;
+          maxWeight: number;
+          trend: number;
+          confidence: number;
+          maxWeightsHistory: number[];
+        }
+      > = {};
       selectedExerciseIds.forEach((exerciseId) => {
         const exercise = exercises.find((ex) => ex.id === exerciseId);
         if (exercise) {
-          const exerciseResults = allResults.filter((r) => r.exerciseId === exerciseId);
+          const exerciseResults = allResults.filter(
+            (r) => r.exerciseId === exerciseId,
+          );
           if (exerciseResults.length > 0) {
-            const maxWeight = Math.max(...exerciseResults.map((r) => r.weight));
+            // Группируем по дням и берем максимальный вес за день
+            const maxWeightsByDay = exerciseResults.reduce(
+              (acc, result) => {
+                const day = getDayString(result.date);
+                if (!acc[day]) {
+                  acc[day] = 0;
+                }
+                acc[day] = Math.max(acc[day], result.weight);
+                return acc;
+              },
+              {} as Record<string, number>,
+            );
+
+            // Получаем массив максимальных весов в хронологическом порядке
+            const maxWeightsHistory = Object.entries(maxWeightsByDay)
+              .sort((a, b) => a[0].localeCompare(b[0]))
+              .map(([, weight]) => weight);
+
+            const maxWeight = Math.max(...maxWeightsHistory);
+
+            // Рассчитываем тренд
+            const { trend, confidence } = calculateTrend(maxWeightsHistory);
+
             absoluteMaxMap[exerciseId] = {
               exerciseId,
               exerciseName: exercise.name,
               maxWeight,
+              trend,
+              confidence,
+              maxWeightsHistory,
             };
           }
         }
@@ -1145,27 +1190,62 @@ export default function AnalyticsScreen() {
                       styles.metricCard,
                       { backgroundColor: themeColors.card },
                     ]}
-                  >
+                  >{/*
                     <Text
                       style={[styles.metricTitle, { color: themeColors.text }]}
                     >
                       {getTranslation(language, "absMax")}
-                    </Text>
-                    {absoluteMaxWeight.map((item) => (
-                      <View key={item.exerciseId} style={styles.absoluteMaxRow}>
-                        <Text
-                          style={[styles.absoluteMaxExercise, { color: themeColors.text }]}
-                          numberOfLines={1}
-                        >
-                          {item.exerciseName}
-                        </Text>
-                        <Text
-                          style={[styles.absoluteMaxValue, { color: themeColors.text }]}
-                        >
-                          {item.maxWeight.toFixed(1)} {getTranslation(language, "kg")}
-                        </Text>
-                      </View>
-                    ))}
+                    </Text>*/}
+                    {/* Заголовок таблицы */}
+                    <View style={styles.absMaxTableHeader}>
+                      <Text style={[styles.absMaxHeaderCell, styles.absMaxHeaderExercise, { color: themeColors.text }]}>
+                        {getTranslation(language, "exercise")}
+                      </Text>
+                      <Text style={[styles.absMaxHeaderCell, styles.absMaxHeaderValue, { color: themeColors.text }]}>
+                        {getTranslation(language, "max")}
+                      </Text>
+                      <Text style={[styles.absMaxHeaderCell, styles.absMaxHeaderValue, { color: themeColors.text }]}>
+                        {getTranslation(language, "trend")}
+                      </Text>
+                      <Text style={[styles.absMaxHeaderCell, styles.absMaxHeaderValue, { color: themeColors.text }]}>
+                        {getTranslation(language, "rel")}
+                      </Text>
+                    </View>
+                    {/* Данные таблицы */}
+                    {absoluteMaxWeight.map((item) => {
+                      const trendColor = item.trend >= 0
+                        ? themeColors.success
+                        : themeColors.error;
+                      const confidencePercent = Math.round(item.confidence * 100);
+                      const confidenceOpacity = item.confidence;
+                      const confidenceColor = `rgba(${Math.round(255 * (1 - item.confidence))}, ${Math.round(100 * item.confidence)}, ${Math.round(100 * item.confidence)}, ${confidenceOpacity})`;
+
+                      return (
+                        <View key={item.exerciseId} style={styles.absMaxRow}>
+                          <Text
+                            style={[styles.absMaxCell, styles.absMaxCellExercise, { color: themeColors.text }]}
+                            numberOfLines={2}
+                          >
+                            {item.exerciseName}
+                          </Text>
+                          <Text
+                            style={[styles.absMaxCell, styles.absMaxCellValue, { color: themeColors.text }]}
+                          >
+                            {item.maxWeight.toFixed(1)}
+                          </Text>
+                          <Text
+                            style={[styles.absMaxCell, styles.absMaxCellValue, { color: trendColor }]}
+                          >
+                            {item.trend >= 0 ? '+' : ''}{item.trend.toFixed(2)}
+                          </Text>
+                          <Text
+                            style={[styles.absMaxCell, styles.absMaxCellValue, { backgroundColor: confidenceColor, borderRadius: 12, color: '#FFFFFF', fontWeight: '600', fontSize: 12 }]}
+                          >
+                            {confidencePercent}%
+                          </Text>
+                        </View>
+                      );
+                    })}
                   </View>
                 </View>
               )}
@@ -1358,23 +1438,45 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
   },
-  absoluteMaxRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 8,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(128, 128, 128, 0.2)",
+  absMaxTableHeader: {
+    flexDirection: 'row' as const,
+    borderBottomWidth: 2,
+    borderBottomColor: 'rgba(128, 128, 128, 0.3)',
+    paddingBottom: 8,
+    marginBottom: 8,
     marginTop: 8,
   },
-  absoluteMaxExercise: {
-    fontSize: 14,
-    flex: 1,
-    marginRight: 8,
+  absMaxHeaderCell: {
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center' as const,
   },
-  absoluteMaxValue: {
-    fontSize: 18,
-    fontWeight: "bold",
+  absMaxHeaderExercise: {
+    width: 120,
+    textAlign: 'left' as const,
+  },
+  absMaxHeaderValue: {
+    width: 70,
+  },
+  absMaxRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(128, 128, 128, 0.15)',
+  },
+  absMaxCell: {
+    fontSize: 14,
+    textAlign: 'center' as const,
+  },
+  absMaxCellExercise: {
+    width: 120,
+    textAlign: 'left' as const,
+    fontSize: 12,
+    paddingRight: 8,
+  },
+  absMaxCellValue: {
+    width: 70,
   },
   crepatureContainer: {
     marginVertical: 16,
