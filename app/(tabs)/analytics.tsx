@@ -4,7 +4,7 @@ import Plot from "@/components/Plot";
 import ResultsList from "@/components/ResultsList";
 import { Colors } from "@/constants/Colors";
 import useSettingsStore from "@/store/settingsStore";
-import { calculateTrend, calculatePredicted1RM } from "@/utils/analyticsUtils";
+import { calculatePredicted1RM, calculateTrend, getComparisonObject } from "@/utils/analyticsUtils";
 import { formatTranslation, getTranslation } from "@/utils/localization";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useRoute } from "@react-navigation/native";
@@ -749,15 +749,30 @@ export default function AnalyticsScreen() {
       });
   };
 
-  const calculateMetrics = () => {
+  type MetricsType = {
+    avgSetsPerWeek: number | null;
+    avgTonnageProgress: number | null;
+    avgWeightProgress: number | null;
+    totalTonnage: number;
+  };
+
+  const calculateMetrics = (): MetricsType => {
     const allResults = getAllResults();
     if (allResults.length === 0) {
       return {
         avgSetsPerWeek: null,
         avgTonnageProgress: null,
         avgWeightProgress: null,
+        totalTonnage: 0,
       };
     }
+
+    // Расчет общего тоннажа за все время (в тоннах)
+    const totalTonnageKg = allResults.reduce(
+      (sum, result) => sum + result.weight * result.reps,
+      0
+    );
+    const totalTonnageTonnes = totalTonnageKg / 1000;
 
     const allDates = allResults.map((r) => r.date).sort();
     const start = new Date(allDates[0]);
@@ -886,6 +901,7 @@ export default function AnalyticsScreen() {
       avgSetsPerWeek,
       avgTonnageProgress,
       avgWeightProgress,
+      totalTonnage: totalTonnageTonnes,
     };
   };
 
@@ -1148,6 +1164,40 @@ export default function AnalyticsScreen() {
             <>
               {showMetrics && (
                 <View style={styles.metricsContainer}>
+                  <View
+                    style={[
+                      styles.metricCard,
+                      { backgroundColor: themeColors.card },
+                    ]}
+                  >
+                    <Text
+                      style={[styles.metricTitle, { color: themeColors.text }]}
+                    >
+                      {getTranslation(language, "totalTonnage")}
+                    </Text>
+                    <Text
+                      style={[styles.metricValue, { color: themeColors.text }]}
+                    >
+                      {metrics.totalTonnage && metrics.totalTonnage > 0
+                        ? `${metrics.totalTonnage.toFixed(2)} ${getTranslation(language, "t")}`
+                        : "—"}
+                    </Text>
+                    {metrics.totalTonnage && metrics.totalTonnage > 0 && (() => {
+                      const comparisonObj = getComparisonObject(metrics.totalTonnage);
+                      if (comparisonObj) {
+                        return (
+                          <Text
+                            style={[styles.metricComparison, { color: themeColors.text }]}
+                          >
+                            {formatTranslation(language, "totalTonnageComparison", {
+                              object: getTranslation(language, comparisonObj.nameKey as any),
+                            })}
+                          </Text>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </View>
                   <View
                     style={[
                       styles.metricCard,
@@ -1472,6 +1522,11 @@ const styles = StyleSheet.create({
   metricValue: {
     fontSize: 24,
     fontWeight: "bold",
+  },
+  metricComparison: {
+    fontSize: 12,
+    marginTop: 4,
+    opacity: 0.7,
   },
   absMaxTableHeader: {
     flexDirection: 'row' as const,
