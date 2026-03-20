@@ -211,7 +211,8 @@ export function calculateSorenessLevel(
   const timeDiff = today.getTime() - lastWorkoutDate.getTime();
   const daysDiff = timeDiff / (1000 * 3600 * 24);
 
-  if (daysDiff <= 0.1) {
+  if (daysDiff < 1) {
+    console.log(`daysDiff ${daysDiff}`);
     if (sets > 4) return 'strong';
     else if (sets > 3) return 'medium';
     else if (sets > 2) return 'weak';
@@ -220,6 +221,10 @@ export function calculateSorenessLevel(
 
   // Применяем коэффициент мышцы к количеству сетов
   const s = (sets * muscleCoefficient) / daysDiff;
+  console.log(`muscleCoefficient ${muscleCoefficient}`);
+  console.log(`daysDiff ${daysDiff}`);
+  console.log(`sets ${sets}`);
+  console.log(`s ${s}`)
 
   if (s > 4) return 'strong';
   else if (s > 3) return 'medium';

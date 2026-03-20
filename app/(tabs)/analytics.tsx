@@ -743,8 +743,8 @@ export default function AnalyticsScreen() {
         plan.trainings.flatMap((training) => training.results || []),
       )
       .filter((result) => {
-        if (dateFilterStart && result.date < dateFilterStart) return false;
-        if (dateFilterEnd && result.date > dateFilterEnd) return false;
+        //if (dateFilterStart && result.date < dateFilterStart) return false;
+        //if (dateFilterEnd && result.date > dateFilterEnd) return false;
         return true;
       });
   };

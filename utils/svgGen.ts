@@ -12,7 +12,7 @@ export function generateAthleteSvg(c: MuscleColors): string {
   return `<svg
      version="1.1"
      style="display: block;"
-     viewBox="0 0 2048 2048"
+     viewBox="0 250 2048 2048"
      width="1024"
      height="1024"
      preserveAspectRatio="none"

@@ -3,6 +3,7 @@ import useSettingsStore from "@/store/settingsStore";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
+  Alert, ScrollView,
   StyleSheet,
   Switch,
   Text,
@@ -16,9 +17,7 @@ import { ExportScreen } from "@/components/ExportScreen";
 import { ImportScreen } from "@/components/ImportScreen";
 import { getTranslation } from "@/utils/localization";
 import { importOldVersionData } from "@/utils/oldVersionImport";
-import { DEFAULT_MUSCLE_COEFFICIENTS, MuscleCoefficients } from "@/utils/analyticsUtils";
 import * as DocumentPicker from "expo-document-picker";
-import { Alert, ScrollView } from "react-native";
 
 export default function SettingsScreen() {
   const {
@@ -362,6 +361,7 @@ export default function SettingsScreen() {
             onChange={(value) =>
               setMuscleCoefficients({ ...muscleCoefficients, chest: value })
             }
+            colors={colors}
           />
 
           <MuscleCoefficientInput
@@ -370,6 +370,7 @@ export default function SettingsScreen() {
             onChange={(value) =>
               setMuscleCoefficients({ ...muscleCoefficients, back: value })
             }
+            colors={colors}
           />
 
           <MuscleCoefficientInput
@@ -378,6 +379,7 @@ export default function SettingsScreen() {
             onChange={(value) =>
               setMuscleCoefficients({ ...muscleCoefficients, biceps: value })
             }
+            colors={colors}
           />
 
           <MuscleCoefficientInput
@@ -386,6 +388,7 @@ export default function SettingsScreen() {
             onChange={(value) =>
               setMuscleCoefficients({ ...muscleCoefficients, triceps: value })
             }
+            colors={colors}
           />
 
           <MuscleCoefficientInput
@@ -394,6 +397,7 @@ export default function SettingsScreen() {
             onChange={(value) =>
               setMuscleCoefficients({ ...muscleCoefficients, delts: value })
             }
+            colors={colors}
           />
 
           <MuscleCoefficientInput
@@ -402,6 +406,7 @@ export default function SettingsScreen() {
             onChange={(value) =>
               setMuscleCoefficients({ ...muscleCoefficients, legs: value })
             }
+            colors={colors}
           />
         </View>
       )}
@@ -656,18 +661,20 @@ interface MuscleCoefficientInputProps {
   label: string;
   value: number;
   onChange: (value: number) => void;
+  colors: any;
 }
 
 const MuscleCoefficientInput: React.FC<MuscleCoefficientInputProps> = ({
   label,
   value,
   onChange,
+  colors
 }) => {
   return (
     <View style={styles.coefficientInputRow}>
-      <Text style={styles.coefficientLabel}>{label}</Text>
+      <Text style={[styles.coefficientLabel, { color: colors.text }]}>{label}</Text>
       <TextInput
-        style={styles.coefficientInput}
+        style={[styles.coefficientInput, { color: colors.text }]}
         keyboardType="decimal-pad"
         value={value.toString()}
         onChangeText={(text) => {
