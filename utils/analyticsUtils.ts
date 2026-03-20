@@ -226,3 +226,24 @@ export function calculateSorenessLevel(
   else if (s > 2) return 'weak';
   else return 'none';
 }
+
+/**
+ * Расчет прогнозного максимума на 1 повторение (1RM)
+ * Формула зависит от количества повторений:
+ * - до 10 повторов включительно: 1rm = m * (36 / (37 - n))
+ * - после 10 до 16: 1rm = (m * n * 0.0333) + m
+ * - 16 включительно и больше: 1rm = (100 * m) / (101.3 - 2.67123 * n)
+ *
+ * @param weight - вес (m)
+ * @param reps - повторения (n)
+ * @returns прогнозный максимум на 1 повторение
+ */
+export function calculatePredicted1RM(weight: number, reps: number): number {
+  if (reps <= 10) {
+    return weight * (36 / (37 - reps));
+  } else if (reps < 16) {
+    return (weight * reps * 0.0333) + weight;
+  } else {
+    return (100 * weight) / (101.3 - 2.67123 * reps);
+  }
+}

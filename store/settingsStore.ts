@@ -13,6 +13,7 @@ type VisibleMetrics = {
   minWeight: boolean;
   workoutTime: boolean;
   specificTonnage: boolean;
+  predicted1rm: boolean;
 };
 
 type SettingsState = {
@@ -49,6 +50,7 @@ const defaultState: Omit<SettingsState, keyof FunctionProperties<SettingsState>>
     minWeight: true,
     workoutTime: true,
     specificTonnage: true,
+    predicted1rm: true,
   },
   muscleCoefficients: DEFAULT_MUSCLE_COEFFICIENTS,
 };

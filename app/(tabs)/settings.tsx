@@ -338,6 +338,18 @@ export default function SettingsScreen() {
             />
           </View>
 
+          <View style={styles.checkboxRow}>
+            <Text style={[styles.checkboxLabel, { color: colors.text }]}>
+              {getTranslation(language, "predicted1rm")}
+            </Text>
+            <Switch
+              value={visibleMetrics.predicted1rm}
+              onValueChange={(value) =>
+                setVisibleMetrics({ ...visibleMetrics, predicted1rm: value })
+              }
+            />
+          </View>
+
           <View style={styles.divider} />
 
           <Text style={[styles.accordionLabel, { color: colors.text }]}>

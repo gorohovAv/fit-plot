@@ -4,7 +4,7 @@ import Plot from "@/components/Plot";
 import ResultsList from "@/components/ResultsList";
 import { Colors } from "@/constants/Colors";
 import useSettingsStore from "@/store/settingsStore";
-import { calculateTrend } from "@/utils/analyticsUtils";
+import { calculateTrend, calculatePredicted1RM } from "@/utils/analyticsUtils";
 import { formatTranslation, getTranslation } from "@/utils/localization";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useRoute } from "@react-navigation/native";
@@ -59,6 +59,7 @@ export default function AnalyticsScreen() {
     minWeight: Dataset[];
     workoutTime: Dataset[];
     specificTonnage: Dataset[];
+    predicted1rm: Dataset[];
   }>({
     tonnage: [],
     maxWeight: [],
@@ -67,6 +68,7 @@ export default function AnalyticsScreen() {
     minWeight: [],
     workoutTime: [],
     specificTonnage: [],
+    predicted1rm: [],
   });
   const [absoluteMaxWeight, setAbsoluteMaxWeight] = useState<{
     exerciseId: string;
@@ -268,6 +270,7 @@ export default function AnalyticsScreen() {
           minWeight: [],
           workoutTime: [],
           specificTonnage: [],
+          predicted1rm: [],
         });
         setIsLoading(false);
         return;
@@ -351,6 +354,7 @@ export default function AnalyticsScreen() {
           workoutTime: [],
           avgWeight: [],
           specificTonnage: [],
+          predicted1rm: [],
         });
         setAbsoluteMaxWeight([]);
         setIsLoading(false);
@@ -375,6 +379,7 @@ export default function AnalyticsScreen() {
       const minWeightData: Dataset[] = [];
       const workoutTimeData: Dataset[] = [];
       const specificTonnageData: Dataset[] = [];
+      const predicted1rmData: Dataset[] = [];
 
       selectedExerciseIds.forEach((exerciseId) => {
         const exerciseResults = allResults.filter(
@@ -386,8 +391,9 @@ export default function AnalyticsScreen() {
           const groupedByDay = exerciseResults.reduce(
             (acc, result) => {
               const day = getDayString(result.date);
+              const predicted1rmValue = calculatePredicted1RM(result.weight, result.reps);
               if (!acc[day]) {
-                acc[day] = { tonnage: 0, maxWeight: 0, maxReps: 0, totalWeight: 0, count: 0, minWeight: Infinity, timestamps: [] as string[] };
+                acc[day] = { tonnage: 0, maxWeight: 0, maxReps: 0, totalWeight: 0, count: 0, minWeight: Infinity, predicted1rm: 0, timestamps: [] as string[] };
               }
               acc[day].tonnage += result.weight * result.reps;
               acc[day].maxWeight = Math.max(acc[day].maxWeight, result.weight);
@@ -395,12 +401,13 @@ export default function AnalyticsScreen() {
               acc[day].totalWeight += result.weight;
               acc[day].count += 1;
               acc[day].minWeight = Math.min(acc[day].minWeight, result.weight);
+              acc[day].predicted1rm = Math.max(acc[day].predicted1rm, predicted1rmValue);
               acc[day].timestamps.push(result.date);
               return acc;
             },
             {} as Record<
               string,
-              { tonnage: number; maxWeight: number; maxReps: number; totalWeight: number; count: number; minWeight: number; timestamps: string[] }
+              { tonnage: number; maxWeight: number; maxReps: number; totalWeight: number; count: number; minWeight: number; predicted1rm: number; timestamps: string[] }
             >,
           );
 
@@ -459,6 +466,15 @@ export default function AnalyticsScreen() {
             axisLabel: getTranslation(language, "tonnage"),
             name: exercise.name,
           });
+
+          predicted1rmData.push({
+            data: sortedDays.map((day) => ({
+              x: day,
+              y: groupedByDay[day].predicted1rm,
+            })),
+            axisLabel: getTranslation(language, "weightLabel"),
+            name: exercise.name,
+          });
         }
       });
 
@@ -475,8 +491,9 @@ export default function AnalyticsScreen() {
             const groupedPlannedByDay = exercisePlannedResults.reduce(
               (acc, planned) => {
                 const day = getDayString(planned.plannedDate);
+                const predicted1rmValue = calculatePredicted1RM(planned.plannedWeight, planned.plannedReps);
                 if (!acc[day]) {
-                  acc[day] = { tonnage: 0, maxWeight: 0, maxReps: 0, totalWeight: 0, count: 0, minWeight: Infinity, timestamps: [] as string[] };
+                  acc[day] = { tonnage: 0, maxWeight: 0, maxReps: 0, totalWeight: 0, count: 0, minWeight: Infinity, predicted1rm: 0, timestamps: [] as string[] };
                 }
                 acc[day].tonnage += planned.plannedWeight * planned.plannedReps;
                 acc[day].maxWeight = Math.max(
@@ -490,12 +507,13 @@ export default function AnalyticsScreen() {
                 acc[day].totalWeight += planned.plannedWeight;
                 acc[day].count += 1;
                 acc[day].minWeight = Math.min(acc[day].minWeight, planned.plannedWeight);
+                acc[day].predicted1rm = Math.max(acc[day].predicted1rm, predicted1rmValue);
                 acc[day].timestamps.push(planned.plannedDate);
                 return acc;
               },
               {} as Record<
                 string,
-                { tonnage: number; maxWeight: number; maxReps: number; totalWeight: number; count: number; minWeight: number; timestamps: string[] }
+                { tonnage: number; maxWeight: number; maxReps: number; totalWeight: number; count: number; minWeight: number; predicted1rm: number; timestamps: string[] }
               >,
             );
 
@@ -552,6 +570,15 @@ export default function AnalyticsScreen() {
                 y: groupedPlannedByDay[day].count > 0 ? groupedPlannedByDay[day].tonnage / groupedPlannedByDay[day].count : 0,
               })),
               axisLabel: getTranslation(language, "tonnage"),
+              name: `${exercise.name} (план)`,
+            });
+
+            predicted1rmData.push({
+              data: sortedPlannedDays.map((day) => ({
+                x: day,
+                y: groupedPlannedByDay[day].predicted1rm,
+              })),
+              axisLabel: getTranslation(language, "weightLabel"),
               name: `${exercise.name} (план)`,
             });
           }
@@ -654,6 +681,7 @@ export default function AnalyticsScreen() {
         minWeight: minWeightData,
         workoutTime: workoutTimeData,
         specificTonnage: specificTonnageData,
+        predicted1rm: predicted1rmData,
       });
 
       console.log('[AnalyticsScreen] processData: Data processed, setting isLoading=false');
@@ -1299,6 +1327,13 @@ export default function AnalyticsScreen() {
                     themeColors.chartLine,
                     getTranslation(language, "date"),
                     getTranslation(language, "tonnage"),
+                  )}
+                  {visibleMetrics.predicted1rm && renderChart(
+                    chartData.predicted1rm,
+                    getTranslation(language, "predicted1rm"),
+                    themeColors.chartLine,
+                    getTranslation(language, "date"),
+                    getTranslation(language, "weightLabel"),
                   )}
                 </>
               )}
