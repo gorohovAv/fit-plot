@@ -149,7 +149,7 @@ function calculateLinearRegression(data: number[]): number {
 /**
  * Расчет достоверности
  * достоверность = 1 - ((количество выбросов)^2)/(количество значений)
- * 
+ *
  * @param totalCount - количество значений
  * @param outliersCount - количество выбросов
  * @returns достоверность от 0 до 1
@@ -163,4 +163,66 @@ function calculateConfidence(totalCount: number, outliersCount: number): number 
 
   // Если получилось отрицательное, возвращаем ноль
   return Math.max(0, confidence);
+}
+
+/**
+ * Уровни крепатуры
+ */
+export type SorenessLevel = 'none' | 'weak' | 'medium' | 'strong';
+
+/**
+ * Коэффициенты мышц для расчета крепатуры
+ */
+export type MuscleCoefficients = {
+  chest: number;
+  back: number;
+  biceps: number;
+  triceps: number;
+  delts: number;
+  legs: number;
+};
+
+/**
+ * Коэффициенты мышц по умолчанию
+ */
+export const DEFAULT_MUSCLE_COEFFICIENTS: MuscleCoefficients = {
+  chest: 1,
+  back: 1,
+  biceps: 1,
+  triceps: 1,
+  delts: 1,
+  legs: 1,
+};
+
+/**
+ * Расчет уровня крепатуры на основе количества сетов и времени прошедшего с тренировки
+ *
+ * @param sets - количество сетов
+ * @param lastWorkoutDate - дата последней тренировки
+ * @param muscleCoefficient - коэффициент мышцы (по умолчанию 1)
+ * @returns уровень крепатуры
+ */
+export function calculateSorenessLevel(
+  sets: number,
+  lastWorkoutDate: Date,
+  muscleCoefficient: number = 1,
+): SorenessLevel {
+  const today = new Date();
+  const timeDiff = today.getTime() - lastWorkoutDate.getTime();
+  const daysDiff = timeDiff / (1000 * 3600 * 24);
+
+  if (daysDiff <= 0.1) {
+    if (sets > 4) return 'strong';
+    else if (sets > 3) return 'medium';
+    else if (sets > 2) return 'weak';
+    else return 'none';
+  }
+
+  // Применяем коэффициент мышцы к количеству сетов
+  const s = (sets * muscleCoefficient) / daysDiff;
+
+  if (s > 4) return 'strong';
+  else if (s > 3) return 'medium';
+  else if (s > 2) return 'weak';
+  else return 'none';
 }

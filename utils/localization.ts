@@ -22,6 +22,13 @@ export const translations = {
     avgWeight: "Average weight",
     minWeight: "Min weight",
     workoutTime: "Workout time",
+    muscleCoefficients: "Muscle coefficients",
+    chest: "Chest",
+    back: "Back",
+    biceps: "Biceps",
+    triceps: "Triceps",
+    delts: "Delts",
+    legs: "Legs",
 
     // Calories
     calories: "Calories",
@@ -233,6 +240,13 @@ Pull-ups
     avgWeight: "Средний вес",
     minWeight: "Минимальный вес",
     workoutTime: "Время тренировки",
+    muscleCoefficients: "Коэффициенты мышц",
+    chest: "Грудь",
+    back: "Спина",
+    biceps: "Бицепс",
+    triceps: "Трицепс",
+    delts: "Плечи",
+    legs: "Ноги",
 
     // Calories
     calories: "Калории",

@@ -1,40 +1,19 @@
 /* eslint-disable @typescript-eslint/array-type */
 // @ts-nocheck
 import { generateAthleteSvg } from "@/utils/svgGen";
+import { calculateSorenessLevel, MuscleCoefficients, DEFAULT_MUSCLE_COEFFICIENTS } from "@/utils/analyticsUtils";
 import React, { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { WebView } from "react-native-webview";
 import * as dbLayer from "../store/dbLayer";
 import { MuscleGroup } from "../store/store";
+import useSettingsStore from "../store/settingsStore";
 
 export const SORENESS_COLORS = {
   none: "#484537",
   weak: "#FF5C5C",
   medium: "#FF0808",
   strong: "#A30000",
-};
-
-export const calculateSorenessLevel = (
-  sets: number,
-  lastWorkoutDate: Date,
-): string => {
-  const today = new Date();
-  const timeDiff = today.getTime() - lastWorkoutDate.getTime();
-  const daysDiff = timeDiff / (1000 * 3600 * 24);
-
-  if (daysDiff <= 0.1) {
-    if (sets > 4) return "strong";
-    else if (sets > 3) return "medium";
-    else if (sets > 2) return "weak";
-    else return "none";
-  }
-
-  const s = sets / daysDiff;
-
-  if (s > 4) return "strong";
-  else if (s > 3) return "medium";
-  else if (s > 2) return "weak";
-  else return "none";
 };
 
 interface MuscleData {
@@ -57,6 +36,7 @@ interface CrepatureProps {
 
 const Crepature: React.FC<CrepatureProps> = ({ muscleData = [] }) => {
   const [svgContent, setSvgContent] = useState("");
+  const muscleCoefficients = useSettingsStore((state) => state.muscleCoefficients);
 
   const fetchMuscleData = async () => {
     try {
@@ -196,9 +176,11 @@ const Crepature: React.FC<CrepatureProps> = ({ muscleData = [] }) => {
       //console.log("[Crepature] Raw muscle data from DB:", dataToUse);
 
       dataToUse.forEach((muscle) => {
+        const coefficient = muscleCoefficients?.[muscle.muscleGroup] ?? DEFAULT_MUSCLE_COEFFICIENTS[muscle.muscleGroup];
         const sorenessLevel = calculateSorenessLevel(
           muscle.sets,
           muscle.lastWorkoutDate,
+          coefficient,
         );
         muscleColors[muscle.muscleGroup] =
           SORENESS_COLORS[sorenessLevel as keyof typeof SORENESS_COLORS];
@@ -206,7 +188,7 @@ const Crepature: React.FC<CrepatureProps> = ({ muscleData = [] }) => {
         const today = new Date();
         const timeDiff = today.getTime() - muscle.lastWorkoutDate.getTime();
         const daysDiff = timeDiff / (1000 * 3600 * 24);
-        const s = muscle.sets / daysDiff;
+        const s = (muscle.sets * coefficient) / daysDiff;
 
         //console.log(
           //`[Crepature] Muscle: ${muscle.muscleGroup}, Sets: ${muscle.sets}, Days since workout: ${daysDiff.toFixed(2)}, S-value: ${s.toFixed(2)}, Soreness level: ${sorenessLevel}, Color: ${SORENESS_COLORS[sorenessLevel as keyof typeof SORENESS_COLORS]}`,
@@ -231,7 +213,7 @@ const Crepature: React.FC<CrepatureProps> = ({ muscleData = [] }) => {
     };
 
     loadAndGenerateSvg();
-  }, [muscleData]);
+  }, [muscleData, muscleCoefficients]);
 
   return (
     <View style={styles.container}>

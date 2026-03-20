@@ -16,6 +16,7 @@ import { ExportScreen } from "@/components/ExportScreen";
 import { ImportScreen } from "@/components/ImportScreen";
 import { getTranslation } from "@/utils/localization";
 import { importOldVersionData } from "@/utils/oldVersionImport";
+import { DEFAULT_MUSCLE_COEFFICIENTS, MuscleCoefficients } from "@/utils/analyticsUtils";
 import * as DocumentPicker from "expo-document-picker";
 import { Alert, ScrollView } from "react-native";
 
@@ -27,12 +28,14 @@ export default function SettingsScreen() {
     language,
     maxMicrohistorySize,
     visibleMetrics,
+    muscleCoefficients,
     setTheme,
     setWeight,
     setDevMode,
     setLanguage,
     setMaxMicrohistorySize,
     setVisibleMetrics,
+    setMuscleCoefficients,
   } = useSettingsStore();
   const systemTheme = useColorScheme();
   const currentTheme = theme === "system" ? systemTheme : theme;
@@ -334,6 +337,60 @@ export default function SettingsScreen() {
               }
             />
           </View>
+
+          <View style={styles.divider} />
+
+          <Text style={[styles.accordionLabel, { color: colors.text }]}>
+            {getTranslation(language, "muscleCoefficients")}
+          </Text>
+
+          <MuscleCoefficientInput
+            label={getTranslation(language, "chest")}
+            value={muscleCoefficients.chest}
+            onChange={(value) =>
+              setMuscleCoefficients({ ...muscleCoefficients, chest: value })
+            }
+          />
+
+          <MuscleCoefficientInput
+            label={getTranslation(language, "back")}
+            value={muscleCoefficients.back}
+            onChange={(value) =>
+              setMuscleCoefficients({ ...muscleCoefficients, back: value })
+            }
+          />
+
+          <MuscleCoefficientInput
+            label={getTranslation(language, "biceps")}
+            value={muscleCoefficients.biceps}
+            onChange={(value) =>
+              setMuscleCoefficients({ ...muscleCoefficients, biceps: value })
+            }
+          />
+
+          <MuscleCoefficientInput
+            label={getTranslation(language, "triceps")}
+            value={muscleCoefficients.triceps}
+            onChange={(value) =>
+              setMuscleCoefficients({ ...muscleCoefficients, triceps: value })
+            }
+          />
+
+          <MuscleCoefficientInput
+            label={getTranslation(language, "delts")}
+            value={muscleCoefficients.delts}
+            onChange={(value) =>
+              setMuscleCoefficients({ ...muscleCoefficients, delts: value })
+            }
+          />
+
+          <MuscleCoefficientInput
+            label={getTranslation(language, "legs")}
+            value={muscleCoefficients.legs}
+            onChange={(value) =>
+              setMuscleCoefficients({ ...muscleCoefficients, legs: value })
+            }
+          />
         </View>
       )}
 
@@ -558,4 +615,60 @@ const styles = StyleSheet.create({
   checkboxLabel: {
     fontSize: 15,
   },
+  divider: {
+    height: 1,
+    backgroundColor: 'rgba(128,128,128,0.3)',
+    marginVertical: 12,
+  },
+  coefficientInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+  },
+  coefficientLabel: {
+    fontSize: 15,
+    flex: 1,
+  },
+  coefficientInput: {
+    width: 80,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 8,
+    fontSize: 16,
+    textAlign: 'right',
+  },
 });
+
+interface MuscleCoefficientInputProps {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+}
+
+const MuscleCoefficientInput: React.FC<MuscleCoefficientInputProps> = ({
+  label,
+  value,
+  onChange,
+}) => {
+  return (
+    <View style={styles.coefficientInputRow}>
+      <Text style={styles.coefficientLabel}>{label}</Text>
+      <TextInput
+        style={styles.coefficientInput}
+        keyboardType="decimal-pad"
+        value={value.toString()}
+        onChangeText={(text) => {
+          const num = parseFloat(text.replace(',', '.'));
+          if (!isNaN(num) && num >= 0) {
+            onChange(num);
+          } else if (text === '') {
+            onChange(0);
+          }
+        }}
+        placeholder="1.0"
+        placeholderTextColor="rgba(128,128,128,0.7)"
+      />
+    </View>
+  );
+};

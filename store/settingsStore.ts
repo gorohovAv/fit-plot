@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Language } from "@/utils/localization";
+import { MuscleCoefficients, DEFAULT_MUSCLE_COEFFICIENTS } from "@/utils/analyticsUtils";
 
 type Theme = "light" | "dark" | "system";
 
@@ -21,12 +22,14 @@ type SettingsState = {
   language: Language;
   maxMicrohistorySize: number;
   visibleMetrics: VisibleMetrics;
+  muscleCoefficients: MuscleCoefficients;
   setTheme: (theme: Theme) => void;
   setWeight: (weight: number) => void;
   setDevMode: (devMode: boolean) => void;
   setLanguage: (language: Language) => void;
   setMaxMicrohistorySize: (size: number) => void;
   setVisibleMetrics: (visibleMetrics: VisibleMetrics) => void;
+  setMuscleCoefficients: (coefficients: MuscleCoefficients) => void;
   initializeFromDB: () => Promise<void>;
 };
 
@@ -47,6 +50,7 @@ const defaultState: Omit<SettingsState, keyof FunctionProperties<SettingsState>>
     workoutTime: true,
     specificTonnage: true,
   },
+  muscleCoefficients: DEFAULT_MUSCLE_COEFFICIENTS,
 };
 
 type FunctionProperties<T> = {
@@ -65,6 +69,7 @@ const loadPersistedSettings = async (): Promise<Partial<SettingsState> | null> =
       language: parsed.language ?? defaultState.language,
       maxMicrohistorySize: parsed.maxMicrohistorySize ?? defaultState.maxMicrohistorySize,
       visibleMetrics: parsed.visibleMetrics ?? defaultState.visibleMetrics,
+      muscleCoefficients: parsed.muscleCoefficients ?? defaultState.muscleCoefficients,
     };
   } catch (error) {
     console.error("Ошибка загрузки настроек из AsyncStorage:", error);
@@ -82,6 +87,7 @@ const savePersistedSettings = async (state: Partial<SettingsState>) => {
       language: current.language,
       maxMicrohistorySize: current.maxMicrohistorySize,
       visibleMetrics: current.visibleMetrics,
+      muscleCoefficients: current.muscleCoefficients,
       ...state,
     };
     await AsyncStorage.setItem(PERSIST_KEY, JSON.stringify(toSave));
@@ -115,6 +121,10 @@ const useSettingsStore = create<SettingsState>()((set, get) => ({
   setVisibleMetrics: (visibleMetrics: VisibleMetrics) => {
     set({ visibleMetrics });
     savePersistedSettings({ visibleMetrics });
+  },
+  setMuscleCoefficients: (coefficients: MuscleCoefficients) => {
+    set({ muscleCoefficients: coefficients });
+    savePersistedSettings({ muscleCoefficients: coefficients });
   },
   initializeFromDB: async () => {
     // Настройки хранятся в AsyncStorage, инициализация не требуется
