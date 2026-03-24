@@ -207,6 +207,7 @@ export function calculateSorenessLevel(
   lastWorkoutDate: Date,
   muscleCoefficient: number = 1,
 ): SorenessLevel {
+  
   const today = new Date();
   const timeDiff = today.getTime() - lastWorkoutDate.getTime();
   const daysDiff = timeDiff / (1000 * 3600 * 24);

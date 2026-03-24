@@ -1463,6 +1463,9 @@ const styles = StyleSheet.create({
   },
   chartContainer: {
     marginBottom: 24,
+    borderRadius: 10,
+    paddingBottom: 10,
+    paddingTop: 10
   },
   chartTitle: {
     fontSize: 16,
