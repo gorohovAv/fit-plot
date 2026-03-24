@@ -205,7 +205,8 @@ Pull-ups
     weightDown: "Weight (bottom)",
     absMax: "Absolute max weight",
     trainingSettings: "Training settings",
-
+    dateFilter: "Filter by date",
+    analyticsFilterStart: "Start",
     // Comparison objects for total tonnage
     smallAircraftEngine: "Small aircraft engine",
     piano: "Piano",
@@ -298,10 +299,18 @@ Pull-ups
     pyramidOfKhufu: "Pyramid of Khufu",
     hooverDam: "Hoover Dam",
     totalTonnage: "Total tonnage",
-    totalTonnageComparison: "Comparable to: {object}"
+    totalTonnageComparison: "Comparable to: {object}",
+    analyticsFilterFinish: "Finish",
+    analyticsFilterExercises: "Exercises",
+    analyticsFilterPlanCap: "PLAN",
   },
   russian: {
     // Settings
+    dateFilter: "Фильтр по дате",
+    analyticsFilterStart: "Начало",
+    analyticsFilterFinish: "Окончание",
+    analyticsFilterExercises: "Упражнения",
+    analyticsFilterPlanCap: "ПЛАН",
     theme: "Тема",
     system: "Системная",
     light: "Светлая",

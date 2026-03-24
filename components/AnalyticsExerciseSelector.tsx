@@ -14,6 +14,7 @@ import { Colors } from "../constants/Colors";
 import useSettingsStore from "../store/settingsStore";
 import { Exercise, PlannedResult } from "../store/store";
 
+
 interface AnalyticsExerciseSelectorProps {
   isVisible: boolean;
   exercises: Exercise[];
@@ -122,10 +123,10 @@ const AnalyticsExerciseSelector: React.FC<AnalyticsExerciseSelectorProps> = ({
             {getTranslation(language, "selectExercises")}
           </Text>
           <ScrollView style={themedStyles.scrollView}>
-            <Text style={themedStyles.sectionTitle}>Фильтр по датам</Text>
+            <Text style={themedStyles.sectionTitle}>{getTranslation(language, "dateFilter")}</Text>
             <View style={themedStyles.dateInputContainer}>
               <View style={themedStyles.dateInputGroup}>
-                <Text style={themedStyles.dateLabel}>Начало</Text>
+                <Text style={themedStyles.dateLabel}>{getTranslation(language, "analyticsFilterStart")}</Text>
                 <TextInput
                   value={currentDateStart}
                   onChangeText={setCurrentDateStart}
@@ -135,7 +136,7 @@ const AnalyticsExerciseSelector: React.FC<AnalyticsExerciseSelectorProps> = ({
                 />
               </View>
               <View style={themedStyles.dateInputGroup}>
-                <Text style={themedStyles.dateLabel}>Конец</Text>
+                <Text style={themedStyles.dateLabel}>{getTranslation(language, "analyticsFilterFinish")}</Text>
                 <TextInput
                   value={currentDateEnd}
                   onChangeText={setCurrentDateEnd}
@@ -145,7 +146,7 @@ const AnalyticsExerciseSelector: React.FC<AnalyticsExerciseSelectorProps> = ({
                 />
               </View>
             </View>
-            <Text style={themedStyles.sectionTitle}>Упражнения</Text>
+            <Text style={themedStyles.sectionTitle}>{getTranslation(language, "analyticsFilterExercises")}</Text>
             {exercises.map((exercise) => (
               <View key={exercise.id} style={themedStyles.checkboxContainer}>
                 <Checkbox
@@ -188,7 +189,7 @@ const AnalyticsExerciseSelector: React.FC<AnalyticsExerciseSelectorProps> = ({
                         }
                       />
                       <Text style={themedStyles.checkboxLabel}>
-                        {exerciseName} - ПЛАН
+                        {exerciseName} - {getTranslation(language, "analyticsFilterPlanCap")}
                       </Text>
                     </View>
                   )
